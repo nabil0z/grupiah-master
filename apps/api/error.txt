@@ -1,0 +1,48 @@
+﻿[32m[Nest] 29112  - [39m03/03/2026, 00.07.24 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 29112  - [39m03/03/2026, 00.07.24 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +21ms[39m
+[32m[Nest] 29112  - [39m03/03/2026, 00.07.24 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+node : [31m[Nest] 29112  - [39m03/03/2026, 
+00.07.24 [31m  ERROR[39m 
+[38;5;3m[ExceptionHandler] [39mError: API 
+key must be set when using the Gemini API.
+At line:1 char:1
++ node dist/main.js 2>&1 | Out-File -FilePath 
+error.txt -Encoding utf8
++ ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   [31m[Nest] 291...the Gemini API.:String) [  
+  ], RemoteException
+    + FullyQualifiedErrorId : NativeCommandErr 
+   or
+ 
+    at new GoogleGenAI (C:\Users\62813\Download
+s\GRupiah\node_modules\[4m@google[24m\genai\d
+ist\node\index.cjs:20201:19)
+    at new BroadcastService [90m(C:\Users\6281
+3\Downloads\GRupiah\apps\api\[39mdist\broadcas
+t\broadcast.service.js:24:19[90m)[39m
+    at Injector.instantiateClass (C:\Users\6281
+3\Downloads\GRupiah\node_modules\[4m@nestjs[2
+4m\core\injector\injector.js:422:19)
+    at callback (C:\Users\62813\Downloads\GRupi
+ah\node_modules\[4m@nestjs[24m\core\injector\
+injector.js:70:45)
+    at async Injector.resolveConstructorParams 
+(C:\Users\62813\Downloads\GRupiah\node_modules\
+[4m@nestjs[24m\core\injector\injector.js:170:
+24)
+    at async Injector.loadInstance (C:\Users\62
+813\Downloads\GRupiah\node_modules\[4m@nestjs
+[24m\core\injector\injector.js:75:13)
+    at async Injector.loadProvider (C:\Users\62
+813\Downloads\GRupiah\node_modules\[4m@nestjs
+[24m\core\injector\injector.js:103:9)
+    at async C:\Users\62813\Downloads\GRupiah\n
+ode_modules\[4m@nestjs[24m\core\injector\inst
+ance-loader.js:56:13
+    at async Promise.all (index 4)
+    at async 
+InstanceLoader.createInstancesOfProviders (C:\U
+sers\62813\Downloads\GRupiah\node_modules\[4m@
+nestjs[24m\core\injector\instance-loader.js:55
+:9)

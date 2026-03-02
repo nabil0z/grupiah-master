@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String       @id @default(uuid())
+  telegramId       BigInt       @unique
+  username         String?
+  firstName        String?
+  lastName         String?
+  role             UserRole     @default(USER) // Membedakan antara USER biasa, ADMIN, SUPER_ADMIN
+  isMarketingAcc   Boolean      @default(false) // Flag khusus Bypass Approval Marketing
+  wallet           Wallet?
+  activeBoost      UserBoost? // Relasi khusus Boost berbayar via Telegram Stars
+  referralCode     String       @unique
+  referredById     String?
+  referredBy       User?        @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals        User[]       @relation("UserReferrals")
+  isReferralActive Boolean      @default(false) // Akan menjadi True & Bonus cair JIKA invitee menyelesaikan 1 Task API
+  dailyStreak      Int          @default(0)
+  lastLogin        DateTime?
+  badges           UserBadge[]
+  userTasks        UserTask[]
+  withdrawals      Withdrawal[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Wallet {
+  id        String           @id @default(uuid())
+  userId    String           @unique
+  user      User             @relation(fields: [userId], references: [id])
+  balance   Decimal          @default(0.0)
+  mutations WalletMutation[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model WalletMutation {
+  id          String       @id @default(uuid())
+  walletId    String
+  wallet      Wallet       @relation(fields: [walletId], references: [id])
+  amount      Decimal // Negatif jika withdraw, positif jika earn
+  type        MutationType // EARN, WITHDRAW, REFERRAL_BONUS, ADMIN_ADJUSTMENT
+  description String
+  createdAt   DateTime     @default(now())
+}
+
+enum MutationType {
+  EARN
+  WITHDRAW
+  REFERRAL_BONUS
+  ADMIN_ADJUSTMENT
+}
+
+model PlatformConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique // e.g., 'GLOBAL_REWARD_MULTIPLIER'
+  value     String // e.g., '10' (disimpan sebagai string, dikonversi sesuai kebutuhan)
+  updatedBy String? // Admin ID
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  provider    String // 'CUSTOM', 'OGADS', 'ADBLUEMEDIA'
+  externalId  String? // ID unik dari provider eksternal
+  title       String
+  description String
+  reward      Decimal
+  type        TaskType // AUTO, MANUAL
+  isActive    Boolean    @default(true)
+  userTasks   UserTask[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum TaskType {
+  AUTO
+  MANUAL
+}
+
+model UserTask {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  taskId    String
+  task      Task       @relation(fields: [taskId], references: [id])
+  status    TaskStatus // PENDING, APPROVED, REJECTED
+  proofUrl  String? // Link S3/R2 bukti screenshot (khusus MANUAL)
+  reward    Decimal? // Menyimpan nilai reward statis saat task diambil
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, taskId]) // Mencegah 1 user kerjakan 1 task berulang kali secara double submit
+}
+
+enum TaskStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Withdrawal {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  amount      Decimal
+  method      WithdrawalMethod
+  accountInfo String // JSON berisi no_rekening, bank, dll. (disarankan terenkripsi)
+  status      WithdrawStatus   @default(PENDING)
+  processedBy String? // ID Admin pengekseskusi
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+enum WithdrawalMethod {
+  BANK_TRANSFER
+  DANA
+  OVO
+  GOPAY
+}
+
+enum WithdrawStatus {
+  PENDING
+  PROCESSING
+  PAID
+  REJECTED
+}
+
+// History Penarikan Saldo Palsu untuk Social Proof di Frontend
+model FakeWithdrawHistory {
+  id             String   @id @default(uuid())
+  maskedUsername String   @default("user****") // e.g. "Budi*****", "0812****"
+  amount         Decimal
+  method         String // "DANA", "GOPAY", dll
+  createdAt      DateTime @default(now())
+}
+
+// Fitur Boost Pembayaran Telegram Stars
+model UserBoost {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  multiplierRate Decimal // misal 1.5, 2.0 (Pengali dari harga admin)
+  expiresAt      DateTime // Masa aktif boost (misal 24 jam)
+  purchasedStar  Int // Berapa Stars yang dibakar user
+  createdAt      DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String? // Admin ID / User ID
+  actorType  String // 'ADMIN' atau 'USER'
+  action     String // e.g., "WITHDRAWAL_APPROVED", "USER_BANNED"
+  entityType String // e.g., "Withdrawal", "UserTask"
+  entityId   String
+  changes    String? // Snapshot before & after state changes
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  iconUrl     String
+  condition   Int // Minimal kondisi pencapaian (e.g. 100 task total)
+  users       UserBadge[]
+}
+
+model UserBadge {
+  userId  String
+  badgeId String
+  user    User   @relation(fields: [userId], references: [id])
+  badge   Badge  @relation(fields: [badgeId], references: [id])
+
+  @@id([userId, badgeId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}

@@ -1,0 +1,150 @@
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Gift, Sparkles, X } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { userApi } from '../api/client';
+
+interface DailyCheckInProps {
+    onClose: () => void;
+    isOpen: boolean;
+    currentStreak: number;
+}
+
+export default function DailyCheckIn({ onClose, isOpen, currentStreak }: DailyCheckInProps) {
+    const [claimedDay, setClaimedDay] = useState<number | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const REWARDS = [
+        { day: 1, amount: "Rp 5.000" },
+        { day: 2, amount: "Rp 10.000" },
+        { day: 3, amount: "Rp 15.000" },
+        { day: 4, amount: "Rp 25.000" },
+        { day: 5, amount: "Rp 35.000" },
+        { day: 6, amount: "Rp 50.000" },
+        { day: 7, amount: "🎁 Box", isBig: true },
+    ];
+
+    if (!isOpen) return null;
+
+    return (
+        <AnimatePresence>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="bg-white rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden"
+                >
+                    {/* Close Button */}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 z-10 transition-colors"
+                    >
+                        <X size={16} />
+                    </button>
+
+                    {/* Header */}
+                    <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-6 pt-8 text-center relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc4JyBoZWlnaHQ9JzgnPgo8cmVjdCB3aWR0aD0nOCcgaGVpZ2h0PSc4JyBmaWxsPScjZmZmJyBmaWxsLW9wYWNpdHk9JzAuMScvPgo8cGF0aCBkPSdNMCAwaDh2OEgweicgZmlsbD0nbm9uZScvPgo8L3N2Zz4=')] opacity-20"></div>
+                        <Gift size={40} className="text-white mx-auto mb-2 drop-shadow-md" />
+                        <h2 className="text-2xl font-black text-white drop-shadow-md">Bonus Harian</h2>
+                        <p className="text-orange-100 text-sm font-medium mt-1">Sisa 1x Misi Aktif Hari Ini</p>
+                    </div>
+
+                    <div className="p-6">
+                        <p className="text-center text-slate-500 text-xs mb-6 px-4">
+                            Login 7 hari berturut-turut untuk membuka <strong>Mistery Box</strong> berisi RP 100.000!
+                        </p>
+
+                        <div className="grid grid-cols-4 gap-2 mb-4">
+                            {REWARDS.slice(0, 4).map((reward) => {
+                                const isChecked = reward.day <= currentStreak;
+                                const isToday = reward.day === currentStreak + 1;
+                                const isClaimedToday = claimedDay === reward.day;
+
+                                return (
+                                    <div key={reward.day}
+                                        className={cn(
+                                            "rounded-xl border flex flex-col items-center justify-center p-2 h-20 relative overflow-hidden transition-all duration-300",
+                                            isChecked ? "bg-emerald-50 border-emerald-200" :
+                                                (isToday && !isClaimedToday) ? "bg-amber-50 border-amber-300 ring-2 ring-amber-300/50 shadow-sm" :
+                                                    (isToday && isClaimedToday) ? "bg-emerald-500 border-emerald-600 text-white" : "bg-slate-50 border-slate-100"
+                                        )}
+                                    >
+                                        {isChecked ? (
+                                            <Check size={24} className="text-emerald-500" />
+                                        ) : (isToday && isClaimedToday) ? (
+                                            <Check size={24} className="text-white" />
+                                        ) : (
+                                            <>
+                                                {isToday && !isClaimedToday && (
+                                                    <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                                                )}
+                                                <span className={cn("text-xs font-bold", (isToday && !isClaimedToday) ? "text-amber-600" : "text-slate-400")}>H-{reward.day}</span>
+                                                <span className={cn("text-[10px] font-black mt-1 text-center leading-tight", (isToday && !isClaimedToday) ? "text-slate-900" : "text-slate-400")}>
+                                                    {reward.amount}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 mb-6">
+                            {REWARDS.slice(4).map((reward) => (
+                                <div key={reward.day}
+                                    className={cn(
+                                        "rounded-xl border flex flex-col items-center justify-center p-3 relative overflow-hidden transition-all duration-300",
+                                        reward.isBig ? "bg-gradient-to-br from-purple-500 to-indigo-600 border-purple-400 text-white shadow-md shadow-purple-500/20" : "bg-slate-50 border-slate-100"
+                                    )}
+                                >
+                                    {reward.isBig ? (
+                                        <>
+                                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc4JyBoZWlnaHQ9JzgnPgo8cmVjdCB3aWR0aD0nOCcgaGVpZ2h0PSc4JyBmaWxsPScjZmZmJyBmaWxsLW9wYWNpdHk9JzAuMScvPgo8cGF0aCBkPSdNMCAwaDh2OEgweicgZmlsbD0nbm9uZScvPgo8L3N2Zz4=')] opacity-20"></div>
+                                            <Sparkles size={16} className="text-yellow-300 mb-1 drop-shadow-sm" />
+                                            <span className="text-xs font-black shadow-sm tracking-wide">MYSTERY</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="text-xs font-bold text-slate-400">H-{reward.day}</span>
+                                            <span className="text-[10px] font-black mt-1 text-slate-400">
+                                                {reward.amount}
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={async () => {
+                                try {
+                                    setIsSubmitting(true);
+                                    const res = await userApi.claimDaily();
+                                    if (res.success) {
+                                        setClaimedDay(currentStreak);
+                                        setTimeout(() => onClose(), 2000); // Auto close after 2s on success
+                                    }
+                                } catch (e) {
+                                    console.error("Claim failed", e);
+                                } finally {
+                                    setIsSubmitting(false);
+                                }
+                            }}
+                            disabled={claimedDay !== null || isSubmitting}
+                            className={cn(
+                                "w-full py-4 rounded-xl font-bold transition-all shadow-md relative overflow-hidden",
+                                (claimedDay !== null || isSubmitting)
+                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                    : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white"
+                            )}
+                        >
+                            {isSubmitting ? "Memproses..." : claimedDay !== null ? "Berhasil Diklaim! 💸" : "Klaim Uang Tunai Sekarang"}
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+        </AnimatePresence>
+    );
+}

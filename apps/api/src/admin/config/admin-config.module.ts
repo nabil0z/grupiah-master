@@ -1,0 +1,12 @@
+import { Module } from '@nestjs/common';
+import { AdminConfigController } from './admin-config.controller';
+import { AdminConfigService } from './admin-config.service';
+import { PrismaModule } from '../../prisma/prisma.module';
+
+@Module({
+    imports: [PrismaModule],
+    controllers: [AdminConfigController],
+    providers: [AdminConfigService],
+    exports: [AdminConfigService], // Exported for use in other modules (e.g., users, tasks)
+})
+export class AdminConfigModule { }

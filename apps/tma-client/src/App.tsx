@@ -1,0 +1,94 @@
+
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import BottomNav from './components/BottomNav';
+import FlashSalePage from './pages/FlashSalePage';
+import EarnPage from './pages/EarnPage';
+import WalletPage from './pages/WalletPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import ProfilePage from './pages/ProfilePage';
+import FrensPage from './pages/FrensPage';
+import BoostPage from './pages/BoostPage';
+import SettingsPage from './pages/SettingsPage';
+import ChannelLock from './components/ChannelLock';
+import DailyCheckIn from './components/DailyCheckIn';
+import FakeWithdrawTicker from './components/FakeWithdrawTicker';
+import { useState, useEffect } from 'react';
+import { userApi } from './api/client';
+
+function MainApp() {
+  const navigate = useNavigate();
+  const [isJoined, setIsJoined] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(1);
+
+  useEffect(() => {
+    // 1. Check for Telegram Deep Links (start_param)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    if (win.Telegram && win.Telegram.WebApp && win.Telegram.WebApp.initDataUnsafe) {
+      const startParam = win.Telegram.WebApp.initDataUnsafe.start_param;
+      if (startParam) {
+        if (startParam === 'wallet') navigate('/wallet');
+        else if (startParam === 'tasks') navigate('/earn');
+        else if (startParam === 'frens') navigate('/frens');
+        else if (startParam === 'leaderboard') navigate('/leaderboard');
+        else if (startParam.startsWith('task_')) navigate(`/earn`); // Could target specific task UI later
+      }
+    }
+
+    // 2. Channel Verification
+    userApi.verifyChannel()
+      .then(res => {
+        if (res && res.joined === false) setIsJoined(false);
+      })
+      .catch(() => setIsJoined(true));
+
+    userApi.getProfile()
+      .then(res => {
+        if (res && !res.error && res.canClaimDaily) {
+          setCurrentStreak(res.currentStreak || 1);
+          setTimeout(() => setShowCheckIn(true), 1500);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const handleVerify = () => {
+    setIsVerifying(true);
+    userApi.verifyChannel()
+      .then(res => {
+        if (res && res.joined) setIsJoined(true);
+      })
+      .finally(() => setIsVerifying(false));
+  };
+
+  return (
+    <div className="App font-sans max-w-md mx-auto relative bg-gray-50 min-h-screen shadow-xl overflow-hidden pb-safe">
+      <Routes>
+        <Route path="/" element={<FlashSalePage />} />
+        <Route path="/earn" element={<EarnPage />} />
+        <Route path="/frens" element={<FrensPage />} />
+        <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/boost" element={<BoostPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        {/* Defaulting un-built pages back to Home for now */}
+        <Route path="*" element={<FlashSalePage />} />
+      </Routes>
+      <FakeWithdrawTicker />
+      <BottomNav />
+      {!isJoined && <ChannelLock onVerify={handleVerify} isVerifying={isVerifying} />}
+      <DailyCheckIn isOpen={showCheckIn} onClose={() => setShowCheckIn(false)} currentStreak={currentStreak} />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <MainApp />
+    </Router>
+  );
+}

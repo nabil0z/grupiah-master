@@ -1,0 +1,74 @@
+﻿[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +18ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mScheduleModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAdminConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBroadcastModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTasksModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +3ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminController {/admin}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/withdrawals/:id/action, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/marketing/fake-withdrawal, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/withdrawals/pending, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/telegram/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/daily-checkin, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/verify-channel, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/leaderboard, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/me/withdraw, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/me/referrals, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAdminConfigController {/admin/settings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/settings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/settings, PUT} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTasksController {/tasks}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/tasks, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mWebhooksController {/webhook/postback}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/webhook/postback/:provider, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/webhook/postback/:provider, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBroadcastController {/admin/broadcast}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/broadcast/generate-draft, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/admin/broadcast/send, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 25404  - [39m03/03/2026, 00.09.45 [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +32ms[39m
+node : [31m[Nest] 25404  - [39m03/03/2026, 00.09.45 [31m  ERROR[39m 
+[38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use 
+:::53000[39m[38;5;3m +2ms[39m
+At line:1 char:1
++ node dist/main.js 2>&1 | Out-File -FilePath error2.txt -Encoding utf8
++ ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([31m[Nest] 254...;5;3m +2ms[39m:String) [], 
+    RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+node:net:1937
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::53000
+    at Server.setupListenHandle [as _listen2] (node:net:1937:16)
+    at listenInCluster (node:net:1994:12)
+    at Server.listen (node:net:2099:7)
+    at ExpressAdapter.listen (C:\Users\62813\Downloads\GRupiah\node_modules\@nestjs\platfor
+m-express\adapters\express-adapter.js:127:32)
+    at 
+C:\Users\62813\Downloads\GRupiah\node_modules\@nestjs\core\nest-application.js:188:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen 
+(C:\Users\62813\Downloads\GRupiah\node_modules\@nestjs\core\nest-application.js:178:16)
+    at async bootstrap (C:\Users\62813\Downloads\GRupiah\apps\api\dist\main.js:8:5) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 53000
+}
+
+Node.js v22.13.0

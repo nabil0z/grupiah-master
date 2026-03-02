@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-admin-bg: #EAEFF2;
+  --color-admin-card: #FFFFFF;
+  --color-admin-accent: #2A5A97;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-admin-bg);
+    color: #1a1a1a;
+    font-family: var(--font-sans);
+  }
+}

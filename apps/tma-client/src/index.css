@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-flash-orange: #FF5A00;
+  --color-flash-red: #E11C1C;
+  --color-flash-yellow: #FFD100;
+  --color-flash-bg: #F5F5F5;
+  --font-sans: 'Inter', -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-flash-bg);
+    color: #333333;
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Custom Utilities for E-commerce Feel */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.flash-gradient-text {
+  background: linear-gradient(90deg, var(--color-flash-orange) 0%, var(--color-flash-red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.flash-gradient-bg {
+  background: linear-gradient(135deg, var(--color-flash-orange) 0%, var(--color-flash-red) 100%);
+}
+
+.pulsing-border {
+  animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(255, 90, 0, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 90, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 90, 0, 0); }
+}
