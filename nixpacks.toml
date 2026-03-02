@@ -7,4 +7,4 @@ cmds = [
 ]
 
 [start]
-cmd = "./node_modules/.bin/prisma generate --schema=./packages/database/prisma/schema.prisma && ./node_modules/.bin/prisma db push --accept-data-loss --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"
+cmd = "npm run start:prod"

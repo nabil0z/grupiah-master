@@ -10,7 +10,8 @@
     "build": "npx prisma db push --schema=./packages/database/prisma/schema.prisma && npx prisma generate --schema=./packages/database/prisma/schema.prisma && turbo run build --filter=api",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "start:prod": "npm run db:generate --workspace=@grupiah/database && npm run db:push --workspace=@grupiah/database && node apps/api/dist/main.js"
   },
   "devDependencies": {
     "turbo": "latest",
