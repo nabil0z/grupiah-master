@@ -1,12 +1,12 @@
 [phases.install]
-cmds = ["npm install --include=dev"]
+cmds = ["npm install", "npm install -g prisma turbo"]
 
 [phases.build]
 cmds = [
-  "npx prisma generate --schema=./packages/database/prisma/schema.prisma",
-  "npx turbo run build --filter=api",
+  "prisma generate --schema=./packages/database/prisma/schema.prisma",
+  "turbo run build --filter=api",
   "npm prune --production"
 ]
 
 [start]
-cmd = "npx prisma db push --accept-data-loss --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"
+cmd = "prisma db push --accept-data-loss --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"
