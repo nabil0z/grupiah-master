@@ -8,4 +8,4 @@ cmds = [
 ]
 
 [start]
-cmd = "prisma generate --schema=./packages/database/prisma/schema.prisma && prisma db push --accept-data-loss --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"
+cmd = "npx prisma generate --schema=./packages/database/prisma/schema.prisma && npx prisma db push --accept-data-loss --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"
