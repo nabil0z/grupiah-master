@@ -3,8 +3,7 @@ cmds = ["npm install", "npm install -g prisma turbo"]
 
 [phases.build]
 cmds = [
-  "turbo run build --filter=grupiah-api",
-  "npm prune --production"
+  "turbo run build --filter=grupiah-api"
 ]
 
 [start]
