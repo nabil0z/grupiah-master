@@ -13,7 +13,7 @@ import ChannelLock from './components/ChannelLock';
 import DailyCheckIn from './components/DailyCheckIn';
 import FakeWithdrawTicker from './components/FakeWithdrawTicker';
 import { useState, useEffect } from 'react';
-import { userApi } from './api/client';
+import { authApi, userApi } from './api/client';
 
 function MainApp() {
   const navigate = useNavigate();
@@ -24,35 +24,52 @@ function MainApp() {
 
   useEffect(() => {
     // 1. Check for Telegram Deep Links (start_param)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as any;
+    let targetRoute = '';
+
     if (win.Telegram && win.Telegram.WebApp && win.Telegram.WebApp.initDataUnsafe) {
       const startParam = win.Telegram.WebApp.initDataUnsafe.start_param;
       if (startParam) {
-        if (startParam === 'wallet') navigate('/wallet');
-        else if (startParam === 'tasks') navigate('/earn');
-        else if (startParam === 'frens') navigate('/frens');
-        else if (startParam === 'leaderboard') navigate('/leaderboard');
-        else if (startParam.startsWith('task_')) navigate(`/earn`); // Could target specific task UI later
+        if (startParam === 'wallet') targetRoute = '/wallet';
+        else if (startParam === 'tasks') targetRoute = '/earn';
+        else if (startParam === 'frens') targetRoute = '/frens';
+        else if (startParam === 'leaderboard') targetRoute = '/leaderboard';
+        else if (startParam.startsWith('task_')) targetRoute = `/earn`;
       }
     }
 
-    // 2. Channel Verification
-    userApi.verifyChannel()
-      .then(res => {
-        if (res && res.joined === false) setIsJoined(false);
-      })
-      .catch(() => setIsJoined(true));
+    // 2. Global Boot Sequence: Login -> Profile -> Channel
+    const bootApp = async () => {
+      try {
+        const startParam = win.Telegram?.WebApp?.initDataUnsafe?.start_param;
+        // Always login first to establish session and DB User
+        await authApi.login(startParam);
 
-    userApi.getProfile()
-      .then(res => {
-        if (res && !res.error && res.canClaimDaily) {
-          setCurrentStreak(res.currentStreak || 1);
+        // Navigate to deep link if present after login
+        if (targetRoute) {
+          navigate(targetRoute);
+        }
+
+        // Verify channel afterwards
+        const channelRes = await userApi.verifyChannel().catch(() => null);
+        if (channelRes && channelRes.joined === false) setIsJoined(false);
+
+        // Get profile for daily checkin 
+        const profileRes = await userApi.getProfile().catch(() => null);
+        if (profileRes && !profileRes.error && profileRes.canClaimDaily) {
+          setCurrentStreak(profileRes.currentStreak || 1);
           setTimeout(() => setShowCheckIn(true), 1500);
         }
-      })
-      .catch(console.error);
-  }, []);
+
+      } catch (err) {
+        console.error("Global Boot Error:", err);
+        setIsJoined(true); // default fallback
+      }
+    };
+
+    bootApp();
+
+  }, [navigate]);
 
   const handleVerify = () => {
     setIsVerifying(true);
