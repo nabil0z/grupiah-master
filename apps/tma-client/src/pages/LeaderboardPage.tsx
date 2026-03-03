@@ -134,7 +134,7 @@ export default function LeaderboardPage() {
                             <Loader2 className="animate-spin" />
                         </div>
                     ) : (
-                        topUsers.slice(3).map((user) => (
+                        topUsers.slice(3).map((user: any) => (
                             <div key={user.rank} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
                                 <div className="w-8 flex justify-center font-bold text-gray-400">
                                     {user.rank}

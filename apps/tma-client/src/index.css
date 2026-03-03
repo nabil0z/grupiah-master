@@ -28,6 +28,7 @@
 .flash-gradient-text {
   background: linear-gradient(90deg, var(--color-flash-orange) 0%, var(--color-flash-red) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -40,7 +41,15 @@
 }
 
 @keyframes pulse-border {
-  0% { box-shadow: 0 0 0 0 rgba(255, 90, 0, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 90, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 90, 0, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 0, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 90, 0, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 90, 0, 0);
+  }
 }
