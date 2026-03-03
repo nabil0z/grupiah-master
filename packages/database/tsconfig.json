@@ -10,6 +10,7 @@
         "strict": true
     },
     "include": [
-        "index.ts"
+        "index.ts",
+        "prisma/**/*.ts"
     ]
 }

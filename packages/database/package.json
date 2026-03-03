@@ -7,7 +7,7 @@
         "db:generate": "prisma generate",
         "db:push": "prisma db push",
         "db:studio": "prisma studio",
-        "seed": "npx ts-node prisma/seed.ts",
+        "seed": "node dist/prisma/seed.js",
         "build": "tsc"
     },
     "dependencies": {
