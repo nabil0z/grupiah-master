@@ -534,17 +534,25 @@ export class AdminService {
                 });
             }
 
-            // 3. Inject fake referral users
+            // 3. Inject fake referral users with realistic names
+            const firstNames = ['Adi', 'Budi', 'Cahya', 'Dian', 'Eka', 'Fajar', 'Gita', 'Hana', 'Indra', 'Joko', 'Karina', 'Lina', 'Maya', 'Nadia', 'Omar', 'Putri', 'Rina', 'Sari', 'Tari', 'Umar', 'Vina', 'Wati', 'Yuni', 'Zahra', 'Rizki', 'Ayu', 'Dewi', 'Fitri', 'Gilang', 'Hendra', 'Ika', 'Jaya', 'Kurnia', 'Laras', 'Melani', 'Nur', 'Okta', 'Reza', 'Sinta', 'Tio'];
+            const lastNames = ['Pratama', 'Saputra', 'Wijaya', 'Kusuma', 'Hidayat', 'Rahmawati', 'Setiawan', 'Putra', 'Lestari', 'Handoko', 'Susanto', 'Wibowo', 'Hartono', 'Suryadi', 'Permana', 'Anggraini', 'Utami', 'Purnama', 'Nugraha', 'Wahyudi'];
+
             for (let i = 0; i < referralsCount; i++) {
                 const fakeTelegramId = BigInt(Math.floor(Math.random() * 9000000000 + 1000000000));
                 const fakeRefCode = `MKT${Date.now()}${i}`;
+                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}${Math.floor(Math.random() * 99)}`;
 
                 await tx.user.create({
                     data: {
                         telegramId: fakeTelegramId,
                         referralCode: fakeRefCode,
                         referredById: userId,
-                        firstName: `FakeRef_${i + 1}`,
+                        firstName: firstName,
+                        lastName: lastName,
+                        username: username,
                         isReferralActive: true,
                         isFake: true // ← Marketing flag
                     }
