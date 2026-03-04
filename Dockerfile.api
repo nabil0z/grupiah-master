@@ -9,36 +9,23 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont
 
-# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+# Tell Puppeteer to skip installing Chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
 
-# Copy root monorepo config
-COPY package.json package-lock.json turbo.json ./
+# Copy ENTIRE monorepo (filtered by .dockerignore)
+COPY . .
 
-# Copy the database package (needed for Prisma generate during build)
-COPY packages ./packages
-
-# Copy the API app
-COPY apps/api ./apps/api
-
-# Install all dependencies from monorepo root
+# Install ALL dependencies (including devDependencies for build tools)
 RUN npm install
-
-# Ensure prisma CLI is available (it's a devDependency of @grupiah/database)
-RUN npm install prisma@5.22.0
 
 # Generate Prisma client
 RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
 
-# Build NestJS from within the api directory
-WORKDIR /app/apps/api
-RUN npx nest build
-
-# Switch back to monorepo root for runtime
-WORKDIR /app
+# Build only the API via turbo (this resolves all workspace deps correctly)
+RUN npx turbo run build --filter=grupiah-api
 
 EXPOSE 53000
 

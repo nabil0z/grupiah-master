@@ -4,20 +4,14 @@ RUN npm install -g serve
 
 WORKDIR /app
 
-# Copy root monorepo config
-COPY package.json package-lock.json turbo.json ./
+# Copy ENTIRE monorepo (filtered by .dockerignore)
+COPY . .
 
-# Copy packages (shared deps)
-COPY packages ./packages
-
-# Copy the tma-client app
-COPY apps/tma-client ./apps/tma-client
-
-# Install all dependencies
+# Install ALL dependencies
 RUN npm install
 
-# Build Vite
-RUN npm run build --workspace=tma-client
+# Build Vite TMA Client
+RUN npx turbo run build --filter=tma-client
 
 EXPOSE 53002
 

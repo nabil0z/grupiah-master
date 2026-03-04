@@ -2,20 +2,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy root monorepo config
-COPY package.json package-lock.json turbo.json ./
+# Copy ENTIRE monorepo (filtered by .dockerignore)
+COPY . .
 
-# Copy packages (shared deps)
-COPY packages ./packages
-
-# Copy the admin-dashboard app
-COPY apps/admin-dashboard ./apps/admin-dashboard
-
-# Install all dependencies
+# Install ALL dependencies
 RUN npm install
 
-# Build Next.js
-RUN npm run build --workspace=admin-dashboard
+# Build Next.js Admin Dashboard
+RUN npx turbo run build --filter=admin-dashboard
 
 EXPOSE 3000
 
