@@ -4,13 +4,10 @@ RUN npm install -g serve
 
 WORKDIR /app
 
-# Copy ENTIRE monorepo (filtered by .dockerignore)
 COPY . .
 
-# Install ALL dependencies
-RUN npm install
+RUN npm install --include=dev
 
-# Build Vite TMA Client
 RUN npx turbo run build --filter=tma-client
 
 EXPOSE 53002

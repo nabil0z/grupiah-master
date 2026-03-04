@@ -2,13 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy ENTIRE monorepo (filtered by .dockerignore)
 COPY . .
 
-# Install ALL dependencies
-RUN npm install
+RUN npm install --include=dev
 
-# Build Next.js Admin Dashboard
 RUN npx turbo run build --filter=admin-dashboard
 
 EXPOSE 3000

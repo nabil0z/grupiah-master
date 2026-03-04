@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-# Install Chromium and dependencies for Puppeteer (HTML to Image cron)
+# Install Chromium and dependencies for Puppeteer
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -9,22 +9,23 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont
 
-# Tell Puppeteer to skip installing Chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
 
-# Copy ENTIRE monorepo (filtered by .dockerignore)
+# Copy entire monorepo (filtered by .dockerignore)
 COPY . .
 
-# Install ALL dependencies (including devDependencies for build tools)
-RUN npm install
+# CRITICAL: Force install ALL dependencies including devDependencies
+# Coolify injects NODE_ENV=production which makes npm skip devDeps by default
+# --include=dev ensures prisma, @nestjs/cli, turbo, typescript are all installed
+RUN npm install --include=dev
 
 # Generate Prisma client
 RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
 
-# Build only the API via turbo (this resolves all workspace deps correctly)
+# Build API via turbo
 RUN npx turbo run build --filter=grupiah-api
 
 EXPOSE 53000
