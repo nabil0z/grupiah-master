@@ -51,18 +51,15 @@ export class TelegramAuthGuard implements CanActivate {
       let isValid = false;
       if (botToken) {
         isValid = this.verifyTelegramWebAppData(initData, botToken);
-        console.log('[AUTH] User bot validation result:', isValid);
       }
 
       // If it fails (or doesn't exist), try the Admin Bot Token
       if (!isValid && adminBotToken) {
         isValid = this.verifyTelegramWebAppData(initData, adminBotToken);
-        console.log('[AUTH] Admin bot validation result:', isValid);
       }
 
       if (!isValid) {
-        console.error('[AUTH] HMAC validation failed for ALL bot tokens');
-        throw new UnauthorizedException('Invalid Telegram initData signature for any known bots');
+        throw new UnauthorizedException('Invalid Telegram initData signature');
       }
 
       // Parse user data from initData string
@@ -70,12 +67,10 @@ export class TelegramAuthGuard implements CanActivate {
       const userStr = urlParams.get('user');
 
       if (!userStr) {
-        console.error('[AUTH] No user field in initData. Keys:', [...new URLSearchParams(initData).keys()]);
         throw new UnauthorizedException('User data missing from initData');
       }
 
       const telegramUser = JSON.parse(decodeURIComponent(userStr));
-      console.log('[AUTH] Telegram user parsed:', telegramUser.id, telegramUser.username);
 
       // Attach parsed raw telegram user
       request.user = telegramUser;
@@ -91,27 +86,23 @@ export class TelegramAuthGuard implements CanActivate {
 
       return true;
     } catch (e) {
-      console.error('[AUTH] Authentication error:', e?.message || e);
+      if (e instanceof UnauthorizedException) throw e;
       throw new UnauthorizedException('Authentication failed');
     }
   }
 
   private verifyTelegramWebAppData(initData: string, botToken: string): boolean {
-    // Extract hash from URL params
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
 
-    if (!hash) {
-      console.log('[AUTH] No hash found in initData');
-      return false;
-    }
+    if (!hash) return false;
 
-    // Create secret key (same for both approaches)
+    // Create secret key
     const secretKey = createHmac('sha256', 'WebAppData')
       .update(botToken)
       .digest();
 
-    // --- APPROACH 1: Using decoded values (URLSearchParams) ---
+    // Approach 1: Using decoded values (URLSearchParams)
     urlParams.delete('hash');
     const decodedParams: string[] = [];
     urlParams.forEach((value, key) => {
@@ -124,12 +115,9 @@ export class TelegramAuthGuard implements CanActivate {
       .update(decodedCheckString)
       .digest('hex');
 
-    if (hash1 === hash) {
-      console.log('[AUTH] HMAC valid (decoded approach)');
-      return true;
-    }
+    if (hash1 === hash) return true;
 
-    // --- APPROACH 2: Using raw URL-encoded pairs ---
+    // Approach 2: Using raw URL-encoded pairs (fallback)
     const rawPairs = initData.split('&')
       .filter(pair => !pair.startsWith('hash='))
       .sort();
@@ -139,18 +127,6 @@ export class TelegramAuthGuard implements CanActivate {
       .update(rawCheckString)
       .digest('hex');
 
-    if (hash2 === hash) {
-      console.log('[AUTH] HMAC valid (raw approach)');
-      return true;
-    }
-
-    console.log('[AUTH] Expected hash:', hash.substring(0, 16) + '...');
-    console.log('[AUTH] Decoded hash:', hash1.substring(0, 16) + '...');
-    console.log('[AUTH] Raw hash:', hash2.substring(0, 16) + '...');
-    console.log('[AUTH] Token (first 10):', botToken.substring(0, 10) + '...');
-    console.log('[AUTH] Decoded check (80):', decodedCheckString.substring(0, 80));
-    console.log('[AUTH] Raw check (80):', rawCheckString.substring(0, 80));
-
-    return false;
+    return hash2 === hash;
   }
 }
