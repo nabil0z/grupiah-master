@@ -1,0 +1,5 @@
+[build]
+  cmd = "npm run build --workspace=admin-dashboard"
+
+[start]
+  cmd = "npm run start --workspace=admin-dashboard"

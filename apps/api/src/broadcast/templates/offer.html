@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promo Offer GRupiah</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,900&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #fc5c24, #ea580c);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+
+        .promo-container {
+            width: 480px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 40px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .badge {
+            background: #fef08a;
+            color: #854d0e;
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            align-self: center;
+            box-shadow: 0 4px 15px rgba(254, 240, 138, 0.4);
+            margin-bottom: 20px;
+            z-index: 2;
+        }
+
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin: 0;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 2;
+        }
+
+        .highlight-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            color: #0f172a;
+            transform: rotate(-2deg);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .highlight-box h2 {
+            margin: 5px 0 0 0;
+            font-size: 56px;
+            font-weight: 900;
+            color: #ea580c;
+            letter-spacing: -2px;
+        }
+
+        .details {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            z-index: 2;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .data-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .data-label {
+            color: #cbd5e1;
+            font-weight: 400;
+        }
+
+        .data-value {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Decorative Elements */
+        .circle-1 {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(253, 186, 116, 0.4) 0%, rgba(253, 186, 116, 0) 70%);
+            top: -100px;
+            right: -100px;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .circle-2 {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(255, 237, 213, 0.4) 0%, rgba(255, 237, 213, 0) 70%);
+            bottom: -50px;
+            left: -80px;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .footer {
+            font-size: 14px;
+            font-weight: 700;
+            opacity: 0.8;
+            margin-top: 20px;
+            z-index: 2;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="promo-container">
+        <div class="circle-1"></div>
+        <div class="circle-2"></div>
+
+        <!-- Add logo specific to offer promo -->
+        <div style="text-align: center; margin-bottom: 20px; z-index: 2;">
+            <img src="{LOGO_PATH}" alt="GRupiah" style="width: 140px;" />
+        </div>
+
+        <div class="badge">🔥 HOT OFFER ALERT</div>
+
+        <h1 class="title" id="title">APP INSTALL<br />REWARD!!!</h1>
+
+        <div class="highlight-box">
+            <p>Bayaran Instan</p>
+            <h2 id="amount">Rp 35.000</h2>
+        </div>
+
+        <div class="details">
+            <div class="data-row">
+                <span class="data-label">Nama Offer:</span>
+                <span class="data-value" id="username">Play & Win</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Tipe:</span>
+                <span class="data-value" id="method">CPA Premium</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Kuota Sisa:</span>
+                <span class="data-value" id="account" style="color: #fca5a5;">🔥 <span id="quota">12</span> Slot
+                    Terakhir</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            Mainkan sekarang di Telegram @GRupiahBot
+        </div>
+    </div>
+
+</body>
+
+</html>

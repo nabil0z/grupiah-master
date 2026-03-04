@@ -11,6 +11,19 @@ export class AuthController {
     async login(@Request() req: any, @Headers('x-start-param') startParam: string) {
         const telegramUser = req.user;
 
+        // In dev mode, the guard already created/fetched the dbUser. Skip BigInt conversion.
+        if (req.dbUser && telegramUser.id === 'mock-user-123') {
+            const safeUser = JSON.parse(JSON.stringify(req.dbUser, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value
+            ));
+            return {
+                message: 'Login successful',
+                user: safeUser,
+                wallet: safeUser.wallet || { balance: 0 },
+                token: 'dev_mock_token'
+            };
+        }
+
         // Check if user already exists
         let user = await this.prisma.user.findUnique({
             where: { telegramId: BigInt(telegramUser.id) },

@@ -1,0 +1,5 @@
+[build]
+  cmd = "npm run build --workspace=admin-tma"
+
+[start]
+  cmd = "npm run preview --workspace=admin-tma -- --host 0.0.0.0 --port 53003"

@@ -19,8 +19,7 @@ export function Sidebar() {
         { href: '/', label: 'God Eye Overview', icon: LayoutDashboard },
         { href: '/users', label: 'User Management', icon: Users },
         { href: '/withdrawals', label: 'Withdrawal Engine', icon: CreditCard },
-        { href: '/tasks', label: 'Custom Tasks', icon: Target },
-        { href: '/offerwall', label: 'Offerwall Config', icon: Target },
+        { href: '/tasks', label: 'Task Management', icon: Target },
         { href: '/broadcast', label: 'AI Broadcast Generator', icon: Megaphone },
         { href: '/settings', label: 'Master Settings', icon: Settings },
     ];

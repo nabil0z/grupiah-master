@@ -107,14 +107,28 @@ export class WebhooksController {
                         where: { userId: rewardDetail.userId, taskId: rewardDetail.taskId, status: 'PENDING' },
                         data: { status: 'APPROVED', reward: finalReward }
                     });
+
+                    // Record completion for Analytics
+                    await tx.offerScore.upsert({
+                        where: {
+                            provider_externalId: { provider: normalizedProviderName, externalId: rewardDetail.taskId }
+                        },
+                        update: { completions: { increment: 1 } },
+                        create: {
+                            provider: normalizedProviderName,
+                            externalId: rewardDetail.taskId,
+                            clicks: 1,
+                            completions: 1
+                        }
+                    });
                 }
 
                 // --- Referral Matrix Payout (First Task Completion) ---
                 if (user.referredById && !user.isReferralActive) {
-                    const inviterBonusStr = await this.configService.getConfigValue('INVITER_BONUS', '2000');
-                    const inviteeBonusStr = await this.configService.getConfigValue('INVITEE_BONUS', '1000');
-                    const inviterBonus = parseInt(inviterBonusStr) || 2000;
-                    const inviteeBonus = parseInt(inviteeBonusStr) || 1000;
+                    const inviterBonusStr = await this.configService.getConfigValue('APP_REF_UPLINE', '500');
+                    const inviteeBonusStr = await this.configService.getConfigValue('APP_REF_DOWNLINE', '250');
+                    const inviterBonus = parseInt(inviterBonusStr) || 500;
+                    const inviteeBonus = parseInt(inviteeBonusStr) || 250;
 
                     // 1. Mark referral as active for this user
                     await tx.user.update({

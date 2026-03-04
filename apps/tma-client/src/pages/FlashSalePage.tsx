@@ -3,16 +3,16 @@ import { motion } from 'framer-motion';
 import { Clock, ChevronRight, Flame, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, userApi, tasksApi } from '../api/client';
-import { Users } from 'lucide-react';
-
-const TARGET_WITHDRAWAL = 500000; // Rp 500.000
+import { Users, Loader2 } from 'lucide-react';
 
 const FlashSalePage = () => {
     const [timeLeft, setTimeLeft] = useState(14500); // approx 4 hours
     const [balance, setBalance] = useState<number>(0);
+    const [targetWithdrawal, setTargetWithdrawal] = useState<number>(500000);
     const [isLoading, setIsLoading] = useState(true);
     const [tasks, setTasks] = useState<any[]>([]);
-    const [onlineUsers, setOnlineUsers] = useState(12435);
+    const [fetchError, setFetchError] = useState(false);
+    const [onlineUsers, setOnlineUsers] = useState(0);
     const navigate = useNavigate();
 
     // Flash Sale Countdown & Auth Simulator
@@ -21,20 +21,49 @@ const FlashSalePage = () => {
             setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
         }, 1000);
 
-        // Boot Sequence: Login -> Fetch Profile
+        // Fetch Online Stats
+        import('../api/client').then(({ miscApi }) => {
+            miscApi.getOnlineStats()
+                .then(data => setOnlineUsers(data.onlineCount || 0))
+                .catch(err => console.error("Failed to fetch online stats:", err));
+        });
+
+        // Boot Sequence: Login -> Fetch Profile + Flash Tasks with Auto-Retry
         const bootAuth = async () => {
             try {
-                // We send empty startParam here, but ideally we extract it from URL in App.tsx
                 await authApi.login();
-                const [profileInfo, tasksData] = await Promise.all([
-                    userApi.getProfile(),
-                    tasksApi.getAvailable()
-                ]);
-                setBalance(Number(profileInfo.wallet?.balance || 0));
-                setTasks(tasksData);
+
+                // Fetch profile immediately (don't wait for flash tasks)
+                userApi.getProfile().then(profile => {
+                    setBalance(Number(profile?.wallet?.balance || 0));
+                    setTargetWithdrawal(Number(profile?.appConfig?.minWithdraw || 500000));
+                }).catch(() => { });
+
+                // Auto-retry flash tasks up to 3 times with 3s delay
+                const MAX_RETRIES = 3;
+                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                    try {
+                        console.log(`[FlashSalePage] Fetching flash tasks (attempt ${attempt}/${MAX_RETRIES})...`);
+                        const data = await tasksApi.getFlashTasks(attempt > 1); // force refresh on retry
+                        if (Array.isArray(data) && data.length > 0) {
+                            setTasks(data);
+                            setIsLoading(false);
+                            return; // Success! Exit early
+                        }
+                    } catch (err) {
+                        console.warn(`[FlashSalePage] Attempt ${attempt} failed:`, err);
+                    }
+                    // Wait 3 seconds before retrying (unless it's the last attempt)
+                    if (attempt < MAX_RETRIES) {
+                        await new Promise(r => setTimeout(r, 3000));
+                    }
+                }
+                // All retries exhausted
+                console.error('[FlashSalePage] All retry attempts exhausted');
+                setFetchError(true);
             } catch (error) {
                 console.error('Failed to boot auth:', error);
-                setBalance(0); // Fallback to mock text if API fails
+                setFetchError(true);
             } finally {
                 setIsLoading(false);
             }
@@ -42,20 +71,8 @@ const FlashSalePage = () => {
 
         bootAuth();
 
-        // Fake Online Users Randomizer (9k - 15k)
-        const onlineInterval = setInterval(() => {
-            setOnlineUsers(prev => {
-                const fluctuation = Math.floor(Math.random() * 201) - 100; // -100 to +100
-                let newTotal = prev + fluctuation;
-                if (newTotal < 9000) newTotal = 9000 + Math.random() * 200;
-                if (newTotal > 15000) newTotal = 15000 - Math.random() * 200;
-                return Math.floor(newTotal);
-            });
-        }, 3500);
-
         return () => {
             clearInterval(timer);
-            clearInterval(onlineInterval);
         }
     }, []);
 
@@ -66,7 +83,7 @@ const FlashSalePage = () => {
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const progress = (balance / TARGET_WITHDRAWAL) * 100;
+    const progress = (balance / targetWithdrawal) * 100;
 
     return (
         <div className="min-h-screen bg-gray-50 pb-24">
@@ -102,7 +119,7 @@ const FlashSalePage = () => {
                 <div className="mt-6 bg-white/20 rounded-2xl p-4 backdrop-blur-sm border border-white/20">
                     <div className="flex justify-between text-xs font-medium mb-2">
                         <span>Progress Withdraw</span>
-                        <span>Rp {TARGET_WITHDRAWAL.toLocaleString('id-ID')}</span>
+                        <span>Rp {targetWithdrawal.toLocaleString('id-ID')}</span>
                     </div>
                     <div className="w-full bg-black/20 rounded-full h-3 mb-1 overflow-hidden">
                         <motion.div
@@ -181,53 +198,82 @@ const FlashSalePage = () => {
 
                     <div className="space-y-3">
                         {isLoading ? (
-                            <p className="text-center text-sm text-gray-400 py-4">Memuat tugas...</p>
-                        ) : (tasks.length > 0 ? tasks.slice(0, 3) : [
-                            { id: 'm1', title: 'Main Rise of Kingdoms', reward: 50000, currentQuota: 12 },
-                            { id: 'm2', title: 'Daftar & Verifikasi Bank Jago', reward: 75000, currentQuota: 8 },
-                            { id: 'm3', title: 'Follow Instagram Grupiah', reward: 15000, currentQuota: 3 }
-                        ]).map((task) => {
-                            const fakeOldPrice = (Number(task.reward) * 1.5).toLocaleString('id-ID'); // Make the current reward look like a big discount
-                            return (
-                                <motion.div
-                                    key={task.id}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50/50 relative overflow-hidden group"
-                                >
-                                    {/* Discount Tag */}
-                                    <div className="absolute top-0 right-0 bg-[var(--color-flash-red)] text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
-                                        HOT
-                                    </div>
+                            <div className="flex flex-col items-center justify-center py-10 space-y-3">
+                                <Loader2 className="w-8 h-8 text-[var(--color-flash-red)] animate-spin" />
+                                <p className="text-sm font-medium text-gray-500 animate-pulse">Mencari diskon terbaik...</p>
+                            </div>
+                        ) : tasks.length > 0 ? (
+                            tasks.slice(0, 3).map((task: any, index: number) => {
+                                const rewardNum = Number(task.reward) || 0;
+                                const fakeOldPrice = (rewardNum * 1.5).toLocaleString('id-ID');
+                                const displayQuota = index === 0 ? 3 : index === 1 ? 8 : 12;
 
-                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3 shrink-0">
-                                        {task.iconUrl ? (
-                                            <img src={task.iconUrl} alt="icon" className="w-8 h-8 rounded-md" />
-                                        ) : (
-                                            <span className="text-2xl">🎮</span>
-                                        )}
-                                    </div>
-
-                                    <div className="flex-1 min-w-0 pr-2">
-                                        <h3 className="text-sm font-bold text-gray-900 truncate">{task.title}</h3>
-                                        <div className="flex items-center mt-1">
-                                            <span className="text-xs text-gray-400 line-through mr-1.5">Rp {fakeOldPrice}</span>
-                                            <span className="text-sm font-extrabold flash-gradient-text">Rp {Number(task.reward).toLocaleString('id-ID')}</span>
-                                        </div>
-                                        <div className="w-2/3 bg-gray-200 rounded-full h-1.5 mt-2">
-                                            <div className="bg-[var(--color-flash-red)] h-1.5 rounded-full" style={{ width: `${80 + Math.random() * 15}%` }}></div>
-                                        </div>
-                                        <p className="text-[9px] text-gray-500 mt-1">Tersedia untuk {task.currentQuota || '20+'} orang lagi!</p>
-                                    </div>
-
-                                    <button
-                                        onClick={() => navigate('/earn')}
-                                        className="bg-gradient-to-r from-[var(--color-flash-orange)] to-[var(--color-flash-red)] text-white text-xs font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all shrink-0"
+                                return (
+                                    <motion.div
+                                        key={`flash-task-${task.id || task.externalId || index}`}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50/50 relative overflow-hidden group"
                                     >
-                                        KLAIM
-                                    </button>
-                                </motion.div>
-                            )
-                        })}
+                                        {/* Discount Tag */}
+                                        <div className="absolute top-0 right-0 bg-[var(--color-flash-red)] text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                            HOT
+                                        </div>
+
+                                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3 shrink-0">
+                                            {task.iconUrl || task.logoUrl ? (
+                                                <img src={task.iconUrl || task.logoUrl} alt="icon" className="w-8 h-8 rounded-md" />
+                                            ) : (
+                                                <span className="text-2xl">🎮</span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <h3 className="text-sm font-bold text-gray-900 truncate">{task.title}</h3>
+                                            <div className="flex items-center mt-1">
+                                                <span className="text-xs text-gray-400 line-through mr-1.5">Rp {fakeOldPrice}</span>
+                                                <span className="text-sm font-extrabold flash-gradient-text">Rp {rewardNum.toLocaleString('id-ID')}</span>
+                                            </div>
+                                            <div className="w-2/3 bg-gray-200 rounded-full h-1.5 mt-2">
+                                                <div className="bg-[var(--color-flash-red)] h-1.5 rounded-full" style={{ width: `${80 + Math.random() * 15}%` }}></div>
+                                            </div>
+                                            <p className="text-[9px] text-gray-500 mt-1">Tersedia untuk {displayQuota} orang lagi!</p>
+                                        </div>
+
+                                        <button
+                                            onClick={() => navigate('/earn')}
+                                            className="bg-gradient-to-r from-[var(--color-flash-orange)] to-[var(--color-flash-red)] text-white text-xs font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all shrink-0"
+                                        >
+                                            KLAIM
+                                        </button>
+                                    </motion.div>
+                                )
+                            })
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                                <p className="text-sm text-gray-500">{fetchError ? 'Gagal memuat task. Coba lagi.' : 'Tidak ada task tersedia saat ini.'}</p>
+                                <button
+                                    onClick={async () => {
+                                        setIsLoading(true);
+                                        setFetchError(false);
+                                        try {
+                                            const data = await tasksApi.getFlashTasks(true);
+                                            if (Array.isArray(data) && data.length > 0) {
+                                                setTasks(data);
+                                            } else {
+                                                setFetchError(true);
+                                            }
+                                        } catch {
+                                            setFetchError(true);
+                                        } finally {
+                                            setIsLoading(false);
+                                        }
+                                    }}
+                                    className="bg-gradient-to-r from-[var(--color-flash-orange)] to-[var(--color-flash-red)] text-white text-xs font-bold px-6 py-2 rounded-full shadow-md"
+                                >
+                                    🔄 Muat Ulang
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <button

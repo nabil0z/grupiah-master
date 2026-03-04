@@ -16,6 +16,7 @@ model User {
   role            UserRole       @default(USER) // Membedakan antara USER biasa, ADMIN, SUPER_ADMIN
   isBanned        Boolean        @default(false)
   isMarketingAcc  Boolean        @default(false) // Flag khusus Bypass Approval Marketing
+  isFake          Boolean        @default(false) // Data marketing/influencer palsu
   wallet          Wallet?
   activeBoost     UserBoost?     // Relasi khusus Boost berbayar via Telegram Stars
   referralCode    String         @unique
@@ -73,9 +74,13 @@ model Task {
   externalId  String?      // ID unik dari provider eksternal
   title       String
   description String
+  instructions String?     // Panduan langkah-langkah tugas (Opsional)
+  logoUrl     String?      // URL gambar icon/logo
+  link        String?      // Link URL eksternal menuju task
   reward      Decimal
   type        TaskType     // AUTO, MANUAL
   isActive    Boolean      @default(true)
+  isFake      Boolean      @default(false) // Marketing/influencer fake task
   userTasks   UserTask[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -94,7 +99,9 @@ model UserTask {
   task      Task       @relation(fields: [taskId], references: [id])
   status    TaskStatus // PENDING, APPROVED, REJECTED
   proofUrl  String?    // Link S3/R2 bukti screenshot (khusus MANUAL)
+  proofText String?    // Teks tambahan, seperti username follower
   reward    Decimal?   // Menyimpan nilai reward statis saat task diambil
+  isFake    Boolean    @default(false) // Marketing/influencer fake record
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -107,6 +114,19 @@ enum TaskStatus {
   REJECTED
 }
 
+// Model untuk Analytics & Sorting Offers
+model OfferScore {
+  id          String   @id @default(uuid())
+  provider    String   // 'CUSTOM', 'OGADS', 'ADBLUEMEDIA'
+  externalId  String   // ID dari provider atau ID Task internal
+  clicks      Int      @default(0)
+  completions Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([provider, externalId])
+}
+
 model Withdrawal {
   id            String           @id @default(uuid())
   userId        String
@@ -115,6 +135,7 @@ model Withdrawal {
   method        WithdrawalMethod
   accountInfo   String           // JSON berisi no_rekening, bank, dll. (disarankan terenkripsi)
   status        WithdrawStatus   @default(PENDING)
+  isFake        Boolean          @default(false) // Marketing/influencer fake WD
   processedBy   String?          // ID Admin pengekseskusi
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt

@@ -15,13 +15,7 @@ export default function ProfilePage() {
                 setProfile(data);
             } catch (err) {
                 console.error("Failed to load profile", err);
-                // Fallback dummy for testing
-                setProfile({
-                    firstName: "Agus",
-                    lastName: "Degen",
-                    username: "degen_hunter",
-                    referralCode: "ref_degen99"
-                });
+                // Production fallback: do not set mock data
             } finally {
                 setIsLoading(false);
             }

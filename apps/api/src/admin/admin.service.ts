@@ -202,6 +202,18 @@ export class AdminService {
                         }
                     });
                 }
+
+                // Record completion for Analytics
+                await tx.offerScore.upsert({
+                    where: { provider_externalId: { provider: 'CUSTOM', externalId: userTask.taskId } },
+                    update: { completions: { increment: 1 } },
+                    create: {
+                        provider: 'CUSTOM',
+                        externalId: userTask.taskId,
+                        clicks: 1, // Assume at least 1 click if they submitted it
+                        completions: 1
+                    }
+                });
             }
 
             // 3. Audit Log
@@ -224,12 +236,15 @@ export class AdminService {
         });
     }
 
-    async createCustomTask(title: string, description: string, reward: number, adminTelegramId: number) {
+    async createCustomTask(title: string, description: string, reward: number, instructions: string | undefined, logoUrl: string | undefined, link: string | undefined, adminTelegramId: number) {
         const newTask = await this.prisma.task.create({
             data: {
                 provider: 'CUSTOM',
                 title,
                 description,
+                instructions,
+                logoUrl,
+                link,
                 reward,
                 type: 'MANUAL',
                 isActive: true
@@ -249,4 +264,358 @@ export class AdminService {
 
         return newTask;
     }
+
+    async getAnalytics() {
+        const livePostbacks = await this.prisma.walletMutation.findMany({
+            where: { type: 'EARN' },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+            include: { wallet: { include: { user: { select: { username: true, telegramId: true } } } } }
+        });
+
+        const topOffers = await this.prisma.offerScore.findMany({
+            orderBy: { completions: 'desc' },
+            take: 10
+        });
+
+        // Calculate a rough completion rate per provider
+        const providerStats = await this.prisma.offerScore.groupBy({
+            by: ['provider'],
+            _sum: { clicks: true, completions: true }
+        });
+
+        // Aggregate metrics for the God Eye dashboard
+        const totalBalanceResult = await this.prisma.wallet.aggregate({
+            _sum: { balance: true }
+        });
+        const totalFictionalBalance = totalBalanceResult._sum.balance || 0;
+
+        const totalUsers = await this.prisma.user.count({ where: { isFake: false } });
+
+        const pendingPayoutsResult = await this.prisma.withdrawal.aggregate({
+            where: { status: 'PENDING', isFake: false },
+            _sum: { amount: true }
+        });
+        const pendingPayouts = pendingPayoutsResult._sum.amount || 0;
+
+        const yesterday = new Date();
+        yesterday.setHours(yesterday.getHours() - 24);
+        const tasksCompletedToday = await this.prisma.userTask.count({
+            where: {
+                status: 'APPROVED',
+                isFake: false,
+                updatedAt: { gte: yesterday }
+            }
+        });
+
+        return {
+            livePostbacks,
+            topOffers,
+            providerStats,
+            totalFictionalBalance,
+            totalUsers,
+            pendingPayouts,
+            tasksCompletedToday
+        };
+    }
+
+    async getCustomTasks() {
+        return this.prisma.task.findMany({
+            where: { provider: 'CUSTOM', type: 'MANUAL', isFake: false },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async updateCustomTask(taskId: string, updateData: any, adminTelegramId: number) {
+        const updated = await this.prisma.task.update({
+            where: { id: taskId, provider: 'CUSTOM', type: 'MANUAL' },
+            data: updateData
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                actorId: adminTelegramId.toString(),
+                actorType: 'ADMIN',
+                action: 'MANUAL_TASK_UPDATED',
+                entityType: 'Task',
+                entityId: taskId,
+                changes: JSON.stringify(updateData)
+            }
+        });
+
+        return updated;
+    }
+
+    async deleteCustomTask(taskId: string, adminTelegramId: number) {
+        const deleted = await this.prisma.task.delete({
+            where: { id: taskId, provider: 'CUSTOM', type: 'MANUAL' }
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                actorId: adminTelegramId.toString(),
+                actorType: 'ADMIN',
+                action: 'MANUAL_TASK_DELETED',
+                entityType: 'Task',
+                entityId: taskId,
+                changes: JSON.stringify({ deletedTitle: deleted.title })
+            }
+        });
+
+        return deleted;
+    }
+    async getConfig(key: string) {
+        const config = await this.prisma.platformConfig.findUnique({ where: { key } });
+        return config?.value || '';
+    }
+
+    async setConfig(key: string, value: string, adminId: number) {
+        return this.prisma.platformConfig.upsert({
+            where: { key },
+            update: { value, updatedBy: adminId.toString() },
+            create: { key, value, updatedBy: adminId.toString() }
+        });
+    }
+
+    async getAllConfigs() {
+        const configs = await this.prisma.platformConfig.findMany();
+        const result: Record<string, string> = {};
+        configs.forEach(c => result[c.key] = c.value);
+        return result;
+    }
+
+    async setConfigs(configs: Record<string, string>, adminId: number) {
+        const updates = Object.entries(configs).map(([key, value]) => {
+            return this.prisma.platformConfig.upsert({
+                where: { key },
+                update: { value: value.toString(), updatedBy: adminId.toString() },
+                create: { key, value: value.toString(), updatedBy: adminId.toString() }
+            });
+        });
+        await this.prisma.$transaction(updates);
+        return { success: true };
+    }
+
+
+    async getOnlineUserCount() {
+        const date = new Date();
+        const hour = date.getHours();
+        const day = date.getDay(); // 0 is Sunday, 6 is Saturday
+
+        // Base online count
+        let baseCount = 8000;
+
+        // Apply a sine wave to simulate daily peaks & valleys
+        // Peak at 20:00 (8 PM, highest at +1), lowest at 08:00 (8 AM, lowest at -1)
+        const timeFactor = Math.sin((hour - 14) * Math.PI / 12);
+
+        // Multipliers depending on the day of the week
+        // Weekends typically have more traffic
+        const dayMultipliers = [1.5, 1.0, 1.0, 1.1, 1.1, 1.3, 1.4];
+        const dayMultiplier = dayMultipliers[day];
+
+        // Combine base, time sine wave, and day multiplier
+        const simulatedCount = Math.floor((baseCount + (timeFactor * 4000)) * dayMultiplier);
+
+        // Add 5% random noise
+        const randomNoise = Math.floor(simulatedCount * 0.05 * (Math.random() - 0.5));
+
+        return Math.max(100, simulatedCount + randomNoise);
+    }
+
+    // ========== Marketing Mode Tools ==========
+
+    async toggleMarketingFlag(userId: string, adminTelegramId: number) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new Error('User not found');
+
+        const newFlag = !user.isMarketingAcc;
+
+        const updated = await this.prisma.user.update({
+            where: { id: userId },
+            data: { isMarketingAcc: newFlag }
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                actorId: adminTelegramId.toString(),
+                actorType: 'ADMIN',
+                action: newFlag ? 'MARKETING_MODE_ENABLED' : 'MARKETING_MODE_DISABLED',
+                entityType: 'User',
+                entityId: userId,
+                changes: JSON.stringify({ isMarketingAcc: newFlag })
+            }
+        });
+
+        return { success: true, isMarketingAcc: newFlag, userId };
+    }
+
+    async adjustBalance(userId: string, amount: number, description: string, adminTelegramId: number) {
+        return await this.prisma.$transaction(async (tx) => {
+            const wallet = await tx.wallet.findUnique({ where: { userId } });
+            if (!wallet) throw new Error('Wallet not found for user');
+
+            const updatedWallet = await tx.wallet.update({
+                where: { userId },
+                data: { balance: { increment: amount } }
+            });
+
+            await tx.walletMutation.create({
+                data: {
+                    walletId: wallet.id,
+                    amount: amount,
+                    type: 'ADMIN_ADJUSTMENT',
+                    description: description || `Admin Balance Adjustment: ${amount > 0 ? '+' : ''}${amount}`
+                }
+            });
+
+            await tx.auditLog.create({
+                data: {
+                    actorId: adminTelegramId.toString(),
+                    actorType: 'ADMIN',
+                    action: 'BALANCE_ADJUSTED',
+                    entityType: 'Wallet',
+                    entityId: wallet.id,
+                    changes: JSON.stringify({ userId, amount, description, newBalance: updatedWallet.balance })
+                }
+            });
+
+            return { success: true, userId, newBalance: updatedWallet.balance };
+        });
+    }
+
+    async injectFakeStats(userId: string, tasksCount: number, withdrawalsCount: number, referralsCount: number, adminTelegramId: number) {
+        return await this.prisma.$transaction(async (tx) => {
+            // 1. Inject fake completed tasks
+            const names = ['Install App & Play', 'Survey Completion', 'Register Promo', 'Download & Run', 'Watch Video Ad', 'Complete Quiz', 'Join Community', 'Rate App 5 Stars'];
+            for (let i = 0; i < tasksCount; i++) {
+                const randomTitle = names[Math.floor(Math.random() * names.length)];
+                const randomReward = Math.floor(Math.random() * 40000 + 10000); // 10k - 50k
+
+                // Create task record
+                const task = await tx.task.create({
+                    data: {
+                        provider: 'CUSTOM',
+                        title: randomTitle,
+                        description: `Simulated marketing task #${i + 1}`,
+                        reward: randomReward,
+                        type: 'AUTO',
+                        isActive: false,
+                        isFake: true // ← Marketing flag
+                    }
+                });
+
+                await tx.userTask.create({
+                    data: {
+                        userId,
+                        taskId: task.id,
+                        status: 'APPROVED',
+                        reward: randomReward,
+                        isFake: true // ← Marketing flag
+                    }
+                });
+            }
+
+            // 2. Inject fake withdrawal history
+            const methods = ['DANA', 'GOPAY', 'OVO', 'BANK_TRANSFER'] as const;
+            for (let i = 0; i < withdrawalsCount; i++) {
+                const fakeAmount = Math.floor(Math.random() * 900000 + 100000); // 100k - 1M
+                const method = methods[Math.floor(Math.random() * methods.length)];
+
+                await tx.withdrawal.create({
+                    data: {
+                        userId,
+                        amount: fakeAmount,
+                        method: method,
+                        accountInfo: JSON.stringify({ name: 'Marketing Sim', number: '08XX****XXXX' }),
+                        status: 'PAID',
+                        isFake: true // ← Marketing flag
+                    }
+                });
+            }
+
+            // 3. Inject fake referral users
+            for (let i = 0; i < referralsCount; i++) {
+                const fakeTelegramId = BigInt(Math.floor(Math.random() * 9000000000 + 1000000000));
+                const fakeRefCode = `MKT${Date.now()}${i}`;
+
+                await tx.user.create({
+                    data: {
+                        telegramId: fakeTelegramId,
+                        referralCode: fakeRefCode,
+                        referredById: userId,
+                        firstName: `FakeRef_${i + 1}`,
+                        isReferralActive: true,
+                        isFake: true // ← Marketing flag
+                    }
+                });
+            }
+
+            // Audit Log
+            await tx.auditLog.create({
+                data: {
+                    actorId: adminTelegramId.toString(),
+                    actorType: 'ADMIN',
+                    action: 'FAKE_STATS_INJECTED',
+                    entityType: 'User',
+                    entityId: userId,
+                    changes: JSON.stringify({ tasksCount, withdrawalsCount, referralsCount })
+                }
+            });
+
+            return { success: true, injected: { tasks: tasksCount, withdrawals: withdrawalsCount, referrals: referralsCount } };
+        });
+    }
+
+    async cleanupFakeData(userId: string, adminTelegramId: number) {
+        return await this.prisma.$transaction(async (tx) => {
+            // 1. Delete fake UserTasks (must delete before fake Tasks due to FK)
+            const deletedUserTasks = await tx.userTask.deleteMany({
+                where: { isFake: true, userId }
+            });
+
+            // 2. Delete fake Tasks created for this user
+            const deletedTasks = await tx.task.deleteMany({
+                where: { isFake: true, isActive: false }
+            });
+
+            // 3. Delete fake Withdrawals
+            const deletedWithdrawals = await tx.withdrawal.deleteMany({
+                where: { isFake: true, userId }
+            });
+
+            // 4. Delete fake referral Users (those with isFake=true referred by this user)
+            const deletedUsers = await tx.user.deleteMany({
+                where: { isFake: true, referredById: userId }
+            });
+
+            // Audit Log
+            await tx.auditLog.create({
+                data: {
+                    actorId: adminTelegramId.toString(),
+                    actorType: 'ADMIN',
+                    action: 'FAKE_DATA_CLEANED',
+                    entityType: 'User',
+                    entityId: userId,
+                    changes: JSON.stringify({
+                        deletedUserTasks: deletedUserTasks.count,
+                        deletedTasks: deletedTasks.count,
+                        deletedWithdrawals: deletedWithdrawals.count,
+                        deletedUsers: deletedUsers.count
+                    })
+                }
+            });
+
+            return {
+                success: true,
+                cleaned: {
+                    tasks: deletedUserTasks.count,
+                    withdrawals: deletedWithdrawals.count,
+                    referrals: deletedUsers.count
+                }
+            };
+        });
+    }
 }
+
+

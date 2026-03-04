@@ -1,11 +1,15 @@
 import { Controller, Post, Body, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
 import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { BroadcastService } from './broadcast.service';
+import { BroadcastCronService } from './broadcast-cron.service';
 
 @Controller('admin/broadcast')
 @UseGuards(TelegramAuthGuard)
 export class BroadcastController {
-    constructor(private readonly broadcastService: BroadcastService) { }
+    constructor(
+        private readonly broadcastService: BroadcastService,
+        private readonly broadcastCronService: BroadcastCronService
+    ) { }
 
     @Post('generate-draft')
     async generateDraft(@Body() body: { topic: string, tone?: string }) {
@@ -21,5 +25,38 @@ export class BroadcastController {
             throw new HttpException('Content is required', HttpStatus.BAD_REQUEST);
         }
         return this.broadcastService.sendBroadcast(body.content, body.imageUrl);
+    }
+
+    @Post('private-blast')
+    async sendPrivateBlast(@Body() body: {
+        content: string,
+        imageUrl?: string,
+        buttonText?: string,
+        buttonUrl?: string
+    }) {
+        if (!body.content) {
+            throw new HttpException('Content is required', HttpStatus.BAD_REQUEST);
+        }
+        return this.broadcastService.sendPrivateBlast(
+            body.content,
+            body.imageUrl,
+            body.buttonText,
+            body.buttonUrl
+        );
+    }
+
+    // 🔥 Added for Testing Purposes
+    @Post('test-cron')
+    async testCron(@Body() body: { hour: number }) {
+        if (!body.hour || ![9, 15, 21].includes(body.hour)) {
+            throw new HttpException('Hour must be 9, 15, or 21', HttpStatus.BAD_REQUEST);
+        }
+
+        // Asynchronously start the broadcast generation process
+        this.broadcastCronService.testTrigger(body.hour).catch(e => {
+            console.error('Test Trigger Error:', e);
+        });
+
+        return { success: true, message: `Cron simulation for hour ${body.hour}:00 started! Check server logs.` };
     }
 }

@@ -1,0 +1,11 @@
+[providers]
+node = "22"
+
+[phases.setup]
+nixPkgs = ["...", "chromium", "nss", "freetype", "harfbuzz", "pango", "xorg.libX11", "xorg.libXext", "xorg.libXrender", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXfixes", "xorg.libXrandr", "alsa-lib", "atk", "at-spi2-atk", "cups"]
+
+[phases.build]
+cmds = ["npm run db:generate --workspace=@grupiah/database", "npm run build --workspace=grupiah-api"]
+
+[start]
+cmd = "npm run start:prod --workspace=grupiah-api"

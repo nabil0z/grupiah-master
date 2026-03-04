@@ -79,9 +79,52 @@ export const userApi = {
     }
 };
 
+// Simple Frontend Cache for Tasks to prevent annoying re-fetches
+let tasksCache: { data: any, timestamp: number } | null = null;
+let flashTasksCache: { data: any, timestamp: number } | null = null;
+const CACHE_TTL_MS = 300000; // 5 minutes
+
 export const tasksApi = {
-    getAvailable: async () => {
+    getAvailable: async (forceRefresh = false) => {
+        if (!forceRefresh && tasksCache && (Date.now() - tasksCache.timestamp < CACHE_TTL_MS)) {
+            return tasksCache.data;
+        }
         const response = await apiClient.get('/tasks');
+        tasksCache = { data: response.data, timestamp: Date.now() };
+        return response.data;
+    },
+    getFlashTasks: async (forceRefresh = false) => {
+        if (!forceRefresh && flashTasksCache && (Date.now() - flashTasksCache.timestamp < CACHE_TTL_MS)) {
+            return flashTasksCache.data;
+        }
+        const response = await apiClient.get('/tasks/flash');
+        flashTasksCache = { data: response.data, timestamp: Date.now() };
+        return response.data;
+    },
+    recordClick: async (provider: string, externalId: string) => {
+        const response = await apiClient.post('/tasks/click', { provider, externalId });
+        return response.data;
+    },
+    submitTask: async (taskId: string, proofUrl?: string, proofText?: string) => {
+        const response = await apiClient.post('/tasks/submit', { taskId, proofUrl, proofText });
+        // Invalidate cache when user submits a task so the status updates on next load
+        tasksCache = null;
+        flashTasksCache = null;
+        return response.data;
+    },
+    uploadProof: async (proofFile: File) => {
+        const formData = new FormData();
+        formData.append('image', proofFile);
+        const response = await apiClient.post('/tasks/upload-proof', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    }
+};
+
+export const miscApi = {
+    getOnlineStats: async () => {
+        const response = await apiClient.get('/admin/stats/online');
         return response.data;
     }
 };

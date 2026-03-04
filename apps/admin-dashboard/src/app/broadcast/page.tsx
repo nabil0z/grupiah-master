@@ -1,169 +1,275 @@
 "use client";
 
 import { useState } from "react";
-import { Megaphone, RefreshCw, Trophy, Send, Users, Wand2, Loader2, AlertCircle } from "lucide-react";
+import { Megaphone, Send, Wand2, Loader2, AlertCircle, Users, Radio, Image, Link as LinkIcon } from "lucide-react";
 import { broadcastApi } from "@/lib/api";
 
-export default function BroadcastGenerator() {
-    const [fakeNames] = useState([
-        "Budi S.", "Ahmad99", "Sischa_Ovo", "Rudi_Trader", "GamingBro", "Rina_Cantik"
-    ]);
+type BroadcastMode = 'channel' | 'private';
 
-    const [generatedCaption, setGeneratedCaption] = useState("");
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [isSending, setIsSending] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [successMsg, setSuccessMsg] = useState<string | null>(null);
+export default function BroadcastPage() {
+    const [mode, setMode] = useState<BroadcastMode>('channel');
+    const [topic, setTopic] = useState("");
+    const [tone, setTone] = useState("Excited & FOMO");
+    const [content, setContent] = useState("");
+    const [imageUrl, setImageUrl] = useState("");
+    const [buttonText, setButtonText] = useState("");
+    const [buttonUrl, setButtonUrl] = useState("");
+    const [generating, setGenerating] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [result, setResult] = useState<any>(null);
+    const [error, setError] = useState("");
+    const [cronTesting, setCronTesting] = useState<number | null>(null);
 
     const generateAIPost = async () => {
+        if (!topic) return;
+        setGenerating(true);
+        setError("");
         try {
-            setIsGenerating(true);
-            setError(null);
-
-            // For Demo: Pick a random topic focus
-            const topics = ["Tarik Dana Cepat (WD)", "Tugas Flash Sale Baru Nominal Besar", "Sultan Referral Mingguan"];
-            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-            const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
-
-            const prompt = `${randomTopic} menampilkan user @${name} yang baru saja mendapat cuan!`;
-
-            const req = await broadcastApi.generateDraft(prompt, 'Hyper FOMO & Action Oriented');
-            setGeneratedCaption(req.content);
+            const draft = await broadcastApi.generateDraft(topic, tone);
+            setContent(draft.content);
         } catch (err: any) {
-            console.error(err);
-            setError('Gagal AI Generate: ' + err.message);
+            setError(err.message || 'Failed to generate draft');
         } finally {
-            setIsGenerating(false);
+            setGenerating(false);
         }
     };
 
-    const handleSendBroadcast = async () => {
-        if (!generatedCaption) return;
+    const handleSend = async () => {
+        if (!content) return;
+        setSending(true);
+        setError("");
+        setResult(null);
         try {
-            setIsSending(true);
-            setError(null);
-            setSuccessMsg(null);
-
-            await broadcastApi.sendBroadcast(generatedCaption); // No image required for now
-
-            setSuccessMsg('Successfully Blast Broadcast to Telegram Channel!');
-            setGeneratedCaption("");
-            setTimeout(() => setSuccessMsg(null), 3000);
+            if (mode === 'channel') {
+                await broadcastApi.sendBroadcast(content, imageUrl || undefined);
+                setResult({ type: 'channel', message: '✅ Broadcast sent to channel!' });
+            } else {
+                const res = await broadcastApi.sendPrivateBlast(
+                    content,
+                    imageUrl || undefined,
+                    buttonText || undefined,
+                    buttonUrl || undefined
+                );
+                setResult({
+                    type: 'private',
+                    message: `✅ DM Blast complete!`,
+                    details: `Sent: ${res.sent} | Failed: ${res.failed} | Total: ${res.total}`
+                });
+            }
         } catch (err: any) {
-            console.error(err);
-            setError('Gagal Send Broadcast: ' + err.message);
+            setError(err.message || 'Failed to send');
         } finally {
-            setIsSending(false);
+            setSending(false);
+        }
+    };
+
+    const testCronjob = async (hour: number) => {
+        setCronTesting(hour);
+        setError("");
+        setResult(null);
+        try {
+            const res = await broadcastApi.testCron(hour);
+            setResult({ type: 'cron', message: `✅ ${res.message}` });
+        } catch (err: any) {
+            setError(err.message || 'Failed to test cron');
+        } finally {
+            setCronTesting(null);
         }
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-3xl">
             <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">AI Broadcast & Leaderboard</h1>
-                <p className="text-slate-500 mt-1">Generate hype drops and manipulate the illusion of activity.</p>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Broadcast Engine</h1>
+                <p className="text-slate-500 mt-1">Generate AI content and blast it to your channel or all users via DM.</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {error && (
-                    <div className="lg:col-span-2 p-4 bg-red-50 text-red-600 rounded-xl flex items-start gap-2 text-sm border border-red-100">
-                        <AlertCircle size={18} className="shrink-0" />
-                        <span>{error}</span>
-                    </div>
-                )}
-                {successMsg && (
-                    <div className="lg:col-span-2 p-4 bg-green-50 text-green-600 rounded-xl flex items-center justify-center font-medium border border-green-100">
-                        {successMsg}
-                    </div>
-                )}
-
-                {/* Fake Leaderboard Generator */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Trophy className="text-amber-500" size={20} />
-                            <h2 className="font-bold text-slate-900">Fake Leaderboard Injection</h2>
-                        </div>
-                        <span className="text-xs font-mono bg-amber-100 text-amber-700 px-2 py-1 rounded">Mirage Engine</span>
-                    </div>
-
-                    <div className="p-6 flex-1 flex flex-col">
-                        <p className="text-sm text-slate-500 mb-6">
-                            Inject AI-generated highly active fictional users into the global leaderboard to stimulate competition among real players.
-                        </p>
-
-                        <div className="space-y-4 flex-1">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Target Ranking Bracket</label>
-                                <select className="w-full border-slate-200 rounded-lg text-sm p-2.5 focus:ring-emerald-500 focus:border-emerald-500">
-                                    <option>Top 1 - 10 (Elite Phantoms)</option>
-                                    <option>Top 11 - 50 (Challenger Bots)</option>
-                                    <option>Top 51 - 100 (Active Noise)</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Injection Volume (Bots)</label>
-                                <input type="range" min="5" max="50" defaultValue="15" className="w-full accent-emerald-500" />
-                                <div className="flex justify-between text-xs text-slate-400 mt-1">
-                                    <span>5 Bots</span>
-                                    <span>15 Selected</span>
-                                    <span>50 Bots</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all">
-                            <Users size={18} />
-                            Inject Fictional Leaders
-                        </button>
-                    </div>
+            {/* Test Cronjob Banner */}
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                        <Radio size={16} className="text-indigo-600" />
+                        Test Automated Hype (Cronjob)
+                    </h3>
+                    <p className="text-xs text-indigo-700 mt-1">Manual trigger for scheduled templates (Generates AI Draft + PNG Image + Post to Channel).</p>
                 </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={() => testCronjob(9)}
+                        disabled={cronTesting !== null}
+                        className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 disabled:opacity-50 transition-colors flex items-center gap-1"
+                    >
+                        {cronTesting === 9 ? <Loader2 size={12} className="animate-spin" /> : null} 09:00 (Pagi)
+                    </button>
+                    <button
+                        onClick={() => testCronjob(15)}
+                        disabled={cronTesting !== null}
+                        className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 disabled:opacity-50 transition-colors flex items-center gap-1"
+                    >
+                        {cronTesting === 15 ? <Loader2 size={12} className="animate-spin" /> : null} 15:00 (Sore)
+                    </button>
+                    <button
+                        onClick={() => testCronjob(21)}
+                        disabled={cronTesting !== null}
+                        className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 disabled:opacity-50 transition-colors flex items-center gap-1"
+                    >
+                        {cronTesting === 21 ? <Loader2 size={12} className="animate-spin" /> : null} 21:00 (Malam)
+                    </button>
+                </div>
+            </div>
 
-                {/* Telegram Broadcast Generator */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                    <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Megaphone className="text-blue-500" size={20} />
-                            <h2 className="font-bold text-slate-900">Hype Broadcast Studio</h2>
-                        </div>
-                    </div>
+            {/* Mode Tabs */}
+            <div className="flex gap-2 bg-slate-100 rounded-xl p-1">
+                <button
+                    onClick={() => setMode('channel')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${mode === 'channel' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <Radio size={16} />
+                    Channel Broadcast
+                </button>
+                <button
+                    onClick={() => setMode('private')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${mode === 'private' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <Users size={16} />
+                    Private DM Blast
+                </button>
+            </div>
 
-                    <div className="p-6 flex-1 flex flex-col">
-                        <div className="flex gap-2 mb-4">
-                            <button
-                                onClick={generateAIPost}
-                                disabled={isGenerating}
-                                className="flex-1 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                                {isGenerating ? 'Drafting...' : 'Auto-Generate with AI'}
-                            </button>
-                            <button className="px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Attach Fake Proof Image" disabled={isGenerating || isSending}>
-                                IMG
-                            </button>
-                        </div>
-
-                        <textarea
-                            className="w-full flex-1 border border-slate-200 rounded-xl p-4 text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-60"
-                            placeholder="Tulis pesan hype atau klik Auto-Generate..."
-                            value={generatedCaption}
-                            onChange={(e) => setGeneratedCaption(e.target.value)}
-                            disabled={isGenerating || isSending}
+            {/* AI Generation */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <Wand2 className="text-violet-500" size={20} />
+                    <h2 className="text-lg font-bold text-slate-900">AI Content Generator</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Topic</label>
+                        <input
+                            type="text"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                            placeholder="e.g. Flash Sale Hari Ini, Task Baru Reward 50rb"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                         />
-
-                        <button
-                            onClick={handleSendBroadcast}
-                            disabled={isSending || !generatedCaption}
-                            className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-shadow shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Tone</label>
+                        <select
+                            value={tone}
+                            onChange={(e) => setTone(e.target.value)}
+                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-violet-500"
                         >
-                            {isSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                            {isSending ? 'Broadcasting...' : 'Send to Telegram Channel'}
-                        </button>
+                            <option>Excited & FOMO</option>
+                            <option>Professional & Informative</option>
+                            <option>Casual & Friendly</option>
+                            <option>Urgent & Limited</option>
+                        </select>
                     </div>
                 </div>
+                <button
+                    onClick={generateAIPost}
+                    disabled={generating || !topic}
+                    className="mt-4 px-6 py-2.5 bg-violet-500 hover:bg-violet-400 disabled:bg-slate-300 text-white font-bold rounded-xl transition-all flex items-center gap-2 text-sm"
+                >
+                    {generating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                    {generating ? 'Generating...' : 'Generate Draft'}
+                </button>
+            </div>
 
+            {/* Content Editor */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <Megaphone className="text-orange-500" size={20} />
+                    <h2 className="text-lg font-bold text-slate-900">Message Content</h2>
+                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full ml-auto">
+                        {mode === 'channel' ? 'Channel Post' : 'Private DM'}
+                    </span>
+                </div>
+
+                <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Write or paste your broadcast content here..."
+                    rows={8}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-mono resize-y"
+                />
+
+                {/* Media & Button Options */}
+                <div className="mt-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                        <Image size={16} className="text-slate-400 shrink-0" />
+                        <input
+                            type="text"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="Image URL (optional, from Telegram or public CDN)"
+                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                        />
+                    </div>
+
+                    {mode === 'private' && (
+                        <div className="flex items-center gap-3">
+                            <LinkIcon size={16} className="text-slate-400 shrink-0" />
+                            <input
+                                type="text"
+                                value={buttonText}
+                                onChange={(e) => setButtonText(e.target.value)}
+                                placeholder="Button text (default: Buka Mini App GRupiah)"
+                                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                            />
+                            <input
+                                type="text"
+                                value={buttonUrl}
+                                onChange={(e) => setButtonUrl(e.target.value)}
+                                placeholder="Button URL"
+                                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Error / Result */}
+                {error && (
+                    <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-sm text-rose-700">
+                        <AlertCircle size={16} />
+                        {error}
+                    </div>
+                )}
+                {result && (
+                    <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+                        <p className="font-bold">{result.message}</p>
+                        {result.details && <p className="text-xs mt-1">{result.details}</p>}
+                    </div>
+                )}
+
+                {/* Send Button */}
+                <button
+                    onClick={handleSend}
+                    disabled={sending || !content}
+                    className={`mt-4 w-full py-3 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm ${mode === 'channel'
+                        ? 'bg-orange-500 hover:bg-orange-400 disabled:bg-slate-300 text-white'
+                        : 'bg-blue-600 hover:bg-blue-500 disabled:bg-slate-300 text-white'
+                        }`}
+                >
+                    {sending ? (
+                        <>
+                            <Loader2 size={18} className="animate-spin" />
+                            {mode === 'channel' ? 'Sending to channel...' : 'Blasting DMs... (this may take a while)'}
+                        </>
+                    ) : (
+                        <>
+                            <Send size={18} />
+                            {mode === 'channel' ? 'Send to Channel' : 'Blast to All Users (DM)'}
+                        </>
+                    )}
+                </button>
+
+                {mode === 'private' && (
+                    <p className="text-[10px] text-slate-400 text-center mt-2">
+                        ⚡ Messages are sent in batches of 25 with 1.5s delays to avoid Telegram rate limits.
+                    </p>
+                )}
             </div>
         </div>
     );

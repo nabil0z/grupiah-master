@@ -47,17 +47,17 @@ export class OGAdsAdapter implements IOfferwallAdapter {
                 this.logger.log(`[OGAds] Sample offer: ${JSON.stringify(offers[0])}`);
             }
 
-            return offers.map((offer: any) => ({
-                id: offer.offer_id ? offer.offer_id.toString() : Math.random().toString(),
+            return offers.map((offer: any, index: number) => ({
+                id: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
                 provider: 'OGADS',
-                externalId: offer.offer_id ? offer.offer_id.toString() : 'unknown',
+                externalId: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
                 title: offer.name || offer.name_short || 'OGAds Offer',
                 description: offer.description,
-                reward: parseFloat(offer.payout),
+                reward: parseFloat(offer.payout) || 0,
                 type: 'AUTO',
                 isActive: true,
-                providerUrl: offer.link,
-                logoUrl: offer.picture
+                providerUrl: offer.link || '#',
+                logoUrl: offer.picture || ''
             }));
         } catch (error: any) {
             this.logger.error(`Failed to fetch OGAds offers: ${error.message}`);

@@ -37,10 +37,15 @@ export class UsersController {
                 typeof value === 'bigint' ? value.toString() : value
             ));
 
+            const minWithdrawStr = await this.configService.getConfigValue('APP_MIN_WITHDRAW', '500000');
+
             return {
                 ...responseJson,
                 canClaimDaily,
-                currentStreak: user.dailyStreak
+                currentStreak: user.dailyStreak,
+                appConfig: {
+                    minWithdraw: parseInt(minWithdrawStr) || 500000
+                }
             };
         } catch (e: any) {
             console.error(e);
@@ -256,11 +261,12 @@ export class UsersController {
             const { amount, method, accountInfo } = req.body;
 
             // Target withdrawal minimum
-            const TARGET_WITHDRAWAL = 500000;
+            const targetWithdrawStr = await this.configService.getConfigValue('APP_MIN_WITHDRAW', '500000');
+            const TARGET_WITHDRAWAL = parseInt(targetWithdrawStr) || 500000;
             const requestedAmount = Number(amount);
 
             if (!requestedAmount || requestedAmount < TARGET_WITHDRAWAL) {
-                return new HttpException(`Minimum withdrawal is Rp ${TARGET_WITHDRAWAL}`, HttpStatus.BAD_REQUEST);
+                return new HttpException(`Minimum withdrawal is Rp ${TARGET_WITHDRAWAL.toLocaleString('id-ID')}`, HttpStatus.BAD_REQUEST);
             }
 
             if (!method || !accountInfo) {

@@ -10,17 +10,19 @@ export default function WalletPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [balance, setBalance] = useState(0);
+    const [minWithdraw, setMinWithdraw] = useState(500000);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchWallet = async () => {
             try {
-                const data = await userApi.getWallet();
-                setBalance(Number(data.balance) || 0);
+                const profile = await userApi.getProfile();
+                setBalance(Number(profile?.wallet?.balance) || 0);
+                setMinWithdraw(Number(profile?.appConfig?.minWithdraw) || 500000);
             } catch (err) {
                 console.error("Failed to fetch wallet", err);
-                // Fallback for UI testing if backend is down
-                setBalance(600000);
+                // Fallback for UI testing if backend is down removed for production
+                setBalance(0);
             } finally {
                 setIsLoading(false);
             }
@@ -28,8 +30,7 @@ export default function WalletPage() {
         fetchWallet();
     }, []);
 
-    const TARGET_WITHDRAWAL = 500000;
-    const canWithdraw = balance >= TARGET_WITHDRAWAL;
+    const canWithdraw = balance >= minWithdraw;
 
     const handleWithdrawSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -102,7 +103,7 @@ export default function WalletPage() {
                             <div className="flex-1">
                                 <h3 className="font-bold text-gray-900 text-sm mb-1">Status Pencairan</h3>
                                 <p className="text-xs text-gray-600 leading-relaxed">
-                                    Saldo Anda belum mencapai batas minimum <strong className="text-slate-900">Rp {TARGET_WITHDRAWAL.toLocaleString('id-ID')}</strong>. Terus selesaikan tugas untuk mencairkan dana.
+                                    Saldo Anda belum mencapai batas minimum <strong className="text-slate-900">Rp {minWithdraw.toLocaleString('id-ID')}</strong>. Terus selesaikan tugas untuk mencairkan dana.
                                 </p>
                             </div>
                         </>
@@ -129,28 +130,12 @@ export default function WalletPage() {
                     <History size={16} className="text-gray-400" />
                 </h3>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
-                    {[
-                        { id: 'TX-001', title: 'Bonus Pendaftaran', date: 'Hari ini, 08:30', amount: '+ Rp 250.000', type: 'earn' },
-                        { id: 'TX-002', title: 'Download Lords Mobile', date: 'Kemarin, 14:15', amount: '+ Rp 120.000', type: 'earn' },
-                        { id: 'TX-003', title: 'Survey Finansial', date: 'Kemarin, 10:00', amount: '+ Rp 45.000', type: 'earn' },
-                        { id: 'TX-004', title: 'Daily Check-in', date: 'Kemarin, 09:00', amount: '+ Rp 35.000', type: 'earn' }
-                    ].map((tx) => (
-                        <div key={tx.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                            <div className="flex gap-3 items-center">
-                                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg shrink-0">
-                                    +
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-gray-900 text-sm">{tx.title}</h4>
-                                    <p className="text-[11px] text-gray-400 mt-0.5">{tx.date}</p>
-                                </div>
-                            </div>
-                            <span className="font-bold text-emerald-600 text-sm">
-                                {tx.amount}
-                            </span>
-                        </div>
-                    ))}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-8 text-center bg-gray-50/50">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <History size={20} className="text-gray-400" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-500">Belum ada transaksi</p>
+                    <p className="text-xs text-gray-400 mt-1">Selesaikan tugas untuk mulai menghasilkan.</p>
                 </div>
 
                 <div className="mt-8 text-center text-xs text-gray-400 font-medium flex items-center justify-center gap-1.5 opacity-60">
