@@ -14,19 +14,24 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 
 WORKDIR /app
 
-# Copy entire monorepo (filtered by .dockerignore)
+# Install build tools GLOBALLY so they are always in PATH
+# This bypasses ALL npm workspace resolution issues
+RUN npm install -g prisma@5.22.0 @nestjs/cli typescript
+
+# Copy entire monorepo
 COPY . .
 
-# CRITICAL: Force install ALL dependencies including devDependencies
-# Coolify injects NODE_ENV=production which makes npm skip devDeps by default
-# --include=dev ensures prisma, @nestjs/cli, turbo, typescript are all installed
+# Install project dependencies
 RUN npm install --include=dev
 
-# Generate Prisma client
-RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
+# Generate Prisma client (prisma is now globally available)
+RUN prisma generate --schema=./packages/database/prisma/schema.prisma
 
-# Build API via turbo
-RUN npx turbo run build --filter=grupiah-api
+# Build NestJS (nest CLI is now globally available)
+WORKDIR /app/apps/api
+RUN nest build
+
+WORKDIR /app
 
 EXPOSE 53000
 
