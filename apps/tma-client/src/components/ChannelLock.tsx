@@ -32,7 +32,7 @@ export default function ChannelLock({ onVerify, isVerifying }: ChannelLockProps)
                             <p className="text-xs text-slate-500">1.2M Subscribers</p>
                         </div>
                     </div>
-                    <a href="https://t.me/telegram" target="_blank" rel="noreferrer" className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm text-center text-sm">
+                    <a href="https://t.me/Grupiah_id" target="_blank" rel="noreferrer" className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm text-center text-sm">
                         Buka Channel
                     </a>
                 </div>
