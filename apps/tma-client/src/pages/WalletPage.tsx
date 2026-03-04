@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Wallet as WalletIcon, ArrowRightLeft, ShieldAlert, History, HelpCircle, X, CheckCircle2 } from 'lucide-react';
+import { Wallet as WalletIcon, ArrowRightLeft, ShieldAlert, History, HelpCircle, X, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { userApi } from '../api/client';
+
+interface WithdrawalItem {
+    id: string;
+    amount: number;
+    method: string;
+    status: string;
+    createdAt: string;
+}
 
 export default function WalletPage() {
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
@@ -12,22 +20,25 @@ export default function WalletPage() {
     const [balance, setBalance] = useState(0);
     const [minWithdraw, setMinWithdraw] = useState(500000);
     const [isLoading, setIsLoading] = useState(true);
+    const [withdrawals, setWithdrawals] = useState<WithdrawalItem[]>([]);
 
     useEffect(() => {
-        const fetchWallet = async () => {
+        const fetchData = async () => {
             try {
                 const profile = await userApi.getProfile();
                 setBalance(Number(profile?.wallet?.balance) || 0);
                 setMinWithdraw(Number(profile?.appConfig?.minWithdraw) || 500000);
+
+                const wdHistory = await userApi.getWithdrawals().catch(() => []);
+                setWithdrawals(wdHistory);
             } catch (err) {
                 console.error("Failed to fetch wallet", err);
-                // Fallback for UI testing if backend is down removed for production
                 setBalance(0);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchWallet();
+        fetchData();
     }, []);
 
     const canWithdraw = balance >= minWithdraw;
@@ -130,13 +141,45 @@ export default function WalletPage() {
                     <History size={16} className="text-gray-400" />
                 </h3>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-8 text-center bg-gray-50/50">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <History size={20} className="text-gray-400" />
+                {withdrawals.length === 0 ? (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-8 text-center bg-gray-50/50">
+                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <History size={20} className="text-gray-400" />
+                        </div>
+                        <p className="text-sm font-bold text-gray-500">Belum ada transaksi</p>
+                        <p className="text-xs text-gray-400 mt-1">Selesaikan tugas untuk mulai menghasilkan.</p>
                     </div>
-                    <p className="text-sm font-bold text-gray-500">Belum ada transaksi</p>
-                    <p className="text-xs text-gray-400 mt-1">Selesaikan tugas untuk mulai menghasilkan.</p>
-                </div>
+                ) : (
+                    <div className="space-y-3">
+                        {withdrawals.map(wd => (
+                            <div key={wd.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${wd.status === 'PAID' ? 'bg-emerald-50 text-emerald-500' :
+                                    wd.status === 'PENDING' ? 'bg-amber-50 text-amber-500' :
+                                        'bg-red-50 text-red-500'
+                                    }`}>
+                                    {wd.status === 'PAID' ? <CheckCircle2 size={20} /> :
+                                        wd.status === 'PENDING' ? <Clock size={20} /> :
+                                            <XCircle size={20} />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-gray-900 text-sm">Withdraw {wd.method}</h4>
+                                    <span className="text-[10px] text-gray-400">
+                                        {new Date(wd.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </span>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <p className="font-bold text-sm text-gray-900">Rp {wd.amount.toLocaleString('id-ID')}</p>
+                                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${wd.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                        wd.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                            'bg-red-50 text-red-700 border-red-200'
+                                        }`}>
+                                        {wd.status === 'PAID' ? 'Dibayar' : wd.status === 'PENDING' ? 'Menunggu' : 'Ditolak'}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 <div className="mt-8 text-center text-xs text-gray-400 font-medium flex items-center justify-center gap-1.5 opacity-60">
                     <HelpCircle size={14} /> Butuh Bantuan? Hubungi Support

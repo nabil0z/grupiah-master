@@ -75,6 +75,24 @@ export class UsersController {
         }));
     }
 
+    @Get('me/withdrawals')
+    @UseGuards(TelegramAuthGuard)
+    async getMyWithdrawals(@Request() req: any) {
+        if (!req.dbUser) return [];
+        const withdrawals = await this.prisma.withdrawal.findMany({
+            where: { userId: req.dbUser.id },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+        return withdrawals.map(w => ({
+            id: w.id,
+            amount: Number(w.amount),
+            method: w.method,
+            status: w.status,
+            createdAt: w.createdAt,
+        }));
+    }
+
     @Post('daily-checkin')
     @UseGuards(TelegramAuthGuard)
     async claimDaily(@Request() req: any) {
