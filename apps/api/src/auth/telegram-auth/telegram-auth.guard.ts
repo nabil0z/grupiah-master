@@ -51,14 +51,17 @@ export class TelegramAuthGuard implements CanActivate {
       let isValid = false;
       if (botToken) {
         isValid = this.verifyTelegramWebAppData(initData, botToken);
+        console.log('[AUTH] User bot validation result:', isValid);
       }
 
       // If it fails (or doesn't exist), try the Admin Bot Token
       if (!isValid && adminBotToken) {
         isValid = this.verifyTelegramWebAppData(initData, adminBotToken);
+        console.log('[AUTH] Admin bot validation result:', isValid);
       }
 
       if (!isValid) {
+        console.error('[AUTH] HMAC validation failed for ALL bot tokens');
         throw new UnauthorizedException('Invalid Telegram initData signature for any known bots');
       }
 
@@ -67,10 +70,12 @@ export class TelegramAuthGuard implements CanActivate {
       const userStr = urlParams.get('user');
 
       if (!userStr) {
+        console.error('[AUTH] No user field in initData. Keys:', [...new URLSearchParams(initData).keys()]);
         throw new UnauthorizedException('User data missing from initData');
       }
 
       const telegramUser = JSON.parse(decodeURIComponent(userStr));
+      console.log('[AUTH] Telegram user parsed:', telegramUser.id, telegramUser.username);
 
       // Attach parsed raw telegram user
       request.user = telegramUser;
@@ -86,6 +91,7 @@ export class TelegramAuthGuard implements CanActivate {
 
       return true;
     } catch (e) {
+      console.error('[AUTH] Authentication error:', e?.message || e);
       throw new UnauthorizedException('Authentication failed');
     }
   }
