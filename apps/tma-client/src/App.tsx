@@ -9,6 +9,7 @@ import ProfilePage from './pages/ProfilePage';
 import FrensPage from './pages/FrensPage';
 import BoostPage from './pages/BoostPage';
 import SettingsPage from './pages/SettingsPage';
+import TaskHistoryPage from './pages/TaskHistoryPage';
 import ChannelLock from './components/ChannelLock';
 import DailyCheckIn from './components/DailyCheckIn';
 import FakeWithdrawTicker from './components/FakeWithdrawTicker';
@@ -91,6 +92,7 @@ function MainApp() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/boost" element={<BoostPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/task-history" element={<TaskHistoryPage />} />
         {/* Defaulting un-built pages back to Home for now */}
         <Route path="*" element={<FlashSalePage />} />
       </Routes>

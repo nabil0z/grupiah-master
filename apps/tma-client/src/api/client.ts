@@ -85,6 +85,10 @@ let flashTasksCache: { data: any, timestamp: number } | null = null;
 const CACHE_TTL_MS = 300000; // 5 minutes
 
 export const tasksApi = {
+    getMyTasks: async () => {
+        const response = await apiClient.get('/users/me/tasks');
+        return response.data;
+    },
     getAvailable: async (forceRefresh = false) => {
         if (!forceRefresh && tasksCache && (Date.now() - tasksCache.timestamp < CACHE_TTL_MS)) {
             return tasksCache.data;

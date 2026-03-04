@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, ChevronRight, Flame, Settings } from 'lucide-react';
+import { Clock, ChevronRight, Flame, Settings, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, userApi, tasksApi } from '../api/client';
 import { Users, Loader2 } from 'lucide-react';
@@ -110,9 +110,14 @@ const FlashSalePage = () => {
                     </div>
                 </div>
 
-                {/* Profile Link Overlay */}
-                <div className="absolute top-4 right-5 bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-full cursor-pointer z-20 backdrop-blur-sm border border-white/10" onClick={() => navigate('/settings')}>
-                    <Settings size={20} className="text-white opacity-80" />
+                {/* Profile & History Link Overlay */}
+                <div className="absolute top-4 right-5 flex gap-2 z-20">
+                    <div className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-full cursor-pointer backdrop-blur-sm border border-white/10" onClick={() => navigate('/task-history')}>
+                        <ClipboardList size={20} className="text-white opacity-80" />
+                    </div>
+                    <div className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-full cursor-pointer backdrop-blur-sm border border-white/10" onClick={() => navigate('/settings')}>
+                        <Settings size={20} className="text-white opacity-80" />
+                    </div>
                 </div>
 
                 {/* E-commerce Progress Bar (The Impossible Hurdle) */}

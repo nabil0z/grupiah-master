@@ -53,6 +53,28 @@ export class UsersController {
         }
     }
 
+    @Get('me/tasks')
+    @UseGuards(TelegramAuthGuard)
+    async getMyTasks(@Request() req: any) {
+        if (!req.dbUser) return [];
+        const userTasks = await this.prisma.userTask.findMany({
+            where: { userId: req.dbUser.id },
+            include: { task: true },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+        return userTasks.map(ut => ({
+            id: ut.id,
+            taskId: ut.taskId,
+            title: ut.task?.title || 'Unknown Task',
+            description: ut.task?.description || '',
+            provider: ut.task?.provider || 'CUSTOM',
+            reward: Number(ut.reward || ut.task?.reward || 0),
+            status: ut.status,
+            createdAt: ut.createdAt,
+        }));
+    }
+
     @Post('daily-checkin')
     @UseGuards(TelegramAuthGuard)
     async claimDaily(@Request() req: any) {
