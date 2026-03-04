@@ -6,7 +6,7 @@ RUN npm install -g serve
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY turbo.json tsconfig.json ./
+COPY turbo.json ./
 COPY packages ./packages
 COPY apps/tma-landing ./apps/tma-landing
 

@@ -17,7 +17,7 @@ WORKDIR /app
 
 # Copy monorepo contents
 COPY package.json package-lock.json ./
-COPY turbo.json tsconfig.json ./
+COPY turbo.json ./
 COPY packages ./packages
 COPY apps/api ./apps/api
 
