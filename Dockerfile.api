@@ -15,19 +15,28 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 
 WORKDIR /app
 
-# Copy monorepo contents
-COPY package.json package-lock.json ./
-COPY turbo.json ./
+# Copy root monorepo config
+COPY package.json package-lock.json turbo.json ./
+
+# Copy the database package (needed for Prisma generate during build)
 COPY packages ./packages
+
+# Copy the API app
 COPY apps/api ./apps/api
 
-# Install dependencies and generate Prisma client
+# Install all dependencies from monorepo root
 RUN npm install
-RUN npm run postinstall --if-present
 
-# Build the API
-RUN npm run build --workspace=api
+# Generate Prisma client
+RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
+
+# Build NestJS from within the api directory
+WORKDIR /app/apps/api
+RUN npx nest build
+
+# Switch back to monorepo root for runtime
+WORKDIR /app
 
 EXPOSE 53000
 
-CMD ["npm", "run", "start:prod", "--workspace=api"]
+CMD ["node", "apps/api/dist/main.js"]

@@ -1,19 +1,24 @@
 FROM node:20-alpine
 
-# Install lightweight static file server
 RUN npm install -g serve
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-COPY turbo.json ./
+# Copy root monorepo config
+COPY package.json package-lock.json turbo.json ./
+
+# Copy packages (shared deps)
 COPY packages ./packages
+
+# Copy the landing page app
 COPY apps/tma-landing ./apps/tma-landing
 
+# Install all dependencies
 RUN npm install
+
+# Build Vite
 RUN npm run build --workspace=tma-landing
 
 EXPOSE 53004
 
-# Serve the static Vite build on port 53004
 CMD ["serve", "-s", "apps/tma-landing/dist", "-p", "53004"]
