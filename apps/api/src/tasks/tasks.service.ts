@@ -3,6 +3,20 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TaskProviderFactory } from './task-provider.factory';
 import { AdminConfigService } from '../admin/config/admin-config.service';
 
+// 30-minute cache for external provider tasks (keyed by IP)
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const externalTaskCache = new Map<string, { data: any[]; timestamp: number }>();
+
+// Auto-clean expired cache entries every 10 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of externalTaskCache) {
+        if (now - entry.timestamp > CACHE_TTL_MS) {
+            externalTaskCache.delete(key);
+        }
+    }
+}, 10 * 60 * 1000);
+
 @Injectable()
 export class TasksService {
     constructor(
@@ -34,18 +48,34 @@ export class TasksService {
                 ...t,
                 userSubmissionStatus: userTaskMap.get(t.id) || null
             }));
-            // Concept: Dynamically fetch active ad networks. We now fetch both OGADS and ADBLUEMEDIA concurrently.
-            console.log('[TasksService] Requesting Offerwall Adapters...');
-            const ogadsAdapter = this.taskProviderFactory.getAdapter('OGADS');
-            const adBlueMediaAdapter = this.taskProviderFactory.getAdapter('ADBLUEMEDIA');
+            // Check cache for external tasks (keyed by IP)
+            const cacheKey = userIp || 'default';
+            const cached = externalTaskCache.get(cacheKey);
+            let providerResults: PromiseSettledResult<any[]>[];
 
-            console.log('[TasksService] Executing parallel fetchTasks()...');
+            if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+                // Use cached external tasks
+                providerResults = [
+                    { status: 'fulfilled', value: cached.data[0] || [] },
+                    { status: 'fulfilled', value: cached.data[1] || [] }
+                ] as PromiseSettledResult<any[]>[];
+            } else {
+                // Fetch fresh from providers
+                const ogadsAdapter = this.taskProviderFactory.getAdapter('OGADS');
+                const adBlueMediaAdapter = this.taskProviderFactory.getAdapter('ADBLUEMEDIA');
 
-            // Use Promise.allSettled so if one network falls over, the other still succeeds
-            const results = await Promise.allSettled([
-                ogadsAdapter.fetchTasks(userId, userIp, userAgent),
-                adBlueMediaAdapter.fetchTasks(userId, userIp, userAgent)
-            ]);
+                providerResults = await Promise.allSettled([
+                    ogadsAdapter.fetchTasks(userId, userIp, userAgent),
+                    adBlueMediaAdapter.fetchTasks(userId, userIp, userAgent)
+                ]);
+
+                // Cache successful results
+                const ogData = providerResults[0].status === 'fulfilled' ? providerResults[0].value : [];
+                const abData = providerResults[1].status === 'fulfilled' ? providerResults[1].value : [];
+                externalTaskCache.set(cacheKey, { data: [ogData, abData], timestamp: Date.now() });
+            }
+
+            const results = providerResults;
 
             const globalMultiplierStr = await this.configService.getConfigValue('GLOBAL_OFFER_MULTIPLIER', '1');
             const globalMultiplier = parseFloat(globalMultiplierStr) || 1;
