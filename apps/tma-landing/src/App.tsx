@@ -1,13 +1,14 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import { Play, Wallet, Gift, ArrowRight, CheckCircle2, Zap } from 'lucide-react';
 import PayoutTicker from './components/PayoutTicker';
 
 const App: React.FC = () => {
   const botUrl = "https://t.me/grupiah_bot";
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -15,7 +16,7 @@ const App: React.FC = () => {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
