@@ -97,6 +97,7 @@ export class TelegramAuthGuard implements CanActivate {
   }
 
   private verifyTelegramWebAppData(initData: string, botToken: string): boolean {
+    // Extract hash from URL params
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
 
@@ -105,33 +106,51 @@ export class TelegramAuthGuard implements CanActivate {
       return false;
     }
 
-    urlParams.delete('hash');
-
-    const paramsList: string[] = [];
-    urlParams.forEach((value, key) => {
-      paramsList.push(`${key}=${value}`);
-    });
-
-    // Sort parameters alphabetically
-    paramsList.sort();
-
-    const dataCheckString = paramsList.join('\n');
-
-    // Create secret key
+    // Create secret key (same for both approaches)
     const secretKey = createHmac('sha256', 'WebAppData')
       .update(botToken)
       .digest();
 
-    // Calculate final hash
-    const calculatedHash = createHmac('sha256', secretKey)
-      .update(dataCheckString)
+    // --- APPROACH 1: Using decoded values (URLSearchParams) ---
+    urlParams.delete('hash');
+    const decodedParams: string[] = [];
+    urlParams.forEach((value, key) => {
+      decodedParams.push(`${key}=${value}`);
+    });
+    decodedParams.sort();
+    const decodedCheckString = decodedParams.join('\n');
+
+    const hash1 = createHmac('sha256', secretKey)
+      .update(decodedCheckString)
       .digest('hex');
 
-    console.log('[AUTH] Expected hash:', hash.substring(0, 16) + '...');
-    console.log('[AUTH] Calculated hash:', calculatedHash.substring(0, 16) + '...');
-    console.log('[AUTH] Token used (first 10):', botToken.substring(0, 10) + '...');
-    console.log('[AUTH] Data check string (first 80):', dataCheckString.substring(0, 80));
+    if (hash1 === hash) {
+      console.log('[AUTH] HMAC valid (decoded approach)');
+      return true;
+    }
 
-    return calculatedHash === hash;
+    // --- APPROACH 2: Using raw URL-encoded pairs ---
+    const rawPairs = initData.split('&')
+      .filter(pair => !pair.startsWith('hash='))
+      .sort();
+    const rawCheckString = rawPairs.join('\n');
+
+    const hash2 = createHmac('sha256', secretKey)
+      .update(rawCheckString)
+      .digest('hex');
+
+    if (hash2 === hash) {
+      console.log('[AUTH] HMAC valid (raw approach)');
+      return true;
+    }
+
+    console.log('[AUTH] Expected hash:', hash.substring(0, 16) + '...');
+    console.log('[AUTH] Decoded hash:', hash1.substring(0, 16) + '...');
+    console.log('[AUTH] Raw hash:', hash2.substring(0, 16) + '...');
+    console.log('[AUTH] Token (first 10):', botToken.substring(0, 10) + '...');
+    console.log('[AUTH] Decoded check (80):', decodedCheckString.substring(0, 80));
+    console.log('[AUTH] Raw check (80):', rawCheckString.substring(0, 80));
+
+    return false;
   }
 }
