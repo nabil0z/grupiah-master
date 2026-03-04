@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: grupiah_prod_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: grupiah_admin
+      POSTGRES_PASSWORD: grupiah_password
+      POSTGRES_DB: grupiah_db
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - grupiah_net_prod
+
+  redis:
+    image: redis:7-alpine
+    container_name: grupiah_prod_redis
+    restart: always
+    ports:
+      - "56379:6379"
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - grupiah_net_prod
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: grupiah_api
+    restart: always
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "53000:53000"
+    networks:
+      - grupiah_net_prod
+
+  admin-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    container_name: grupiah_admin
+    restart: always
+    env_file: .env
+    ports:
+      - "3000:3000"
+    networks:
+      - grupiah_net_prod
+
+  tma-landing:
+    build:
+      context: .
+      dockerfile: Dockerfile.landing
+    container_name: grupiah_landing
+    restart: always
+    env_file: .env
+    ports:
+      - "53004:53004"
+    networks:
+      - grupiah_net_prod
+
+  tma-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: grupiah_client
+    restart: always
+    env_file: .env
+    ports:
+      - "53002:53002"
+    networks:
+      - grupiah_net_prod
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:
+
+
+networks:
+  grupiah_net_prod:
+    driver: bridge

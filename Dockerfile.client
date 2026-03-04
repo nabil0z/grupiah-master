@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+# Install lightweight static file server
+RUN npm install -g serve
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY turbo.json tsconfig.json ./
+COPY packages ./packages
+COPY apps/tma-client ./apps/tma-client
+
+RUN npm install
+RUN npm run build --workspace=tma-client
+
+EXPOSE 53002
+
+# Serve the static Vite build on port 53002
+CMD ["serve", "-s", "apps/tma-client/dist", "-p", "53002"]

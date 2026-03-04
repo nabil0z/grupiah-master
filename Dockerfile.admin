@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY turbo.json tsconfig.json ./
+COPY packages ./packages
+COPY apps/admin-dashboard ./apps/admin-dashboard
+
+RUN npm install
+RUN npm run build --workspace=admin-dashboard
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start", "--workspace=admin-dashboard"]

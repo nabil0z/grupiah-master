@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+# Install lightweight static file server
+RUN npm install -g serve
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY turbo.json tsconfig.json ./
+COPY packages ./packages
+COPY apps/tma-landing ./apps/tma-landing
+
+RUN npm install
+RUN npm run build --workspace=tma-landing
+
+EXPOSE 53004
+
+# Serve the static Vite build on port 53004
+CMD ["serve", "-s", "apps/tma-landing/dist", "-p", "53004"]
