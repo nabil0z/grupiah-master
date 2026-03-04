@@ -100,7 +100,10 @@ export class TelegramAuthGuard implements CanActivate {
     const urlParams = new URLSearchParams(initData);
     const hash = urlParams.get('hash');
 
-    if (!hash) return false;
+    if (!hash) {
+      console.log('[AUTH] No hash found in initData');
+      return false;
+    }
 
     urlParams.delete('hash');
 
@@ -123,6 +126,11 @@ export class TelegramAuthGuard implements CanActivate {
     const calculatedHash = createHmac('sha256', secretKey)
       .update(dataCheckString)
       .digest('hex');
+
+    console.log('[AUTH] Expected hash:', hash.substring(0, 16) + '...');
+    console.log('[AUTH] Calculated hash:', calculatedHash.substring(0, 16) + '...');
+    console.log('[AUTH] Token used (first 10):', botToken.substring(0, 10) + '...');
+    console.log('[AUTH] Data check string (first 80):', dataCheckString.substring(0, 80));
 
     return calculatedHash === hash;
   }
