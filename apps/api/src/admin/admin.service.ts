@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { WithdrawStatus } from '@grupiah/database';
 
 @Injectable()
 export class AdminService {
@@ -9,7 +8,7 @@ export class AdminService {
         // 1. Prisma Query: update Withdrawal status to 'PAID'
         const updated = await this.prisma.withdrawal.update({
             where: { id: withdrawalId },
-            data: { status: WithdrawStatus.PAID, processedBy: adminTelegramId.toString() }
+            data: { status: 'PAID', processedBy: adminTelegramId.toString() }
         });
 
         // 2. Insert into AuditLog table (ActorType: 'ADMIN')
@@ -40,14 +39,14 @@ export class AdminService {
                 include: { user: { include: { wallet: true } } }
             });
 
-            if (!withdrawal || withdrawal.status !== WithdrawStatus.PENDING) {
+            if (!withdrawal || withdrawal.status !== 'PENDING') {
                 throw new Error('Withdrawal not found or not PENDING');
             }
 
             // 1. Update status to REJECTED
             const updated = await tx.withdrawal.update({
                 where: { id: withdrawalId },
-                data: { status: WithdrawStatus.REJECTED, processedBy: adminTelegramId.toString() }
+                data: { status: 'REJECTED', processedBy: adminTelegramId.toString() }
             });
 
             // 2. Refund User Wallet Balance
@@ -110,7 +109,7 @@ export class AdminService {
 
     async getPendingList() {
         return this.prisma.withdrawal.findMany({
-            where: { status: WithdrawStatus.PENDING },
+            where: { status: 'PENDING' },
             orderBy: { createdAt: 'desc' },
             include: { user: { select: { firstName: true, telegramId: true } } } // Include minimal user data for admin review
         });
