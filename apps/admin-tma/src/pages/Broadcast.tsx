@@ -4,7 +4,7 @@ import {
     Send, Radio, MessageSquare, Timer, Loader2,
     CheckCircle2, XCircle, Users
 } from 'lucide-react';
-import { adminApi } from '../api/adminClient';
+
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:53000';
 const getAuth = () => `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}`;

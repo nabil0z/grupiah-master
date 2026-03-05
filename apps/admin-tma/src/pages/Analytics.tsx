@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    BarChart3, Zap, Star, TrendingUp, Activity, Loader2,
-    RefreshCw, MessageCircle, Save, AlertCircle
+    BarChart3, Zap, Star, Activity, Loader2,
+    RefreshCw, MessageCircle, Save
 } from 'lucide-react';
 import { adminApi } from '../api/adminClient';
 

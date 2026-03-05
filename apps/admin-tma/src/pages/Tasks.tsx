@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Pencil, Trash2, Copy, Check, Loader2,
-    Link as LinkIcon, X, Save, ClipboardCheck
+    X, Save, ClipboardCheck
 } from 'lucide-react';
-import { adminApi } from '../api/adminClient';
+
 
 export default function Tasks() {
     const [tasks, setTasks] = useState<any[]>([]);
@@ -21,9 +21,6 @@ export default function Tasks() {
 
     const fetchTasks = async () => {
         try {
-            const data = await adminApi.getPendingTasks();
-            // Also fetch all custom tasks
-            const allTasks = await adminApi.getDashboardStats().catch(() => null);
             // Fetch from admin tasks endpoint
             const response = await fetch(
                 `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks`,
