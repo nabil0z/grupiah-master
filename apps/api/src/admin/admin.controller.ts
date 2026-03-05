@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards, Get, Param, Request, HttpException, HttpStatus, Put, Delete } from '@nestjs/common';
-import { TelegramAuthGuard } from '../auth/telegram-auth.guard';
+import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { AdminService } from './admin.service';
 
 @Controller('admin')

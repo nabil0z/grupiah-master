@@ -1,6 +1,6 @@
 import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
 import { AdminConfigService } from './admin-config.service';
-import { TelegramAuthGuard } from '../../auth/telegram-auth.guard'; // Adjust path if needed
+import { TelegramAuthGuard } from '../../auth/telegram-auth/telegram-auth.guard';
 
 @Controller('admin/settings')
 // @UseGuards(TelegramAuthGuard) // Protect with Admin guard later
