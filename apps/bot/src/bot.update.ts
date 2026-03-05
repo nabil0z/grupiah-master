@@ -30,13 +30,13 @@ export class BotUpdate {
                     [
                         {
                             text: '💰 Buka App Grupiah',
-                            web_app: { url: process.env.WEB_APP_URL || 'https://grupiah-sample-tma.vercel.app' },
+                            web_app: { url: process.env.WEB_APP_URL || 'https://app.grupiah.online' },
                         },
                     ],
                     [
                         {
                             text: '📢 Gabung Channel Resmi',
-                            url: 'https://t.me/grupiah_official',
+                            url: 'https://t.me/Grupiah_id',
                         },
                     ],
                 ],
