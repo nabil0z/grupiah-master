@@ -1,5 +1,6 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:53000';
-const mockInitData = "mock_token";
+const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'mock_token';
+const authHeader = adminSecret === 'mock_token' ? `tma ${adminSecret}` : `admin ${adminSecret}`;
 
 export const broadcastApi = {
     async generateDraft(topic: string, tone: string = 'Excited & FOMO'): Promise<{ content: string }> {
@@ -7,7 +8,7 @@ export const broadcastApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ topic, tone })
         });
@@ -24,7 +25,7 @@ export const broadcastApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ content, imageUrl })
         });
@@ -41,7 +42,7 @@ export const broadcastApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ content, imageUrl, buttonText, buttonUrl })
         });
@@ -58,7 +59,7 @@ export const broadcastApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ hour })
         });
@@ -74,7 +75,7 @@ export const usersApi = {
     async getUsers(): Promise<any[]> {
         const response = await fetch(`${API_BASE}/admin/users`, {
             headers: {
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             }
         });
         if (!response.ok) throw new Error('Failed to fetch users');
@@ -86,7 +87,7 @@ export const usersApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             }
         });
         if (!response.ok) throw new Error('Failed to toggle ban status');
@@ -98,7 +99,7 @@ export const usersApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             }
         });
         if (!response.ok) throw new Error('Failed to toggle marketing mode');
@@ -110,7 +111,7 @@ export const usersApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ amount, description })
         });
@@ -123,7 +124,7 @@ export const usersApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ tasks, withdrawals, referrals })
         });
@@ -136,7 +137,7 @@ export const usersApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             }
         });
         if (!response.ok) throw new Error('Failed to cleanup fake data');
@@ -146,7 +147,7 @@ export const usersApi = {
 export const tasksApi = {
     async getCustomTasks(): Promise<any[]> {
         const response = await fetch(`${API_BASE}/admin/tasks`, {
-            headers: { 'Authorization': `tma ${mockInitData}` }
+            headers: { 'Authorization': `${authHeader}` }
         });
         if (!response.ok) throw new Error('Failed to fetch tasks');
         return response.json();
@@ -157,7 +158,7 @@ export const tasksApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ title, description, reward, instructions, logoUrl, link })
         });
@@ -170,7 +171,7 @@ export const tasksApi = {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify(updateData)
         });
@@ -181,7 +182,7 @@ export const tasksApi = {
     async deleteCustomTask(id: string): Promise<any> {
         const response = await fetch(`${API_BASE}/admin/tasks/${id}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `tma ${mockInitData}` }
+            headers: { 'Authorization': `${authHeader}` }
         });
         if (!response.ok) throw new Error('Failed to delete task');
         return response.json();
@@ -190,7 +191,7 @@ export const tasksApi = {
     async getFlashConfig(): Promise<{ ogads: string, adblue: string, custom: string }> {
         const response = await fetch(`${API_BASE}/admin/configs/flash-tasks`, {
             headers: {
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             }
         });
         if (!response.ok) throw new Error('Failed to fetch flash configs');
@@ -202,7 +203,7 @@ export const tasksApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify(config)
         });
@@ -214,7 +215,7 @@ export const tasksApi = {
 export const analyticsApi = {
     async getDashboard(): Promise<any> {
         const response = await fetch(`${API_BASE}/admin/analytics`, {
-            headers: { 'Authorization': `tma ${mockInitData}` }
+            headers: { 'Authorization': `${authHeader}` }
         });
         if (!response.ok) throw new Error('Failed to fetch analytics');
         return response.json();
@@ -225,7 +226,7 @@ export const settingsApi = {
     async getAllConfigs(): Promise<Record<string, string>> {
         const response = await fetch(`${API_BASE}/admin/configs`, {
             headers: {
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             }
         });
         if (!response.ok) throw new Error('Failed to fetch configs');
@@ -237,7 +238,7 @@ export const settingsApi = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `tma ${mockInitData}`
+                'Authorization': `${authHeader}`
             },
             body: JSON.stringify({ configs })
         });

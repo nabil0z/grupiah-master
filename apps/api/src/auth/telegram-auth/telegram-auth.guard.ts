@@ -10,13 +10,48 @@ export class TelegramAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
 
-    if (!authHeader || !authHeader.startsWith('tma ')) {
-      throw new UnauthorizedException('Missing or invalid Authorization header');
+    if (!authHeader) {
+      throw new UnauthorizedException('Missing Authorization header');
+    }
+
+    // Admin Dashboard auth via secret key (works in all environments including production)
+    if (authHeader.startsWith('admin ')) {
+      const secret = authHeader.split(' ')[1];
+      const adminSecret = process.env.ADMIN_SECRET;
+
+      if (!adminSecret || secret !== adminSecret) {
+        throw new UnauthorizedException('Invalid admin secret');
+      }
+
+      // Find or create a dedicated admin user for dashboard access
+      let dbUser = await this.prisma.user.findUnique({
+        where: { telegramId: 100000000n }
+      });
+
+      if (!dbUser) {
+        dbUser = await this.prisma.user.create({
+          data: {
+            telegramId: 100000000n,
+            username: 'admin_dashboard',
+            firstName: 'Admin',
+            role: 'SUPER_ADMIN',
+            referralCode: 'ADMIN_DASHBOARD_001'
+          }
+        });
+      }
+
+      request.user = { id: dbUser.telegramId.toString(), telegramId: dbUser.telegramId, username: 'admin_dashboard' };
+      request.dbUser = dbUser;
+      return true;
+    }
+
+    if (!authHeader.startsWith('tma ')) {
+      throw new UnauthorizedException('Invalid Authorization header format');
     }
 
     const initData = authHeader.split(' ')[1];
 
-    // Bypass for local development testing
+    // Bypass for local development testing only
     if (initData === 'mock_token' && process.env.NODE_ENV !== 'production') {
       request.user = { id: 'mock-user-123', telegramId: 123456789n, username: 'mock_dev' };
 

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { CreditCard, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:53000';
-const mockInitData = 'mock_token';
+const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET || 'mock_token';
+const authHeader = adminSecret === 'mock_token' ? `tma ${adminSecret}` : `admin ${adminSecret}`;
 
 export default function WithdrawalsPage() {
     const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -15,7 +16,7 @@ export default function WithdrawalsPage() {
         const fetchWithdrawals = async () => {
             try {
                 const res = await fetch(`${API_BASE}/admin/withdrawals/pending`, {
-                    headers: { 'Authorization': `tma ${mockInitData}` }
+                    headers: { 'Authorization': `${authHeader}` }
                 });
                 const data = await res.json();
                 setWithdrawals(data);
@@ -35,7 +36,7 @@ export default function WithdrawalsPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `tma ${mockInitData}`
+                    'Authorization': `${authHeader}`
                 },
                 body: JSON.stringify({ action })
             });
