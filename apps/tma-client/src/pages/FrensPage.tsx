@@ -17,13 +17,8 @@ export default function FrensPage() {
                 setReferrals(refs);
             } catch (err) {
                 console.error("Failed to load frens", err);
-                const FAKE_REFERRALS = [
-                    { name: "Andi Saputra", reward: "+ Rp 150.000", time: "2 jam lalu", tier: "Gold", isCompleted: true },
-                    { name: "Dewi Kirana", reward: "Belum Selesai", time: "5 jam lalu", tier: "Silver", isCompleted: false },
-                    { name: "Reza Rahardian", reward: "Belum Selesai", time: "1 hari lalu", tier: "Bronze", isCompleted: false },
-                ];
-                setReferrals(FAKE_REFERRALS);
-                setRefCode('ref_degen99');
+                setReferrals([]);
+                setRefCode('...');
             } finally {
                 setIsLoading(false);
             }
@@ -57,7 +52,7 @@ export default function FrensPage() {
                         <Users size={32} className="text-white drop-shadow-md" />
                     </div>
                     <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Ajak Teman</h1>
-                    <h2 className="text-2xl font-extrabold text-yellow-300 drop-shadow-md mt-1">Dapat Rp 150.000!</h2>
+                    <h2 className="text-2xl font-extrabold text-yellow-300 drop-shadow-md mt-1">Dapat Bonus!</h2>
                     <p className="text-emerald-50 text-xs mt-3 opacity-90 leading-relaxed px-4">
                         Tidak ada batas! Undang sebanyak-banyaknya. Saldo langsung masuk saat temanmu menyelesaikan 1 Flash Task pertama mereka.
                     </p>
@@ -96,7 +91,7 @@ export default function FrensPage() {
                         <TrendingUp size={20} className="text-emerald-500 mb-1" />
                         <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Hasil Kas</span>
                         <span className="text-xl font-black text-gray-900">
-                            {isLoading ? '-' : `Rp ${(completedReferralsCount * 150000).toLocaleString('id-ID')}`}
+                            {isLoading ? '-' : `${completedReferralsCount} Aktif`}
                         </span>
                     </div>
                 </div>

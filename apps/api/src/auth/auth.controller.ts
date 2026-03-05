@@ -32,12 +32,12 @@ export class AuthController {
 
         // If new user, create their account + wallet
         if (!user) {
-            // Decode startParam for referral check ('ref_{id}')
+            // Decode startParam for referral check
             let referredById: string | null = null;
-            if (startParam && startParam.startsWith('ref_')) {
-                const inviterId = startParam.split('_')[1];
+            if (startParam) {
+                // startParam is the referralCode (e.g. 'ref_ABC123')
                 const inviter = await this.prisma.user.findUnique({
-                    where: { id: inviterId }
+                    where: { referralCode: startParam }
                 });
                 if (inviter) referredById = inviter.id;
             }
@@ -50,6 +50,7 @@ export class AuthController {
                     lastName: telegramUser.last_name || null,
                     referralCode: `ref_${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
                     referredById: referredById,
+                    lastLogin: new Date(),
                     wallet: {
                         create: { balance: 0.0 }
                     }
