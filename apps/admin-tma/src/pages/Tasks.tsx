@@ -4,7 +4,7 @@ import {
     Plus, Pencil, Trash2, Copy, Check, Loader2,
     X, Save, ClipboardCheck
 } from 'lucide-react';
-
+import { adminApi } from '../api/adminClient';
 
 export default function Tasks() {
     const [tasks, setTasks] = useState<any[]>([]);
@@ -21,12 +21,7 @@ export default function Tasks() {
 
     const fetchTasks = async () => {
         try {
-            // Fetch from admin tasks endpoint
-            const response = await fetch(
-                `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks`,
-                { headers: { 'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}` } }
-            );
-            const customTasks = await response.json();
+            const customTasks = await adminApi.getTasks();
             setTasks(Array.isArray(customTasks) ? customTasks : []);
         } catch (e) {
             console.error('Failed to fetch tasks', e);
@@ -45,30 +40,11 @@ export default function Tasks() {
         if (!form.title || !form.reward) return alert('Title dan Reward wajib diisi');
         setSaving(true);
         try {
+            const payload = { ...form, reward: Number(form.reward) };
             if (editingId) {
-                await fetch(
-                    `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks/${editingId}`,
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}`
-                        },
-                        body: JSON.stringify({ ...form, reward: Number(form.reward) })
-                    }
-                );
+                await adminApi.updateTask(editingId, payload);
             } else {
-                await fetch(
-                    `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}`
-                        },
-                        body: JSON.stringify({ ...form, reward: Number(form.reward) })
-                    }
-                );
+                await adminApi.createTask(payload);
             }
             resetForm();
             await fetchTasks();
@@ -82,13 +58,7 @@ export default function Tasks() {
     const handleDelete = async (id: string) => {
         if (!confirm('Hapus task ini?')) return;
         try {
-            await fetch(
-                `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks/${id}`,
-                {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}` }
-                }
-            );
+            await adminApi.deleteTask(id);
             await fetchTasks();
         } catch (e) {
             alert('Failed to delete');

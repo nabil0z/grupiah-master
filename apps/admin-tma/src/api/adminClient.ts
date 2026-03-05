@@ -15,8 +15,15 @@ adminClient.interceptors.request.use((config) => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as any;
-    if (typeof window !== 'undefined' && win.Telegram && win.Telegram.WebApp) {
+    if (typeof window !== 'undefined' && win.Telegram && win.Telegram.WebApp && win.Telegram.WebApp.initData) {
         initData = win.Telegram.WebApp.initData;
+        // Cache for refresh/navigation
+        sessionStorage.setItem('tg_init_data', initData);
+    }
+
+    // Fallback: retrieve from cache
+    if (!initData) {
+        initData = sessionStorage.getItem('tg_init_data') || '';
     }
 
     if (!initData && import.meta.env.MODE === 'development') {
@@ -69,6 +76,22 @@ export const adminApi = {
     },
     triggerCron: async (hour: number) => {
         const response = await adminClient.post('/admin/broadcast/test-cron', { hour });
+        return response.data;
+    },
+    getTasks: async () => {
+        const response = await adminClient.get('/admin/tasks');
+        return response.data;
+    },
+    createTask: async (task: { title: string, description?: string, reward: number, link?: string, logoUrl?: string }) => {
+        const response = await adminClient.post('/admin/tasks', task);
+        return response.data;
+    },
+    updateTask: async (id: string, task: any) => {
+        const response = await adminClient.put(`/admin/tasks/${id}`, task);
+        return response.data;
+    },
+    deleteTask: async (id: string) => {
+        const response = await adminClient.delete(`/admin/tasks/${id}`);
         return response.data;
     }
 };
