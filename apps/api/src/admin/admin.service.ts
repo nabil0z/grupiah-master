@@ -269,8 +269,11 @@ export class AdminService {
         const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
         const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-        // Online users (simulated)
-        const onlineUsers = await this.getOnlineUserCount();
+        // Online users (real — users who logged in within last 15 min)
+        const fifteenMinAgo = new Date(now.getTime() - 15 * 60 * 1000);
+        const onlineUsers = await this.prisma.user.count({
+            where: { isFake: false, lastLogin: { gte: fifteenMinAgo } }
+        });
 
         // Total users
         const totalUsers = await this.prisma.user.count({ where: { isFake: false } });

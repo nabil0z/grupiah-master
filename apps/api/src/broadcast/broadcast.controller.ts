@@ -20,11 +20,11 @@ export class BroadcastController {
     }
 
     @Post('send')
-    async sendBroadcast(@Body() body: { content: string, imageUrl?: string }) {
+    async sendBroadcast(@Body() body: { content: string, imageUrl?: string, buttonText?: string, buttonUrl?: string }) {
         if (!body.content) {
             throw new HttpException('Content is required', HttpStatus.BAD_REQUEST);
         }
-        return this.broadcastService.sendBroadcast(body.content, body.imageUrl);
+        return this.broadcastService.sendBroadcast(body.content, body.imageUrl, body.buttonText, body.buttonUrl);
     }
 
     @Post('private-blast')

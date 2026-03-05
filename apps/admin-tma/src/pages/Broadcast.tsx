@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     Send, Radio, MessageSquare, Timer, Loader2,
-    CheckCircle2, XCircle, Users
+    CheckCircle2, XCircle, Users, Image, Link
 } from 'lucide-react';
-
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:53000';
 const getAuth = () => `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}`;
@@ -12,6 +11,9 @@ const getAuth = () => `tma ${(window as any).Telegram?.WebApp?.initData || 'mock
 export default function Broadcast() {
     const [tab, setTab] = useState<'channel' | 'dm' | 'cron'>('channel');
     const [message, setMessage] = useState('');
+    const [imageUrl, setImageUrl] = useState('');
+    const [buttonText, setButtonText] = useState('');
+    const [buttonUrl, setButtonUrl] = useState('');
     const [sending, setSending] = useState(false);
     const [result, setResult] = useState<any>(null);
 
@@ -19,14 +21,20 @@ export default function Broadcast() {
         if (!message.trim()) return alert('Pesan tidak boleh kosong');
         setSending(true); setResult(null);
         try {
+            const body: any = { content: message };
+            if (imageUrl.trim()) body.imageUrl = imageUrl.trim();
+            if (buttonText.trim() && buttonUrl.trim()) {
+                body.buttonText = buttonText.trim();
+                body.buttonUrl = buttonUrl.trim();
+            }
             const res = await fetch(`${API_BASE}/admin/broadcast/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': getAuth() },
-                body: JSON.stringify({ content: message })
+                body: JSON.stringify(body)
             });
             const data = await res.json();
-            setResult({ success: true, message: 'Channel broadcast sent!', data });
-            setMessage('');
+            setResult({ success: true, message: '✅ Channel broadcast sent!', data });
+            setMessage(''); setImageUrl(''); setButtonText(''); setButtonUrl('');
         } catch (e) {
             setResult({ success: false, message: 'Failed to send' });
         } finally {
@@ -38,18 +46,20 @@ export default function Broadcast() {
         if (!message.trim()) return alert('Pesan tidak boleh kosong');
         setSending(true); setResult(null);
         try {
+            const body: any = { content: message };
+            if (imageUrl.trim()) body.imageUrl = imageUrl.trim();
+            if (buttonText.trim() && buttonUrl.trim()) {
+                body.buttonText = buttonText.trim();
+                body.buttonUrl = buttonUrl.trim();
+            }
             const res = await fetch(`${API_BASE}/admin/broadcast/private-blast`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': getAuth() },
-                body: JSON.stringify({ content: message })
+                body: JSON.stringify(body)
             });
             const data = await res.json();
-            setResult({
-                success: true,
-                message: `DM Blast selesai!`,
-                data
-            });
-            setMessage('');
+            setResult({ success: true, message: '✅ DM Blast selesai!', data });
+            setMessage(''); setImageUrl(''); setButtonText(''); setButtonUrl('');
         } catch (e) {
             setResult({ success: false, message: 'Failed to send blast' });
         } finally {
@@ -117,13 +127,59 @@ export default function Broadcast() {
                             ⚠️ DM blast akan dikirim ke SEMUA users yang terdaftar di database.
                         </p>
                     )}
-                    <textarea
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Tulis pesan broadcast... (support Markdown)"
-                        rows={4}
-                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
-                    />
+
+                    {/* Message (HTML) */}
+                    <div>
+                        <label className="text-xs text-gray-500 block mb-1">Pesan (HTML format)</label>
+                        <textarea
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder={'<b>Judul Bold</b>\n<i>Italic text</i>\n<a href="url">Link</a>\n\nPesan biasa...'}
+                            rows={5}
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                            Tag: {'<b>'} {'<i>'} {'<u>'} {'<code>'} {'<a href="url">text</a>'}
+                        </p>
+                    </div>
+
+                    {/* Image URL */}
+                    <div>
+                        <label className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                            <Image size={12} /> Foto URL (opsional)
+                        </label>
+                        <input
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                        />
+                    </div>
+
+                    {/* Button */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div>
+                            <label className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                                <Link size={12} /> Teks Tombol
+                            </label>
+                            <input
+                                value={buttonText}
+                                onChange={(e) => setButtonText(e.target.value)}
+                                placeholder="📱 Buka App"
+                                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 mb-1 block">URL Tombol</label>
+                            <input
+                                value={buttonUrl}
+                                onChange={(e) => setButtonUrl(e.target.value)}
+                                placeholder="https://t.me/GRupiahBot/app"
+                                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                            />
+                        </div>
+                    </div>
+
                     <button
                         onClick={tab === 'channel' ? sendToChannel : sendDmBlast}
                         disabled={sending}

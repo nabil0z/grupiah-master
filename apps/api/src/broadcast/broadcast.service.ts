@@ -58,7 +58,7 @@ Tuliskan draft broadcast tersebut sekarang:`
         }
     }
 
-    async sendBroadcast(content: string, imageUrl?: string): Promise<{ success: boolean }> {
+    async sendBroadcast(content: string, imageUrl?: string, buttonText?: string, buttonUrl?: string): Promise<{ success: boolean }> {
         const botToken = process.env.BOT_TOKEN;
         const channelId = process.env.CHANNEL_ID || '@grupiah_official';
 
@@ -69,14 +69,19 @@ Tuliskan draft broadcast tersebut sekarang:`
 
         try {
             let url = '';
+            const replyMarkup = (buttonText && buttonUrl) ? {
+                inline_keyboard: [
+                    [{ text: buttonText, url: buttonUrl }]
+                ]
+            } : {
+                inline_keyboard: [
+                    [{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]
+                ]
+            };
             let payload: any = {
                 chat_id: channelId,
                 parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]
-                    ]
-                }
+                reply_markup: replyMarkup
             };
 
             if (imageUrl) {
