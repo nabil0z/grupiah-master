@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminConfigService } from '../admin/config/admin-config.service';
 import { BroadcastService } from './broadcast.service';
@@ -18,18 +18,26 @@ export class BroadcastCronService {
         private broadcastService: BroadcastService
     ) { }
 
-    // Run this every day at 12:00 PM and 18:00 PM for demo purposes.
-    // Real implementation might read Cron strings from Database.
-    @Cron(CronExpression.EVERY_DAY_AT_NOON)
-    async handleDailyBroadcastNoon() {
-        this.logger.log('Executing Noon Broadcast...');
-        await this.rotateAndBroadcast();
+    // Cron schedules in SERVER time (CET/UTC+1) → converted from WIB (UTC+7)
+    // WIB 09:00 = CET 03:00 → Morning Motivation (Top 10 Earners Album)
+    @Cron('0 3 * * *')
+    async handleMorningBroadcast() {
+        this.logger.log('⏰ Cron fired: 09:00 WIB (Morning Motivation)');
+        await this.rotateAndBroadcast(9);
     }
 
-    @Cron('0 18 * * *') // 6 PM
-    async handleDailyBroadcastEvening() {
-        this.logger.log('Executing Evening Broadcast...');
-        await this.rotateAndBroadcast();
+    // WIB 15:00 = CET 09:00 → Afternoon Hustle (Hot Offer)
+    @Cron('0 9 * * *')
+    async handleAfternoonBroadcast() {
+        this.logger.log('⏰ Cron fired: 15:00 WIB (Afternoon Offer)');
+        await this.rotateAndBroadcast(15);
+    }
+
+    // WIB 21:00 = CET 15:00 → Night Owl (Daily Recap)
+    @Cron('0 15 * * *')
+    async handleEveningBroadcast() {
+        this.logger.log('⏰ Cron fired: 21:00 WIB (Night Recap)');
+        await this.rotateAndBroadcast(21);
     }
 
     private async generateImageFromHtml(templateName: string, data: Record<string, string>, containerClass: string = '.receipt-container'): Promise<string> {
