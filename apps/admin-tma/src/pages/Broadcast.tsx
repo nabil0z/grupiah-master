@@ -4,9 +4,7 @@ import {
     Send, Radio, MessageSquare, Timer, Loader2,
     CheckCircle2, XCircle, Users, Image, Link
 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:53000';
-const getAuth = () => `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}`;
+import { adminApi } from '../api/adminClient';
 
 export default function Broadcast() {
     const [tab, setTab] = useState<'channel' | 'dm' | 'cron'>('channel');
@@ -17,26 +15,25 @@ export default function Broadcast() {
     const [sending, setSending] = useState(false);
     const [result, setResult] = useState<any>(null);
 
+    const buildBody = () => {
+        const body: any = { content: message };
+        if (imageUrl.trim()) body.imageUrl = imageUrl.trim();
+        if (buttonText.trim() && buttonUrl.trim()) {
+            body.buttonText = buttonText.trim();
+            body.buttonUrl = buttonUrl.trim();
+        }
+        return body;
+    };
+
     const sendToChannel = async () => {
         if (!message.trim()) return alert('Pesan tidak boleh kosong');
         setSending(true); setResult(null);
         try {
-            const body: any = { content: message };
-            if (imageUrl.trim()) body.imageUrl = imageUrl.trim();
-            if (buttonText.trim() && buttonUrl.trim()) {
-                body.buttonText = buttonText.trim();
-                body.buttonUrl = buttonUrl.trim();
-            }
-            const res = await fetch(`${API_BASE}/admin/broadcast/send`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': getAuth() },
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
+            const data = await adminApi.sendToChannel(buildBody());
             setResult({ success: true, message: '✅ Channel broadcast sent!', data });
             setMessage(''); setImageUrl(''); setButtonText(''); setButtonUrl('');
-        } catch (e) {
-            setResult({ success: false, message: 'Failed to send' });
+        } catch (e: any) {
+            setResult({ success: false, message: e?.response?.data?.message || 'Failed to send' });
         } finally {
             setSending(false);
         }
@@ -46,22 +43,11 @@ export default function Broadcast() {
         if (!message.trim()) return alert('Pesan tidak boleh kosong');
         setSending(true); setResult(null);
         try {
-            const body: any = { content: message };
-            if (imageUrl.trim()) body.imageUrl = imageUrl.trim();
-            if (buttonText.trim() && buttonUrl.trim()) {
-                body.buttonText = buttonText.trim();
-                body.buttonUrl = buttonUrl.trim();
-            }
-            const res = await fetch(`${API_BASE}/admin/broadcast/private-blast`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': getAuth() },
-                body: JSON.stringify(body)
-            });
-            const data = await res.json();
+            const data = await adminApi.sendDmBlast(buildBody());
             setResult({ success: true, message: '✅ DM Blast selesai!', data });
             setMessage(''); setImageUrl(''); setButtonText(''); setButtonUrl('');
-        } catch (e) {
-            setResult({ success: false, message: 'Failed to send blast' });
+        } catch (e: any) {
+            setResult({ success: false, message: e?.response?.data?.message || 'Failed to send blast' });
         } finally {
             setSending(false);
         }
@@ -70,15 +56,10 @@ export default function Broadcast() {
     const triggerCron = async (hour: number) => {
         setSending(true); setResult(null);
         try {
-            const res = await fetch(`${API_BASE}/admin/broadcast/test-cron`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': getAuth() },
-                body: JSON.stringify({ hour })
-            });
-            const data = await res.json();
+            const data = await adminApi.triggerCron(hour);
             setResult({ success: true, message: `Cron jam ${hour}:00 WIB triggered!`, data });
-        } catch (e) {
-            setResult({ success: false, message: 'Failed to trigger cron' });
+        } catch (e: any) {
+            setResult({ success: false, message: e?.response?.data?.message || 'Failed to trigger cron' });
         } finally {
             setSending(false);
         }

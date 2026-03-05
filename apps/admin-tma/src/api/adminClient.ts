@@ -58,5 +58,17 @@ export const adminApi = {
     reviewTask: async (userTaskId: string, action: 'APPROVE' | 'REJECT') => {
         const response = await adminClient.post(`/admin/tasks/review/${userTaskId}`, { action });
         return response.data;
+    },
+    sendToChannel: async (body: { content: string, imageUrl?: string, buttonText?: string, buttonUrl?: string }) => {
+        const response = await adminClient.post('/admin/broadcast/send', body);
+        return response.data;
+    },
+    sendDmBlast: async (body: { content: string, imageUrl?: string, buttonText?: string, buttonUrl?: string }) => {
+        const response = await adminClient.post('/admin/broadcast/private-blast', body);
+        return response.data;
+    },
+    triggerCron: async (hour: number) => {
+        const response = await adminClient.post('/admin/broadcast/test-cron', { hour });
+        return response.data;
     }
 };
