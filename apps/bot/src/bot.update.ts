@@ -48,8 +48,32 @@ export class BotUpdate {
         const userId = ctx.from?.id;
         if (!userId) return false;
 
-        const adminRegex = process.env.ADMIN_IDS || '62813'; // fallback for dev
-        return new RegExp(adminRegex).test(userId.toString());
+        const adminIds = (process.env.ADMIN_IDS || '').split(',').map(id => id.trim());
+        return adminIds.includes(userId.toString());
+    }
+
+    @Command('admin')
+    async openAdminPanel(@Ctx() ctx: Context) {
+        if (!(await this.isAdmin(ctx))) {
+            await ctx.reply('⛔ Akses ditolak. Kamu bukan admin.');
+            return;
+        }
+
+        const adminAppUrl = process.env.ADMIN_APP_URL || 'https://tma-admin.grupiah.online';
+
+        await ctx.reply('🔐 *Admin Panel GRupiah*\n\nKlik tombol di bawah untuk membuka Admin Mini App:', {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: '⚙️ Buka Admin Panel',
+                            web_app: { url: adminAppUrl },
+                        },
+                    ],
+                ],
+            },
+        });
     }
 
     @Command('withdrawals')
