@@ -4,194 +4,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Promo Offer GRupiah</title>
+    <title>Hot Offer GRupiah</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,900&display=swap');
-
-        body {
+        * {
             margin: 0;
             padding: 0;
-            font-family: 'Montserrat', sans-serif;
-            background: linear-gradient(135deg, #fc5c24, #ea580c);
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0c0f1a;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: #fff;
         }
 
         .promo-container {
             width: 480px;
-            height: 600px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 30px;
-            padding: 40px;
+            height: 620px;
+            background: linear-gradient(160deg, #FF5A00 0%, #E11C1C 50%, #B91C1C 100%);
+            border-radius: 24px;
+            padding: 32px;
             text-align: center;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: relative;
             overflow: hidden;
-            box-sizing: border-box;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
-        .badge {
-            background: #fef08a;
-            color: #854d0e;
-            padding: 8px 24px;
-            border-radius: 50px;
-            font-weight: 900;
-            font-size: 16px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            align-self: center;
-            box-shadow: 0 4px 15px rgba(254, 240, 138, 0.4);
-            margin-bottom: 20px;
-            z-index: 2;
-        }
-
-        .title {
-            font-size: 48px;
-            font-weight: 900;
-            line-height: 1.1;
-            margin: 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            z-index: 2;
-        }
-
-        .highlight-box {
-            background: #fff;
-            border-radius: 20px;
-            padding: 25px;
-            margin: 20px 0;
-            color: #0f172a;
-            transform: rotate(-2deg);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            z-index: 2;
-        }
-
-        .highlight-box p {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-        }
-
-        .highlight-box h2 {
-            margin: 5px 0 0 0;
-            font-size: 56px;
-            font-weight: 900;
-            color: #ea580c;
-            letter-spacing: -2px;
-        }
-
-        .details {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            z-index: 2;
-        }
-
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        .data-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .data-label {
-            color: #cbd5e1;
-            font-weight: 400;
-        }
-
-        .data-value {
-            font-weight: 700;
-            color: #fff;
-        }
-
-        /* Decorative Elements */
-        .circle-1 {
+        /* Decorative elements */
+        .deco-circle-1 {
             position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(253, 186, 116, 0.4) 0%, rgba(253, 186, 116, 0) 70%);
-            top: -100px;
-            right: -100px;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(255, 209, 0, 0.15) 0%, transparent 70%);
+            top: -80px;
+            right: -60px;
             border-radius: 50%;
-            z-index: 1;
         }
 
-        .circle-2 {
+        .deco-circle-2 {
             position: absolute;
             width: 250px;
             height: 250px;
-            background: radial-gradient(circle, rgba(255, 237, 213, 0.4) 0%, rgba(255, 237, 213, 0) 70%);
-            bottom: -50px;
-            left: -80px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+            bottom: -40px;
+            left: -60px;
             border-radius: 50%;
-            z-index: 1;
         }
 
-        .footer {
-            font-size: 14px;
-            font-weight: 700;
-            opacity: 0.8;
-            margin-top: 20px;
+        .deco-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(45deg,
+                    transparent,
+                    transparent 60px,
+                    rgba(255, 255, 255, 0.02) 60px,
+                    rgba(255, 255, 255, 0.02) 61px);
+        }
+
+        .content {
+            position: relative;
             z-index: 2;
+        }
+
+        /* Logo */
+        .logo-area {
+            margin-bottom: 8px;
+        }
+
+        .logo-area img {
+            width: 70px;
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #FFD100, #FBBF24);
+            color: #7C2D12;
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-weight: 900;
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 20px rgba(255, 209, 0, 0.4);
+            margin-bottom: 16px;
+        }
+
+        /* Title */
+        .title {
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.1;
+            text-transform: uppercase;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        /* Amount card */
+        .amount-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            transform: rotate(-1deg);
+        }
+
+        .amount-subtitle {
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .amount-value {
+            font-size: 44px;
+            font-weight: 900;
+            color: #FF5A00;
+            letter-spacing: -2px;
+        }
+
+        /* Info rows */
+        .info-section {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 13px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .info-urgent {
+            color: #FDE68A;
+            font-weight: 800;
+        }
+
+        /* Footer */
+        .footer-text {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
         }
     </style>
 </head>
 
 <body>
-
     <div class="promo-container">
-        <div class="circle-1"></div>
-        <div class="circle-2"></div>
+        <div class="deco-circle-1"></div>
+        <div class="deco-circle-2"></div>
+        <div class="deco-line"></div>
 
-        <!-- Add logo specific to offer promo -->
-        <div style="text-align: center; margin-bottom: 20px; z-index: 2;">
-            <img src="{LOGO_PATH}" alt="GRupiah" style="width: 140px;" />
-        </div>
-
-        <div class="badge">🔥 HOT OFFER ALERT</div>
-
-        <h1 class="title" id="title">APP INSTALL<br />REWARD!!!</h1>
-
-        <div class="highlight-box">
-            <p>Bayaran Instan</p>
-            <h2 id="amount">Rp 35.000</h2>
-        </div>
-
-        <div class="details">
-            <div class="data-row">
-                <span class="data-label">Nama Offer:</span>
-                <span class="data-value" id="username">Play & Win</span>
+        <div class="content">
+            <div class="logo-area">
+                <img src="{LOGO_PATH}" alt="GRupiah" />
             </div>
-            <div class="data-row">
-                <span class="data-label">Tipe:</span>
-                <span class="data-value" id="method">CPA Premium</span>
-            </div>
-            <div class="data-row">
-                <span class="data-label">Kuota Sisa:</span>
-                <span class="data-value" id="account" style="color: #fca5a5;">🔥 <span id="quota">12</span> Slot
-                    Terakhir</span>
-            </div>
-        </div>
 
-        <div class="footer">
-            Mainkan sekarang di Telegram @GRupiahBot
+            <div class="badge">🔥 HOT OFFER</div>
+
+            <h1 class="title" id="title">APP INSTALL<br />REWARD!!!</h1>
+
+            <div class="amount-card">
+                <div class="amount-subtitle">Bayaran Instan</div>
+                <div class="amount-value" id="amount">Rp 55.000</div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-row">
+                    <span class="info-label">Nama Offer</span>
+                    <span class="info-value" id="username">Play & Win</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Tipe</span>
+                    <span class="info-value" id="method">CPA Premium</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kuota Sisa</span>
+                    <span class="info-value info-urgent">🔥 <span id="quota">12</span> Slot Terakhir</span>
+                </div>
+            </div>
+
+            <div class="footer-text">Mainkan sekarang di @GRupiahBot 🚀</div>
         </div>
     </div>
-
 </body>
 
 </html>

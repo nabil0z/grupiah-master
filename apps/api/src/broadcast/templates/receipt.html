@@ -5,158 +5,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk Withdraw GRupiah</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap"
+        rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;600;800;900&display=swap');
-
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1e293b, #0f172a);
+            background: #0c0f1a;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: #333;
         }
 
         .receipt-container {
             width: 480px;
             background: #fff;
-            padding: 40px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Orange gradient header strip */
+        .header-strip {
+            background: linear-gradient(135deg, #FF5A00 0%, #E11C1C 100%);
+            padding: 28px 32px 22px;
+            text-align: center;
             position: relative;
         }
 
-        /* Zigzag top and bottom */
-        .receipt-container::before,
-        .receipt-container::after {
-            content: "";
+        .header-strip::after {
+            content: '';
             position: absolute;
+            bottom: -15px;
             left: 0;
             right: 0;
-            height: 10px;
-            background-size: 20px 20px;
-        }
-
-        .receipt-container::before {
-            top: -10px;
-            background-image: linear-gradient(135deg, #fff 50%, transparent 50%), linear-gradient(225deg, #fff 50%, transparent 50%);
-            background-position: 0 0, 10px 0;
-        }
-
-        .receipt-container::after {
-            bottom: -10px;
-            background-image: linear-gradient(45deg, #fff 50%, transparent 50%), linear-gradient(-45deg, #fff 50%, transparent 50%);
-            background-position: 0 0, 10px 0;
-        }
-
-        .header {
-            text-align: center;
-            border-bottom: 2px dashed #cbd5e1;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+            height: 30px;
+            background: radial-gradient(circle at 10px 15px, transparent 12px, #fff 12px);
+            background-size: 20px 30px;
         }
 
         .logo {
-            width: 120px;
-            margin-bottom: -15px;
+            width: 90px;
+            margin-bottom: 4px;
         }
 
-        .header h1 {
-            font-size: 28px;
-            font-weight: 900;
-            margin: 0;
-            color: #ea580c;
-            /* Orange matching logo */
-            letter-spacing: -1px;
-            text-transform: uppercase;
-        }
-
-        .header p {
-            font-family: 'Courier Prime', monospace;
-            color: #64748b;
-            margin: 5px 0 0 0;
-            font-size: 14px;
-        }
-
-        .amount-box {
-            background: #fff7ed;
-            /* Orange tint fade */
-            border: 2px solid #fdba74;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .amount-box p {
-            margin: 0;
-            font-size: 14px;
-            font-weight: 600;
-            color: #ea580c;
-            text-transform: uppercase;
-        }
-
-        .amount-box h2 {
-            margin: 5px 0 0 0;
-            font-size: 42px;
-            font-weight: 900;
-            color: #ea580c;
-            letter-spacing: -1px;
-        }
-
-        .details {
-            font-family: 'Courier Prime', monospace;
-            font-size: 15px;
-            color: #334155;
-            line-height: 1.8;
-            border-bottom: 2px dashed #cbd5e1;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-        }
-
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .data-label {
-            color: #94a3b8;
-        }
-
-        .data-value {
-            font-weight: 700;
-            text-align: right;
-        }
-
-        .status-badge {
-            display: inline-block;
-            background: #ea580c;
-            color: #fff;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-family: 'Inter', sans-serif;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .footer {
-            text-align: center;
-        }
-
-        .footer p {
-            margin: 0;
+        .header-title {
             font-size: 13px;
-            color: #94a3b8;
-            font-weight: 600;
-        }
-
-        .footer strong {
-            color: #ea580c;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.85);
+            letter-spacing: 3px;
+            text-transform: uppercase;
         }
 
         /* Watermark */
@@ -164,67 +68,212 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 80px;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: 72px;
             font-weight: 900;
-            color: rgba(234, 88, 12, 0.05);
-            /* Faint Orange */
+            color: rgba(255, 90, 0, 0.04);
             white-space: nowrap;
             pointer-events: none;
-            z-index: 0;
+            letter-spacing: 8px;
         }
 
-        .content {
+        .body-content {
+            padding: 30px 32px 24px;
             position: relative;
             z-index: 1;
+        }
+
+        /* TX ID */
+        .tx-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+        .tx-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .tx-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #475569;
+            font-weight: 700;
+        }
+
+        .tx-date {
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Amount */
+        .amount-section {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+            border-radius: 16px;
+            border: 1.5px solid #FDBA74;
+        }
+
+        .amount-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #C2410C;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .amount-value {
+            font-size: 38px;
+            font-weight: 900;
+            color: #FF5A00;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        /* Status badge */
+        .status-row {
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #059669, #10B981);
+            color: #fff;
+            padding: 7px 20px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Details */
+        .details {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-size: 12px;
+            color: #1e293b;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding-top: 16px;
+            border-top: 2px dashed #e2e8f0;
+        }
+
+        .footer-text {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .footer-brand {
+            font-size: 12px;
+            font-weight: 800;
+            color: #FF5A00;
+            margin-top: 2px;
+        }
+
+        /* Bottom zigzag */
+        .bottom-edge {
+            height: 15px;
+            background: radial-gradient(circle at 10px 0, transparent 12px, #fff 12px);
+            background-size: 20px 15px;
+            background-color: #0c0f1a;
         }
     </style>
 </head>
 
 <body>
-
     <div class="receipt-container">
-        <div class="watermark">PAID COMPLETED</div>
+        <div class="header-strip">
+            <img src="{LOGO_PATH}" alt="GRupiah" class="logo" />
+            <div class="header-title">Bukti Transfer</div>
+        </div>
 
-        <div class="content">
-            <div class="header">
-                <img src="{LOGO_PATH}" alt="GRupiah" class="logo" />
-                <h1>Payout</h1>
-                <p>TX: <span id="txId">REQ-8921-A</span></p>
-                <p id="dateStr">04 Mar 2026 09:15:22</p>
+        <div class="watermark">PAID ✓</div>
+
+        <div class="body-content">
+            <div class="tx-row">
+                <span class="tx-label">TRANSACTION</span>
+                <span class="tx-value" id="txId">REQ-8921-DANA</span>
             </div>
 
-            <div class="amount-box">
-                <p>Total Pencairan</p>
-                <h2 id="amount">Rp 850.000</h2>
+            <div class="tx-date" id="dateStr">04 Mar 2026 09:15:22</div>
+
+            <div class="amount-section">
+                <div class="amount-label">Total Pencairan</div>
+                <div class="amount-value" id="amount">Rp 2.150.000</div>
+            </div>
+
+            <div class="status-row">
+                <span class="status-badge">✓ Berhasil Cair</span>
             </div>
 
             <div class="details">
-                <div class="data-row">
-                    <span class="data-label">PENERIMA:</span>
-                    <span class="data-value" id="username">Budi*****</span>
+                <div class="detail-row">
+                    <span class="detail-label">Penerima</span>
+                    <span class="detail-value" id="username">User8921***</span>
                 </div>
-                <div class="data-row">
-                    <span class="data-label">METODE:</span>
-                    <span class="data-value" id="method">DANA E-Wallet</span>
+                <div class="detail-row">
+                    <span class="detail-label">Metode</span>
+                    <span class="detail-value" id="method">DANA E-Wallet</span>
                 </div>
-                <div class="data-row">
-                    <span class="data-label">NO. AKUN:</span>
-                    <span class="data-value" id="account">0812****8992</span>
-                </div>
-                <div class="data-row" style="margin-top: 15px;">
-                    <span class="data-label">STATUS:</span>
-                    <span class="data-value"><span class="status-badge">Berhasil ✓</span></span>
+                <div class="detail-row">
+                    <span class="detail-label">No. Akun</span>
+                    <span class="detail-value" id="account">0812****8992</span>
                 </div>
             </div>
 
             <div class="footer">
-                <p>Terima kasih telah bermain di <strong>GRupiah!</strong></p>
-                <p style="margin-top: 5px; font-size: 11px;">Mainkan & withdraw sekarang via Telegram</p>
+                <div class="footer-text">Mainkan & withdraw sekarang di</div>
+                <div class="footer-brand">@GRupiahBot 🚀</div>
             </div>
         </div>
-    </div>
 
+        <div class="bottom-edge"></div>
+    </div>
 </body>
 
 </html>
