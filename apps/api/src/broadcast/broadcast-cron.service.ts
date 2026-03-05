@@ -260,16 +260,16 @@ export class BroadcastCronService {
                 this.logger.log('Executing AFTERNOON Broadcast (Top Offer)');
 
                 const offerReward = Math.floor(Math.random() * 30000) + 40000; // 40k - 70k
-                const imgPath = await this.generateImageFromHtml('receipt', {
-                    txId: `OFFER-PREMIUM`,
-                    dateStr: new Date().toLocaleString('id-ID'),
+                const quota = Math.floor(Math.random() * 15) + 5; // 5-20 slot
+                const imgPath = await this.generateImageFromHtml('offer', {
+                    title: 'APP INSTALL<br />REWARD!!!',
                     amount: `Rp ${offerReward.toLocaleString('id-ID')}`,
-                    username: `Spesial Offer`,
-                    method: `Task Premium`,
-                    account: `Terbatas`
-                });
+                    username: 'Play & Win',
+                    method: 'CPA Premium',
+                    quota: `${quota}`
+                }, '.promo-container');
 
-                const draft = await this.broadcastService.generateBroadcastDraft(`Ada Offer Premium baru masuk di sistem! Bayaran gede banget Rp ${offerReward.toLocaleString('id-ID')} sekali selesai. Gampang banget tinggal main game bentar. Siapa cepet dia dapat!`, 'Urgent & FOMO');
+                const draft = await this.broadcastService.generateBroadcastDraft(`Ada Offer Premium baru masuk di sistem! Bayaran gede banget Rp ${offerReward.toLocaleString('id-ID')} sekali selesai. Gampang banget tinggal main game bentar. Sisa ${quota} slot terakhir!`, 'Urgent & FOMO');
 
                 await this.executeSingleBroadcast(channelId, botToken, draft.content, imgPath);
 
@@ -280,16 +280,17 @@ export class BroadcastCronService {
                 // Daily total harus jauh lebih besar dari top 10 earners (top 10 = ~10-20% total)
                 // Top 10 rata-rata ~30jt, jadi daily total = 150jt - 350jt
                 const dailyTotal = Math.floor(Math.random() * 200000000) + 150000000;
-                const imgPath = await this.generateImageFromHtml('receipt', {
-                    txId: `REKAP-HARI-INI`,
-                    dateStr: new Date().toLocaleString('id-ID'),
-                    amount: `Rp ${dailyTotal.toLocaleString('id-ID')}`,
-                    username: `Semua User`,
-                    method: `DANA/OVO/GOPAY`,
-                    account: `Total Hari Ini`
-                });
+                const tasksCompleted = Math.floor(Math.random() * 5000) + 6000; // 6k-11k
+                const wdCompleted = Math.floor(Math.random() * 300) + 200; // 200-500
 
-                const draft = await this.broadcastService.generateBroadcastDraft(`Rekap hari ini: Sudah Rp ${(dailyTotal / 1000000).toFixed(1)} Juta lebih berhasil dicairkan ke seluruh user GRupiah tanpa hambatan! Yang belum ikutan, malam ini waktu yang pas buat rebahan sambil ngerjain tugas. Besok pagi tinggal Tarik Dana!`, 'Chill & Percaya Diri (Proof of Payment)');
+                const imgPath = await this.generateImageFromHtml('recap', {
+                    dateStr: new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }),
+                    amount: `Rp ${dailyTotal.toLocaleString('id-ID')}`,
+                    tasksCompleted: tasksCompleted.toLocaleString('id-ID'),
+                    wdCompleted: wdCompleted.toLocaleString('id-ID')
+                }, '.recap-container');
+
+                const draft = await this.broadcastService.generateBroadcastDraft(`Rekap hari ini: Sudah Rp ${(dailyTotal / 1000000).toFixed(1)} Juta lebih berhasil dicairkan ke seluruh user GRupiah tanpa hambatan! ${wdCompleted} penarikan sukses dari ${tasksCompleted.toLocaleString('id-ID')} tugas selesai hari ini. Yang belum ikutan, malam ini waktu yang pas buat rebahan sambil ngerjain tugas!`, 'Chill & Percaya Diri (Proof of Payment)');
 
                 await this.executeSingleBroadcast(channelId, botToken, draft.content, imgPath);
             }
