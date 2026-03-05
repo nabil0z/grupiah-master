@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
 import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminConfigService } from '../admin/config/admin-config.service';
@@ -289,6 +289,91 @@ export class UsersController {
         } catch (error: any) {
             console.error(error);
             return { error: error.message, stack: error.stack };
+        }
+    }
+
+    @Get('me/boost')
+    @UseGuards(TelegramAuthGuard)
+    async getActiveBoost(@Request() req: any) {
+        try {
+            if (!req.dbUser) return null;
+
+            const boost = await this.prisma.userBoost.findUnique({
+                where: { userId: req.dbUser.id }
+            });
+
+            if (!boost) return null;
+
+            // If expired, clean it up and return null
+            if (new Date(boost.expiresAt) < new Date()) {
+                await this.prisma.userBoost.delete({ where: { id: boost.id } });
+                return null;
+            }
+
+            return {
+                multiplierRate: Number(boost.multiplierRate),
+                expiresAt: boost.expiresAt,
+                purchasedStar: boost.purchasedStar,
+            };
+        } catch (e: any) {
+            console.error('[GetBoost Error]', e);
+            return null;
+        }
+    }
+
+    @Post('me/boost')
+    @UseGuards(TelegramAuthGuard)
+    async buyBoost(@Request() req: any, @Body() body: { multiplierRate: number, purchasedStar: number }) {
+        try {
+            if (!req.dbUser) {
+                throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+            }
+
+            const { multiplierRate, purchasedStar } = body;
+
+            // Validate predefined packages only
+            const PACKAGES: Record<string, { stars: number, durationHours: number }> = {
+                '2': { stars: 50, durationHours: 24 },
+                '5': { stars: 200, durationHours: 72 },
+            };
+
+            const pkg = PACKAGES[String(multiplierRate)];
+            if (!pkg || pkg.stars !== purchasedStar) {
+                throw new HttpException('Paket boost tidak valid. Pilih x2 (50 Stars) atau x5 (200 Stars).', HttpStatus.BAD_REQUEST);
+            }
+
+            // Calculate expiration
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + pkg.durationHours);
+
+            // Upsert: create or replace existing boost
+            const boost = await this.prisma.userBoost.upsert({
+                where: { userId: req.dbUser.id },
+                create: {
+                    userId: req.dbUser.id,
+                    multiplierRate: multiplierRate,
+                    expiresAt,
+                    purchasedStar,
+                },
+                update: {
+                    multiplierRate: multiplierRate,
+                    expiresAt,
+                    purchasedStar,
+                },
+            });
+
+            // NOTE: Telegram Stars payment is simulated in this phase.
+            // Real integration requires Bot API createInvoiceLink + pre_checkout_query webhook.
+
+            return {
+                multiplierRate: Number(boost.multiplierRate),
+                expiresAt: boost.expiresAt,
+                purchasedStar: boost.purchasedStar,
+            };
+        } catch (e: any) {
+            console.error('[BuyBoost Error]', e);
+            if (e instanceof HttpException) throw e;
+            throw new HttpException(e.message || 'Gagal membeli boost', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
