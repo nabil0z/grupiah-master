@@ -24,12 +24,46 @@ export default function BoostPage() {
     const handleBuyBoost = async (multiplier: number, stars: number) => {
         setIsBuying(true);
         try {
+            // 1. Get invoice URL from API
             const result = await userApi.buyBoost({ multiplierRate: multiplier, purchasedStar: stars });
-            setActiveBoost(result);
-            alert(`Suksess! Pendapatanmu sekarang dikali x${multiplier} selama paket aktif.`);
+            const invoiceUrl = result.invoiceUrl;
+
+            if (!invoiceUrl) {
+                alert('Gagal membuat invoice. Coba lagi.');
+                return;
+            }
+
+            // 2. Open Telegram Stars payment popup
+            if (window.Telegram?.WebApp?.openInvoice) {
+                window.Telegram.WebApp.openInvoice(invoiceUrl, async (status: string) => {
+                    if (status === 'paid') {
+                        // 3. Payment success — refresh boost status
+                        try {
+                            const data = await userApi.getActiveBoost();
+                            setActiveBoost(data);
+                        } catch (e) {
+                            // Boost mungkin belum ter-create oleh bot, retry setelah 2 detik
+                            setTimeout(async () => {
+                                try {
+                                    const data = await userApi.getActiveBoost();
+                                    setActiveBoost(data);
+                                } catch (_) { }
+                            }, 2000);
+                        }
+                        alert(`🎉 Pembayaran Berhasil! Boost X${multiplier} sudah aktif.`);
+                    } else if (status === 'cancelled') {
+                        // User cancelled — do nothing
+                    } else {
+                        alert('Pembayaran gagal. Silakan coba lagi.');
+                    }
+                    setIsBuying(false);
+                });
+            } else {
+                alert('Fitur ini hanya tersedia di dalam Telegram App.');
+                setIsBuying(false);
+            }
         } catch (err) {
-            alert('Gagal membeli boost. Pastikan saldo Telegram Stars Anda cukup (Simulasi).');
-        } finally {
+            alert('Gagal memproses boost. Coba lagi nanti.');
             setIsBuying(false);
         }
     };

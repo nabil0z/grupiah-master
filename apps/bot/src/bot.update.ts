@@ -1,4 +1,4 @@
-import { Update, Start, Ctx, Command } from 'nestjs-telegraf';
+import { Update, Start, Ctx, Command, On } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { PrismaService } from './prisma/prisma.service';
 
@@ -196,6 +196,69 @@ export class BotUpdate {
 
         } catch (error: any) {
             await ctx.reply(`❌ Gagal menolak.\nError: ${error.message}`);
+        }
+    }
+
+    // ==========================================
+    // Telegram Stars Payment Handlers
+    // ==========================================
+
+    @On('pre_checkout_query')
+    async onPreCheckoutQuery(@Ctx() ctx: Context) {
+        // Must answer within 10 seconds or payment fails
+        try {
+            await ctx.answerPreCheckoutQuery(true);
+            console.log('[Stars] Pre-checkout approved');
+        } catch (e) {
+            console.error('[Stars] Pre-checkout error:', e);
+        }
+    }
+
+    @On('successful_payment')
+    async onSuccessfulPayment(@Ctx() ctx: Context) {
+        try {
+            const payment = (ctx.message as any)?.successful_payment;
+            if (!payment) return;
+
+            console.log('[Stars] Payment received:', JSON.stringify(payment));
+
+            // Parse the payload we set when creating the invoice
+            const payload = JSON.parse(payment.invoice_payload);
+            const { userId, multiplierRate, purchasedStar, durationHours } = payload;
+
+            // Calculate expiration
+            const expiresAt = new Date();
+            expiresAt.setHours(expiresAt.getHours() + durationHours);
+
+            // Upsert: create or replace existing boost
+            await this.prisma.userBoost.upsert({
+                where: { userId },
+                create: {
+                    userId,
+                    multiplierRate,
+                    expiresAt,
+                    purchasedStar,
+                },
+                update: {
+                    multiplierRate,
+                    expiresAt,
+                    purchasedStar,
+                },
+            });
+
+            // Notify user
+            const emoji = multiplierRate === 5 ? '🔥' : '⚡';
+            await ctx.reply(
+                `${emoji} *Boost X${multiplierRate} Aktif!*\n\n` +
+                `Pendapatan Offerwall kamu sekarang dikali *${multiplierRate}x* selama ${durationHours} jam.\n\n` +
+                `Berlaku hingga: ${expiresAt.toLocaleString('id-ID')}`,
+                { parse_mode: 'Markdown' }
+            );
+
+            console.log(`[Stars] Boost X${multiplierRate} activated for user ${userId}, expires ${expiresAt.toISOString()}`);
+        } catch (e) {
+            console.error('[Stars] Payment processing error:', e);
+            await ctx.reply('⚠️ Pembayaran diterima tapi terjadi kesalahan saat mengaktifkan boost. Hubungi admin.');
         }
     }
 }

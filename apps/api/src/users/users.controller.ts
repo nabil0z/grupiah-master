@@ -332,9 +332,9 @@ export class UsersController {
             const { multiplierRate, purchasedStar } = body;
 
             // Validate predefined packages only
-            const PACKAGES: Record<string, { stars: number, durationHours: number }> = {
-                '2': { stars: 50, durationHours: 24 },
-                '5': { stars: 200, durationHours: 72 },
+            const PACKAGES: Record<string, { stars: number, durationHours: number, title: string, description: string }> = {
+                '2': { stars: 50, durationHours: 24, title: '⚡ Double Cuan X2', description: 'Gandakan semua pendapatan Offerwall selama 24 jam!' },
+                '5': { stars: 200, durationHours: 72, title: '🔥 Mega Cuan X5', description: 'Lipatgandakan pendapatan Offerwall 5x selama 3 hari non-stop!' },
             };
 
             const pkg = PACKAGES[String(multiplierRate)];
@@ -342,33 +342,41 @@ export class UsersController {
                 throw new HttpException('Paket boost tidak valid. Pilih x2 (50 Stars) atau x5 (200 Stars).', HttpStatus.BAD_REQUEST);
             }
 
-            // Calculate expiration
-            const expiresAt = new Date();
-            expiresAt.setHours(expiresAt.getHours() + pkg.durationHours);
+            // Create invoice link via Telegram Bot API
+            const botToken = process.env.BOT_TOKEN;
+            if (!botToken || botToken === 'mock_telegram_bot_token') {
+                throw new HttpException('Bot token not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
 
-            // Upsert: create or replace existing boost
-            const boost = await this.prisma.userBoost.upsert({
-                where: { userId: req.dbUser.id },
-                create: {
-                    userId: req.dbUser.id,
-                    multiplierRate: multiplierRate,
-                    expiresAt,
-                    purchasedStar,
-                },
-                update: {
-                    multiplierRate: multiplierRate,
-                    expiresAt,
-                    purchasedStar,
-                },
+            // Payload to identify the purchase when payment succeeds
+            const payload = JSON.stringify({
+                userId: req.dbUser.id,
+                multiplierRate,
+                purchasedStar,
+                durationHours: pkg.durationHours,
             });
 
-            // NOTE: Telegram Stars payment is simulated in this phase.
-            // Real integration requires Bot API createInvoiceLink + pre_checkout_query webhook.
+            const invoiceResponse = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: pkg.title,
+                    description: pkg.description,
+                    payload,
+                    currency: 'XTR', // Telegram Stars currency
+                    prices: [{ label: pkg.title, amount: pkg.stars }],
+                }),
+            });
+
+            const invoiceData = await invoiceResponse.json() as any;
+
+            if (!invoiceData.ok) {
+                console.error('[CreateInvoice Error]', invoiceData);
+                throw new HttpException('Gagal membuat invoice Stars. Coba lagi.', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
 
             return {
-                multiplierRate: Number(boost.multiplierRate),
-                expiresAt: boost.expiresAt,
-                purchasedStar: boost.purchasedStar,
+                invoiceUrl: invoiceData.result,
             };
         } catch (e: any) {
             console.error('[BuyBoost Error]', e);
