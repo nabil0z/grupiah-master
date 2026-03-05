@@ -277,8 +277,9 @@ export class BroadcastCronService {
                 // 21:00 PM - NIGHT OWL (DAILY RECAP STATS)
                 this.logger.log('Executing NIGHT Broadcast (Daily Recap)');
 
-                // Dynamic daily recap total: 12jt - 25jt
-                const dailyTotal = Math.floor(Math.random() * 13000000) + 12000000;
+                // Daily total harus jauh lebih besar dari top 10 earners (top 10 = ~10-20% total)
+                // Top 10 rata-rata ~30jt, jadi daily total = 150jt - 350jt
+                const dailyTotal = Math.floor(Math.random() * 200000000) + 150000000;
                 const imgPath = await this.generateImageFromHtml('receipt', {
                     txId: `REKAP-HARI-INI`,
                     dateStr: new Date().toLocaleString('id-ID'),
