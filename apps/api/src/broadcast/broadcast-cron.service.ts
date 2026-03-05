@@ -84,48 +84,46 @@ export class BroadcastCronService {
     }
 
     private async executeAlbumBroadcast(channelId: string, botToken: string, mediaPaths: string[], caption: string) {
-        // Send Album First (No Buttons)
         const albumUrl = `https://api.telegram.org/bot${botToken}/sendMediaGroup`;
 
-        const formData = new FormData();
-        formData.append('chat_id', channelId);
-
-        const mediaArray = mediaPaths.map((filePath, index) => {
-            const fileName = path.basename(filePath);
-            const fileStream = fs.createReadStream(filePath);
-            formData.append(fileName, fileStream as any);
-            return {
-                type: 'photo',
-                media: `attach://${fileName}`,
-                parse_mode: 'HTML',
-                caption: index === 0 ? caption : undefined // Put caption only on the first image
-            };
-        });
-
-        formData.append('media', JSON.stringify(mediaArray));
-
         try {
-            // NOTE: FormData fetching in Node.js requires special handling. 
-            // In a real production app we'd use 'axios' or 'form-data' library.
-            // For the sake of this implementation, we will simulate the FormData using fetch
-            // by relying on Node 18+ native Fetch API 
-            const fetch = require('node-fetch'); // If native fetch doesn't support FormData well
-
-            // As a simplified safe fallback for demo purposes without external multipart parsers:
-            // We'll log it as simulated if it fails.
             this.logger.log(`Executing Telegram MediaGroup request with ${mediaPaths.length} photos...`);
 
-            // Wait 2 seconds
-            await new Promise(r => setTimeout(r, 2000));
+            // Build multipart FormData with actual file buffers (Node 18+ native FormData + Blob)
+            const formData = new FormData();
+            formData.append('chat_id', channelId);
 
-            // Clean up files after sending
+            const mediaArray = mediaPaths.map((filePath, index) => {
+                const fileName = path.basename(filePath);
+                const fileBuffer = fs.readFileSync(filePath);
+                const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
+                formData.append(fileName, blob, fileName);
+                return {
+                    type: 'photo',
+                    media: `attach://${fileName}`,
+                    parse_mode: 'HTML',
+                    ...(index === 0 ? { caption } : {})
+                };
+            });
+
+            formData.append('media', JSON.stringify(mediaArray));
+
+            const response = await fetch(albumUrl, { method: 'POST', body: formData });
+            const data = await response.json() as any;
+
+            if (!data.ok) {
+                this.logger.error(`Telegram sendMediaGroup error: ${data.description}`);
+            } else {
+                this.logger.log(`Album photos sent successfully to ${channelId}`);
+            }
+
+            // Clean up generated image files
             for (const p of mediaPaths) {
                 if (fs.existsSync(p)) fs.unlinkSync(p);
             }
 
-            // Immediately Follow up with CTA Message & Button
-            const ctaUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-            await fetch(ctaUrl, {
+            // Follow up with CTA button message
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -141,42 +139,59 @@ export class BroadcastCronService {
             this.logger.log(`Album Broadcast successfully sent to ${channelId}`);
         } catch (error: any) {
             this.logger.error(`MediaGroup Send Failed: ${error.message}`);
+            // Clean up on error too
+            for (const p of mediaPaths) {
+                if (fs.existsSync(p)) try { fs.unlinkSync(p); } catch { }
+            }
         }
     }
 
     private async executeSingleBroadcast(channelId: string, botToken: string, caption: string, imagePath?: string) {
-        let url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        let payload: any = {
-            chat_id: channelId,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [[{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]]
-            }
-        };
-
-        if (imagePath && fs.existsSync(imagePath)) {
-            // In real app, we use FormData to upload the file directly.
-            // For this phase, we'll log it and simulate.
-            this.logger.log(`Executing Single Photo Broadcast with file: ${imagePath}`);
-            payload.caption = caption;
-            payload.photo = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&q=80"; // Fallback URL
-            url = `https://api.telegram.org/bot${botToken}/sendPhoto`;
-            setTimeout(() => fs.unlinkSync(imagePath), 5000); // Cleanup
-        } else {
-            payload.text = caption;
-        }
-
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-            if (!data.ok) throw new Error(data.description);
+            if (imagePath && fs.existsSync(imagePath)) {
+                // Upload actual photo via multipart FormData
+                this.logger.log(`Executing Single Photo Broadcast with file: ${imagePath}`);
+                const photoUrl = `https://api.telegram.org/bot${botToken}/sendPhoto`;
+
+                const formData = new FormData();
+                formData.append('chat_id', channelId);
+                const fileBuffer = fs.readFileSync(imagePath);
+                const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
+                formData.append('photo', blob, path.basename(imagePath));
+                formData.append('caption', caption);
+                formData.append('parse_mode', 'HTML');
+                formData.append('reply_markup', JSON.stringify({
+                    inline_keyboard: [[{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]]
+                }));
+
+                const response = await fetch(photoUrl, { method: 'POST', body: formData });
+                const data = await response.json() as any;
+
+                if (!data.ok) throw new Error(data.description);
+
+                // Cleanup
+                if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+            } else {
+                // Text-only broadcast
+                const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: channelId,
+                        text: caption,
+                        parse_mode: 'HTML',
+                        reply_markup: {
+                            inline_keyboard: [[{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]]
+                        }
+                    })
+                });
+                const data = await response.json() as any;
+                if (!data.ok) throw new Error(data.description);
+            }
             this.logger.log(`Broadcast successfully sent to ${channelId}`);
         } catch (e: any) {
             this.logger.error(`Broadcast failed: ${e.message}`);
+            if (imagePath && fs.existsSync(imagePath)) try { fs.unlinkSync(imagePath); } catch { }
         }
     }
 
