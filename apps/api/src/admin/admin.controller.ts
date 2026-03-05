@@ -116,6 +116,14 @@ export class AdminController {
         return this.adminService.setConfigs(body.configs, adminId);
     }
 
+    @Get('dashboard-stats')
+    async getDashboardStats() {
+        const stats = await this.adminService.getDashboardStats();
+        return JSON.parse(JSON.stringify(stats, (key, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+        ));
+    }
+
     @Get('stats/online')
     async getOnlineStats() {
         const onlineCount = await this.adminService.getOnlineUserCount();

@@ -1,116 +1,236 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Check, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    Plus, Pencil, Trash2, Copy, Check, Loader2,
+    Link as LinkIcon, X, Save, ClipboardCheck
+} from 'lucide-react';
 import { adminApi } from '../api/adminClient';
 
-export default function CustomTasks() {
+export default function Tasks() {
     const [tasks, setTasks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [actionId, setActionId] = useState<string | null>(null);
+    const [showForm, setShowForm] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [form, setForm] = useState({ title: '', description: '', reward: '', link: '', logoUrl: '' });
 
     useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const data = await adminApi.getPendingTasks();
-                setTasks(data);
-            } catch (error) {
-                console.error("Failed to fetch custom tasks", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchTasks();
     }, []);
 
-    const handleAction = async (id: string, action: 'APPROVE' | 'REJECT') => {
-        setActionId(id);
+    const fetchTasks = async () => {
         try {
-            await adminApi.reviewTask(id, action);
-            setTasks(tasks.filter(t => t.id !== id));
-        } catch (error) {
-            alert(`Failed to ${action} task`);
+            const data = await adminApi.getPendingTasks();
+            // Also fetch all custom tasks
+            const allTasks = await adminApi.getDashboardStats().catch(() => null);
+            // Fetch from admin tasks endpoint
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks`,
+                { headers: { 'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}` } }
+            );
+            const customTasks = await response.json();
+            setTasks(Array.isArray(customTasks) ? customTasks : []);
+        } catch (e) {
+            console.error('Failed to fetch tasks', e);
         } finally {
-            setActionId(null);
+            setLoading(false);
         }
+    };
+
+    const resetForm = () => {
+        setForm({ title: '', description: '', reward: '', link: '', logoUrl: '' });
+        setEditingId(null);
+        setShowForm(false);
+    };
+
+    const handleSubmit = async () => {
+        if (!form.title || !form.reward) return alert('Title dan Reward wajib diisi');
+        setSaving(true);
+        try {
+            if (editingId) {
+                await fetch(
+                    `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks/${editingId}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}`
+                        },
+                        body: JSON.stringify({ ...form, reward: Number(form.reward) })
+                    }
+                );
+            } else {
+                await fetch(
+                    `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}`
+                        },
+                        body: JSON.stringify({ ...form, reward: Number(form.reward) })
+                    }
+                );
+            }
+            resetForm();
+            await fetchTasks();
+        } catch (e) {
+            alert('Failed to save task');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Hapus task ini?')) return;
+        try {
+            await fetch(
+                `${import.meta.env.VITE_API_URL || 'http://localhost:53000'}/admin/tasks/${id}`,
+                {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `tma ${(window as any).Telegram?.WebApp?.initData || 'mock_token'}` }
+                }
+            );
+            await fetchTasks();
+        } catch (e) {
+            alert('Failed to delete');
+        }
+    };
+
+    const handleEdit = (task: any) => {
+        setForm({
+            title: task.title || '',
+            description: task.description || '',
+            reward: String(task.reward || ''),
+            link: task.link || '',
+            logoUrl: task.logoUrl || '',
+        });
+        setEditingId(task.id);
+        setShowForm(true);
+    };
+
+    const handleCopyLink = (task: any) => {
+        const link = task.link || `https://app.grupiah.online/task/${task.id}`;
+        navigator.clipboard.writeText(link);
+        setCopiedId(task.id);
+        setTimeout(() => setCopiedId(null), 2000);
     };
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 text-gray-500">
-                <Loader2 className="animate-spin mb-4" size={32} />
-                <p>Loading pending tasks...</p>
+            <div className="flex flex-col items-center justify-center min-h-[80vh] text-gray-400">
+                <Loader2 className="w-8 h-8 animate-spin mb-3 text-[var(--color-admin-accent)]" />
+                <p className="text-sm">Loading tasks...</p>
             </div>
         );
     }
 
     return (
-        <div className="p-4 pb-20 max-w-md mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-xl font-bold text-gray-800">Review Tasks</h1>
-                <span className="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-xs font-bold">
-                    {tasks.length} req
-                </span>
+        <div className="p-4 pb-24 max-w-md mx-auto space-y-4">
+            <div className="flex items-center justify-between">
+                <h1 className="text-xl font-black text-gray-900">Custom Tasks</h1>
+                <button
+                    onClick={() => { resetForm(); setShowForm(true); }}
+                    className="flex items-center gap-1.5 bg-[var(--color-admin-accent)] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm"
+                >
+                    <Plus size={16} /> New Task
+                </button>
             </div>
 
-            <div className="space-y-3">
-                {tasks.map((task) => (
+            {/* Create/Edit Form */}
+            <AnimatePresence>
+                {showForm && (
                     <motion.div
-                        key={task.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex items-center gap-3"
+                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3"
                     >
-                        {/* Thumbnail Image */}
-                        <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
-                            {task.proofUrl ? (
-                                <img src={task.proofUrl} alt="Proof" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
-                                    <ImageIcon size={20} />
-                                </div>
-                            )}
-                            {task.proofUrl && (
-                                <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer flex-col p-1 text-center">
-                                    <a href={task.proofUrl} target="_blank" rel="noreferrer" className="w-full h-full flex items-center justify-center">
-                                        <ImageIcon size={16} className="text-white drop-shadow-md" />
-                                    </a>
-                                </div>
-                            )}
+                        <div className="flex items-center justify-between">
+                            <h2 className="font-bold text-gray-800">{editingId ? 'Edit Task' : 'New Task'}</h2>
+                            <button onClick={resetForm} className="text-gray-400"><X size={18} /></button>
                         </div>
-
-                        {/* Task Info */}
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-900 text-sm truncate">{task.task?.title || 'Unknown Task'}</h3>
-                            <p className="text-[11px] text-gray-500 mt-0.5 truncate">
-                                @{task.user?.username || task.user?.telegramId} • <span className="font-mono text-emerald-600 font-bold">Rp {Number(task.task?.reward || 0).toLocaleString()}</span>
-                            </p>
+                        <input
+                            value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+                            placeholder="Task Title *"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                        />
+                        <textarea
+                            value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+                            placeholder="Description"
+                            rows={2}
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                            <input
+                                value={form.reward} onChange={(e) => setForm({ ...form, reward: e.target.value })}
+                                placeholder="Reward (Rp) *" type="number"
+                                className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                            />
+                            <input
+                                value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })}
+                                placeholder="Task Link"
+                                className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                            />
                         </div>
+                        <input
+                            value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+                            placeholder="Logo URL (optional)"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                        />
+                        <button
+                            onClick={handleSubmit} disabled={saving}
+                            className="w-full bg-[var(--color-admin-accent)] text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                            {editingId ? 'Update Task' : 'Create Task'}
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                        {/* Quick Actions */}
-                        <div className="flex flex-col gap-1.5 shrink-0">
-                            <button
-                                disabled={actionId === task.id}
-                                onClick={() => handleAction(task.id, 'APPROVE')}
-                                className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                                {actionId === task.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} strokeWidth={3} />}
-                            </button>
-                            <button
-                                disabled={actionId === task.id}
-                                onClick={() => handleAction(task.id, 'REJECT')}
-                                className="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                                {actionId === task.id ? <Loader2 size={16} className="animate-spin" /> : <X size={16} strokeWidth={3} />}
-                            </button>
+            {/* Task List */}
+            <div className="space-y-2">
+                {tasks.length === 0 ? (
+                    <div className="text-center py-12 text-gray-300">
+                        <ClipboardCheck size={40} className="mx-auto mb-2 opacity-30" />
+                        <p>No custom tasks yet</p>
+                    </div>
+                ) : tasks.map((task) => (
+                    <motion.div key={task.id} whileTap={{ scale: 0.98 }}
+                        className="bg-white rounded-xl p-3 shadow-sm border border-gray-100"
+                    >
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                                <p className="font-bold text-gray-800 text-sm truncate">{task.title}</p>
+                                <p className="text-xs text-gray-400 mt-0.5 truncate">{task.description || 'No description'}</p>
+                                <div className="flex items-center gap-3 mt-2">
+                                    <span className="text-xs font-bold text-[#FF5A00]">Rp {Number(task.reward || 0).toLocaleString('id-ID')}</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${task.isActive !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                                        {task.isActive !== false ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                                <button onClick={() => handleCopyLink(task)}
+                                    className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 transition-colors"
+                                    title="Copy Link"
+                                >
+                                    {copiedId === task.id ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                </button>
+                                <button onClick={() => handleEdit(task)}
+                                    className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors"
+                                >
+                                    <Pencil size={14} />
+                                </button>
+                                <button onClick={() => handleDelete(task.id)}
+                                    className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 ))}
-                {tasks.length === 0 && (
-                    <div className="text-center py-12 text-gray-400">
-                        <Check size={48} className="mx-auto mb-2 opacity-20" />
-                        <p>No tasks waiting for review.</p>
-                    </div>
-                )}
             </div>
         </div>
     );

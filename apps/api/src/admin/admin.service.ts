@@ -264,6 +264,77 @@ export class AdminService {
         return newTask;
     }
 
+    async getDashboardStats() {
+        const now = new Date();
+        const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+        const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+        // Online users (simulated)
+        const onlineUsers = await this.getOnlineUserCount();
+
+        // Total users
+        const totalUsers = await this.prisma.user.count({ where: { isFake: false } });
+
+        // Pending withdrawals
+        const pendingWdList = await this.prisma.withdrawal.findMany({
+            where: { status: 'PENDING', isFake: false },
+            include: { user: { select: { username: true, firstName: true, telegramId: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+        });
+        const pendingWdTotal = pendingWdList.reduce((sum, w) => sum + Number(w.amount), 0);
+
+        // Tasks completed today vs yesterday
+        const tasksToday = await this.prisma.userTask.count({
+            where: { status: 'APPROVED', isFake: false, updatedAt: { gte: todayStart } }
+        });
+        const tasksYesterday = await this.prisma.userTask.count({
+            where: { status: 'APPROVED', isFake: false, updatedAt: { gte: yesterdayStart, lt: todayStart } }
+        });
+
+        // Pending custom tasks for review
+        const pendingTasks = await this.getPendingCustomTasks();
+
+        // Profit per provider — count EARN mutations by description containing provider name
+        const earningsToday = await this.prisma.walletMutation.findMany({
+            where: { type: 'EARN', createdAt: { gte: todayStart } }
+        });
+        const earningsYesterday = await this.prisma.walletMutation.findMany({
+            where: { type: 'EARN', createdAt: { gte: yesterdayStart, lt: todayStart } }
+        });
+
+        const calcProviderProfit = (mutations: any[]) => {
+            let ogads = 0, adblue = 0, other = 0;
+            for (const m of mutations) {
+                const desc = (m.description || '').toLowerCase();
+                const amount = Math.abs(Number(m.amount));
+                if (desc.includes('ogads')) ogads += amount;
+                else if (desc.includes('adblue')) adblue += amount;
+                else other += amount;
+            }
+            return { ogads, adblue, other, total: ogads + adblue + other };
+        };
+
+        const profitToday = calcProviderProfit(earningsToday);
+        const profitYesterday = calcProviderProfit(earningsYesterday);
+
+        // Provider stats (clicks/completions)
+        const providerStats = await this.prisma.offerScore.groupBy({
+            by: ['provider'],
+            _sum: { clicks: true, completions: true }
+        });
+
+        return {
+            onlineUsers,
+            totalUsers,
+            pendingWithdrawals: { count: pendingWdList.length, total: pendingWdTotal, list: pendingWdList },
+            tasks: { today: tasksToday, yesterday: tasksYesterday },
+            pendingTasks,
+            profit: { today: profitToday, yesterday: profitYesterday },
+            providerStats,
+        };
+    }
+
     async getAnalytics() {
         const livePostbacks = await this.prisma.walletMutation.findMany({
             where: { type: 'EARN' },

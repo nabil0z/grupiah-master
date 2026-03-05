@@ -31,6 +31,10 @@ adminClient.interceptors.request.use((config) => {
 });
 
 export const adminApi = {
+    getDashboardStats: async () => {
+        const response = await adminClient.get('/admin/dashboard-stats');
+        return response.data;
+    },
     getPendingWithdrawals: async () => {
         const response = await adminClient.get('/admin/withdrawals/pending');
         return response.data;
