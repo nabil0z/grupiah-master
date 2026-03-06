@@ -232,17 +232,18 @@ export default function WalletPage() {
                                         <div className="flex gap-2 mt-2">
                                             {[
                                                 { label: 'Min', value: minWithdraw },
-                                                { label: '50%', value: Math.floor(balance * 0.5) },
-                                                { label: '75%', value: Math.floor(balance * 0.75) },
+                                                { label: '-100rb', value: balance - 100000 },
+                                                { label: '-200rb', value: balance - 200000 },
+                                                { label: '-500rb', value: balance - 500000 },
                                                 { label: 'Semua', value: balance },
-                                            ].filter(opt => opt.value >= minWithdraw).map((opt) => (
+                                            ].filter(opt => opt.value >= minWithdraw && opt.value <= balance).map((opt) => (
                                                 <button
                                                     key={opt.label}
                                                     type="button"
                                                     onClick={() => setWithdrawAmount(opt.value)}
                                                     className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg border transition-all ${withdrawAmount === opt.value
-                                                            ? 'bg-slate-900 text-white border-slate-900'
-                                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                                                        ? 'bg-slate-900 text-white border-slate-900'
+                                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                                                         }`}
                                                 >
                                                     {opt.label}
