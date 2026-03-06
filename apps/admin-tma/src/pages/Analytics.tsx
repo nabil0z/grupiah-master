@@ -67,6 +67,7 @@ export default function Analytics() {
     const providers = [
         { name: 'OGAds', icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-50', profit: data.profit.today.ogads, yesterdayProfit: data.profit.yesterday.ogads },
         { name: 'AdBlue', icon: Zap, color: 'text-blue-500', bg: 'bg-blue-50', profit: data.profit.today.adblue, yesterdayProfit: data.profit.yesterday.adblue },
+        { name: 'CPAGrip', icon: Zap, color: 'text-orange-500', bg: 'bg-orange-50', profit: data.profit.today.cpagrip || 0, yesterdayProfit: data.profit.yesterday.cpagrip || 0 },
         { name: 'Stars', icon: Star, color: 'text-purple-500', bg: 'bg-purple-50', profit: data.profit.today.other, yesterdayProfit: data.profit.yesterday.other },
     ];
 

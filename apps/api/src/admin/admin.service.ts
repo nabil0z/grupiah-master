@@ -307,15 +307,16 @@ export class AdminService {
         });
 
         const calcProviderProfit = (mutations: any[]) => {
-            let ogads = 0, adblue = 0, other = 0;
+            let ogads = 0, adblue = 0, cpagrip = 0, other = 0;
             for (const m of mutations) {
                 const desc = (m.description || '').toLowerCase();
                 const amount = Math.abs(Number(m.amount));
                 if (desc.includes('ogads')) ogads += amount;
                 else if (desc.includes('adblue')) adblue += amount;
+                else if (desc.includes('cpagrip')) cpagrip += amount;
                 else other += amount;
             }
-            return { ogads, adblue, other, total: ogads + adblue + other };
+            return { ogads, adblue, cpagrip, other, total: ogads + adblue + cpagrip + other };
         };
 
         const profitToday = calcProviderProfit(earningsToday);
