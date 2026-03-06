@@ -229,15 +229,17 @@ export default function EarnPage() {
     const availableTasks = allTasks.filter((t: any) => t.userSubmissionStatus !== 'APPROVED');
     const top3 = availableTasks.slice(0, 3);
 
-    // Filter rest of tasks (exclude top 3 from main list)
-    const top3Ids = new Set(top3.map((t: any) => t.id));
-    const restTasks = allTasks.filter((t: any) => !top3Ids.has(t.id));
+    // Filter ALL tasks (top 3 also appear in the list below)
 
     const filteredTasks = filter === 'all'
-        ? restTasks
+        ? allTasks
         : filter === 'auto'
-            ? restTasks.filter((t: any) => t.provider !== 'CUSTOM')
-            : restTasks.filter((t: any) => t.provider === 'CUSTOM');
+            ? allTasks.filter((t: any) => t.provider !== 'CUSTOM')
+            : allTasks.filter((t: any) => t.provider === 'CUSTOM');
+
+    // Count uses ALL tasks so user sees accurate totals
+    const autoCount = allTasks.filter(t => t.provider !== 'CUSTOM').length;
+    const manualCount = allTasks.filter(t => t.provider === 'CUSTOM').length;
 
     const handleTaskPlay = (task: any) => {
         if (task.provider === 'CUSTOM') {
@@ -249,9 +251,9 @@ export default function EarnPage() {
     };
 
     const filters = [
-        { id: 'all' as const, label: 'Semua', count: restTasks.length },
-        { id: 'auto' as const, label: '🤖 Auto', count: restTasks.filter(t => t.provider !== 'CUSTOM').length },
-        { id: 'manual' as const, label: '📝 Manual', count: restTasks.filter(t => t.provider === 'CUSTOM').length },
+        { id: 'all' as const, label: 'Semua', count: allTasks.length },
+        { id: 'auto' as const, label: '🤖 Auto', count: autoCount },
+        { id: 'manual' as const, label: '📝 Manual', count: manualCount },
     ];
 
     return (
