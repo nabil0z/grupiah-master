@@ -59,6 +59,8 @@ export default function Settings() {
         { key: 'APP_REF_UPLINE', label: 'Bonus Pengundang (IDR)', type: 'number', hint: 'Bonus untuk yang mengajak setelah teman selesai 1 task' },
         { key: 'APP_REF_DOWNLINE', label: 'Bonus Teman Baru (IDR)', type: 'number', hint: 'Welcome bonus untuk user yang diundang' },
         { key: 'APP_MIN_WITHDRAW', label: 'Min. Withdraw (IDR)', type: 'number', hint: 'Minimal saldo untuk penarikan' },
+        { key: 'MARKETING_OFFER_DELAY_MS', label: 'Marketing Delay (ms)', type: 'number', hint: 'Delay auto-credit marketing mode. 25000 = 25 detik' },
+        { key: 'DAILY_LOGIN_REWARDS', label: 'Daily Check-in Rewards', type: 'text', hint: 'JSON array rewards per hari. Contoh: [100,200,300,400,500,750,1500]' },
         { key: 'AUTO_POST_ENABLED', label: 'Auto Broadcast', type: 'toggle', hint: 'Broadcast otomatis ke channel' },
     ];
 
