@@ -44,7 +44,7 @@ function MainApp() {
       try {
         const startParam = win.Telegram?.WebApp?.initDataUnsafe?.start_param;
         // Always login first to establish session and DB User
-        await authApi.login(startParam);
+        const loginRes = await authApi.login(startParam);
 
         // Navigate to deep link if present after login
         if (targetRoute) {
@@ -55,10 +55,9 @@ function MainApp() {
         const channelRes = await userApi.verifyChannel().catch(() => null);
         if (channelRes && channelRes.joined === false) setIsJoined(false);
 
-        // Get profile for daily checkin 
-        const profileRes = await userApi.getProfile().catch(() => null);
-        if (profileRes && !profileRes.error && profileRes.canClaimDaily) {
-          setCurrentStreak(profileRes.currentStreak || 1);
+        // Show daily check-in if available (from login response)
+        if (loginRes && loginRes.canClaimDaily) {
+          setCurrentStreak(loginRes.currentStreak || 0);
           setTimeout(() => setShowCheckIn(true), 1500);
         }
 

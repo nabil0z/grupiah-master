@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, UseGuards, Request, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Injectable, UnauthorizedException } from '@nestjs/common';
 import { TelegramAuthGuard } from './telegram-auth/telegram-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -8,7 +8,8 @@ export class AuthController {
 
     @Post('telegram/login')
     @UseGuards(TelegramAuthGuard)
-    async login(@Request() req: any, @Headers('x-start-param') startParam: string) {
+    async login(@Request() req: any, @Body() body: any) {
+        const startParam = body?.startParam || null;
         const telegramUser = req.user;
 
         // In dev mode, the guard already created/fetched the dbUser. Skip BigInt conversion.
@@ -20,6 +21,8 @@ export class AuthController {
                 message: 'Login successful',
                 user: safeUser,
                 wallet: safeUser.wallet || { balance: 0 },
+                canClaimDaily: true,
+                currentStreak: 0,
                 token: 'dev_mock_token'
             };
         }
@@ -29,6 +32,9 @@ export class AuthController {
             where: { telegramId: BigInt(telegramUser.id) },
             include: { wallet: true }
         });
+
+        let canClaimDaily = true;
+        let currentStreak = 0;
 
         // If new user, create their account + wallet
         if (!user) {
@@ -58,11 +64,24 @@ export class AuthController {
                 include: { wallet: true }
             });
 
-            // Update Daily login
+            // New user — canClaimDaily is true, streak starts at 0
+            canClaimDaily = true;
+            currentStreak = 0;
+
         } else {
+            // Existing user — check canClaimDaily BEFORE updating lastLogin
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const lastLoginDate = user.lastLogin ? new Date(user.lastLogin) : null;
+            const lastLoginStr = lastLoginDate ? lastLoginDate.toISOString().split('T')[0] : null;
+
+            canClaimDaily = lastLoginStr !== todayStr;
+            currentStreak = user.dailyStreak || 0;
+
+            // Now update lastLogin
             user = await this.prisma.user.update({
                 where: { id: user.id },
-                data: { lastLogin: new Date() },
+                data: { lastLogin: today },
                 include: { wallet: true }
             });
         }
@@ -76,7 +95,9 @@ export class AuthController {
             message: 'Login successful',
             user: safeUser,
             wallet: safeUser.wallet,
-            token: 'generate_jwt_here_later_if_needed_for_web_admin' // TMA uses initData natively as stateless token
+            canClaimDaily,
+            currentStreak,
+            token: 'generate_jwt_here_later_if_needed_for_web_admin'
         };
     }
 }
