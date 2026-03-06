@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, ChevronRight, Flame, Settings, ClipboardList } from 'lucide-react';
+import { Clock, ChevronRight, Flame, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, userApi, tasksApi } from '../api/client';
 import { Users, Loader2 } from 'lucide-react';
@@ -110,11 +110,8 @@ const FlashSalePage = () => {
                     </div>
                 </div>
 
-                {/* Profile & History Link Overlay */}
+                {/* Settings Link Overlay */}
                 <div className="absolute top-4 right-5 flex gap-2 z-20">
-                    <div className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-full cursor-pointer backdrop-blur-sm border border-white/10" onClick={() => navigate('/task-history')}>
-                        <ClipboardList size={20} className="text-white opacity-80" />
-                    </div>
                     <div className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-full cursor-pointer backdrop-blur-sm border border-white/10" onClick={() => navigate('/settings')}>
                         <Settings size={20} className="text-white opacity-80" />
                     </div>
@@ -205,12 +202,12 @@ const FlashSalePage = () => {
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center py-10 space-y-3">
                                 <Loader2 className="w-8 h-8 text-[var(--color-flash-red)] animate-spin" />
-                                <p className="text-sm font-medium text-gray-500 animate-pulse">Mencari diskon terbaik...</p>
+                                <p className="text-sm font-medium text-gray-500 animate-pulse">Mencari tugas terbaik...</p>
                             </div>
                         ) : tasks.length > 0 ? (
                             tasks.slice(0, 3).map((task: any, index: number) => {
                                 const rewardNum = Number(task.reward) || 0;
-                                const fakeOldPrice = (rewardNum * 1.5).toLocaleString('id-ID');
+                                const bonusPercent = index === 0 ? 50 : index === 1 ? 30 : 20;
                                 const displayQuota = index === 0 ? 3 : index === 1 ? 8 : 12;
 
                                 return (
@@ -219,9 +216,9 @@ const FlashSalePage = () => {
                                         whileTap={{ scale: 0.98 }}
                                         className="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50/50 relative overflow-hidden group"
                                     >
-                                        {/* Discount Tag */}
-                                        <div className="absolute top-0 right-0 bg-[var(--color-flash-red)] text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
-                                            HOT
+                                        {/* Bonus Tag */}
+                                        <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                            +{bonusPercent}% BONUS
                                         </div>
 
                                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3 shrink-0">
@@ -234,12 +231,12 @@ const FlashSalePage = () => {
 
                                         <div className="flex-1 min-w-0 pr-2">
                                             <h3 className="text-sm font-bold text-gray-900 truncate">{task.title}</h3>
-                                            <div className="flex items-center mt-1">
-                                                <span className="text-xs text-gray-400 line-through mr-1.5">Rp {fakeOldPrice}</span>
-                                                <span className="text-sm font-extrabold flash-gradient-text">Rp {rewardNum.toLocaleString('id-ID')}</span>
+                                            <div className="flex items-center gap-1.5 mt-1">
+                                                <span className="text-sm font-extrabold flash-gradient-text">+ Rp {rewardNum.toLocaleString('id-ID')}</span>
+                                                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">🔥 High Pay</span>
                                             </div>
                                             <div className="w-2/3 bg-gray-200 rounded-full h-1.5 mt-2">
-                                                <div className="bg-[var(--color-flash-red)] h-1.5 rounded-full" style={{ width: `${80 + Math.random() * 15}%` }}></div>
+                                                <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${80 + Math.random() * 15}%` }}></div>
                                             </div>
                                             <p className="text-[9px] text-gray-500 mt-1">Tersedia untuk {displayQuota} orang lagi!</p>
                                         </div>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Target, Boxes, X, Loader2, RefreshCw, Trophy, Flame, Zap, Star, ChevronRight } from 'lucide-react';
+import { Play, Target, Boxes, X, Loader2, RefreshCw, Trophy, Flame, Zap, Star, ChevronRight, ClipboardList } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { tasksApi } from '../api/client';
+import { useNavigate } from 'react-router-dom';
 
 /* ──────── Scoring Algorithm ──────── */
 function scoreTask(task: any): number {
@@ -198,6 +199,7 @@ export default function EarnPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [proofText, setProofText] = useState("");
     const [proofFile, setProofFile] = useState<File | null>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchTasks = async () => {
@@ -261,6 +263,12 @@ export default function EarnPage() {
             {/* Header Banner */}
             <div className="flash-gradient-bg h-44 rounded-b-3xl relative overflow-hidden shadow-lg shrink-0">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc4JyBoZWlnaHQ9JzgnPgo8cmVjdCB3aWR0aD0nOCcgaGVpZ2h0PSc4JyBmaWxsPScjZmZmJyBmaWxsLW9wYWNpdHk9JzAuMScvPgo8cGF0aCBkPSdNMCAwaDh2OEgweicgZmlsbD0nbm9uZScvPgo8L3N2Zz4=')] opacity-20"></div>
+                {/* History Button */}
+                <div className="absolute top-4 right-5 z-20">
+                    <div className="bg-black/10 hover:bg-black/20 transition-colors p-2 rounded-full cursor-pointer backdrop-blur-sm border border-white/10" onClick={() => navigate('/task-history')}>
+                        <ClipboardList size={20} className="text-white opacity-80" />
+                    </div>
+                </div>
                 <div className="p-6 relative z-10 text-white flex flex-col justify-end h-full pb-8">
                     <h1 className="text-3xl font-black mb-1 drop-shadow-md">Tugas Harian</h1>
                     <p className="text-sm font-medium opacity-90">Selesaikan tugas & dapatkan saldo instan!</p>
