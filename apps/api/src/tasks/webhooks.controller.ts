@@ -174,6 +174,39 @@ export class WebhooksController {
                 }
             });
 
+            // Send DM notification to user (fire-and-forget, don't delay response)
+            try {
+                const dmUser = await this.prisma.user.findUnique({ where: { id: rewardDetail.userId } });
+                const botToken = process.env.BOT_TOKEN;
+                if (botToken && dmUser?.telegramId) {
+                    const EXCHANGE_RATE_IDR = 16000;
+                    const globalMultiplierStr = await this.configService.getConfigValue('GLOBAL_OFFER_MULTIPLIER', '1');
+                    const globalMultiplier = parseFloat(globalMultiplierStr) || 1;
+                    const dmReward = Math.floor(rewardDetail.reward * EXCHANGE_RATE_IDR * globalMultiplier);
+
+                    const message = `✅ *Offer Berhasil!*\n\n` +
+                        `Selamat! Kamu baru saja menyelesaikan offer dari *${normalizedProviderName}*.\n` +
+                        `💰 Reward: *Rp ${dmReward.toLocaleString('id-ID')}*\n\n` +
+                        `Saldo kamu sudah ditambahkan otomatis. Terus kumpulkan rupiahnya! 🚀`;
+
+                    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: dmUser.telegramId.toString(),
+                            text: message,
+                            parse_mode: 'Markdown'
+                        })
+                    }).then(() => {
+                        console.log(`[Webhooks] DM sent to user ${dmUser.telegramId} for ${normalizedProviderName} ✅`);
+                    }).catch(dmErr => {
+                        console.error('[Webhooks] DM send failed:', dmErr);
+                    });
+                }
+            } catch (dmErr) {
+                console.error('[Webhooks] Failed to prepare DM:', dmErr);
+            }
+
             // 5. Must return 200 OK fast so the Ad Network knows it arrived
             return res.status(HttpStatus.OK).send('OK');
 

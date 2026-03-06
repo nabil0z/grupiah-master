@@ -318,11 +318,9 @@ export class TasksService {
                     const delayStr = await this.configService.getConfigValue('MARKETING_OFFER_DELAY_MS', '25000');
                     const delayMs = parseInt(delayStr) || 25000;
 
-                    // Use same conversion as the rest of the app: exchangeRate * globalMultiplier
-                    const multiplierStr = await this.configService.getConfigValue('GLOBAL_OFFER_MULTIPLIER', '1');
-                    const globalMultiplier = parseFloat(multiplierStr) || 1;
-                    const exchangeRate = 16000;
-                    const rewardInIDR = Math.round(reward * exchangeRate * globalMultiplier);
+                    // Reward from frontend is ALREADY converted to IDR (exchangeRate * multiplier applied in getAvailableTasks)
+                    // So we use it directly — no conversion needed
+                    const rewardInIDR = Math.round(reward);
 
                     console.log(`[Marketing] Scheduling auto-credit for user ${userId}: Rp ${rewardInIDR} in ${delayMs}ms`);
 
