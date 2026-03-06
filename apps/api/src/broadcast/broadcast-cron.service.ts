@@ -358,13 +358,15 @@ export class BroadcastCronService {
                 account: accountDisplay
             });
 
-            // DM the receipt image to user
-            const fs = require('fs');
-            const FormData = require('form-data');
+            // DM the receipt image to user (same pattern as executeSingleBroadcast)
+            const caption = `✅ <b>Penarikan Berhasil!</b>\n\n💰 Nominal: <b>Rp ${withdrawalData.amount.toLocaleString('id-ID')}</b>\n📱 Metode: ${methodLabel}\n📋 ID: <code>${withdrawalData.id.substring(0, 8).toUpperCase()}</code>\n\nDana telah dikirim ke akun ${methodLabel} kamu. Terima kasih sudah menggunakan GRupiah! 🚀`;
+
             const formData = new FormData();
             formData.append('chat_id', telegramId.toString());
-            formData.append('photo', fs.createReadStream(imgPath));
-            formData.append('caption', `✅ <b>Penarikan Berhasil!</b>\n\n💰 Nominal: <b>Rp ${withdrawalData.amount.toLocaleString('id-ID')}</b>\n📱 Metode: ${methodLabel}\n📋 ID: <code>${withdrawalData.id.substring(0, 8).toUpperCase()}</code>\n\nDana telah dikirim ke akun ${methodLabel} kamu. Terima kasih sudah menggunakan GRupiah! 🚀`);
+            const fileBuffer = fs.readFileSync(imgPath);
+            const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
+            formData.append('photo', blob, path.basename(imgPath));
+            formData.append('caption', caption);
             formData.append('parse_mode', 'HTML');
 
             const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
