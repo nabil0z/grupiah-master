@@ -52,7 +52,7 @@ export class CPAGripAdapter implements IOfferwallAdapter {
                 type: 'AUTO',
                 isActive: true,
                 providerUrl: offer.offerlink || offer.link || offer.url || '#',
-                logoUrl: offer.creatives?.length > 0 ? offer.creatives[0] : (offer.image || offer.picture || offer.icon || `https://ui-avatars.com/api/?name=${encodeURIComponent(offer.title || 'CG')}&background=6366f1&color=fff&size=128`)
+                logoUrl: offer.offerphoto || offer.image || offer.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(offer.title || 'CG')}&background=6366f1&color=fff&size=128`
             }));
         } catch (error: any) {
             this.logger.error(`Failed to fetch CPAGrip offers: ${error.message}`);
