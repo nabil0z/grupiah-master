@@ -42,7 +42,25 @@ export class CPAGripAdapter implements IOfferwallAdapter {
                 this.logger.warn('[CPAGrip] No offers returned');
             }
 
-            return offers.map((offer: any, index: number) => ({
+            // Detect user OS from user-agent for filtering
+            const uaStr = userAgent || '';
+            const uaLower = uaStr.toLowerCase();
+            const isAndroid = uaLower.includes('android');
+            const isIOS = uaLower.includes('iphone') || uaLower.includes('ipad') || uaLower.includes('ipod');
+
+            // Filter offers by OS compatibility using 'type' field
+            // Known types: mobile_droid, mobile_ios, email_submit, pin_submit, etc.
+            const filtered = offers.filter((offer: any) => {
+                const offerType = (offer.type || '').toLowerCase();
+                if (!offerType) return true; // No type = show to all
+                if (isAndroid && offerType === 'mobile_ios') return false;
+                if (isIOS && offerType === 'mobile_droid') return false;
+                return true;
+            });
+
+            this.logger.log(`[CPAGrip] After OS filter: ${filtered.length}/${offers.length} offers (${isAndroid ? 'Android' : isIOS ? 'iOS' : 'Desktop'})`);
+
+            return filtered.map((offer: any, index: number) => ({
                 id: `cpagrip_${offer.offerid || index}`,
                 provider: 'CPAGRIP',
                 externalId: `cpagrip_${offer.offerid || index}`,

@@ -47,7 +47,29 @@ export class OGAdsAdapter implements IOfferwallAdapter {
                 this.logger.log(`[OGAds] Sample offer: ${JSON.stringify(offers[0])}`);
             }
 
-            return offers.map((offer: any, index: number) => ({
+            // Detect user OS from user-agent for filtering
+            const uaLower = (ua || '').toLowerCase();
+            const isAndroid = uaLower.includes('android');
+            const isIOS = uaLower.includes('iphone') || uaLower.includes('ipad') || uaLower.includes('ipod');
+
+            // Filter offers by device compatibility
+            const filtered = offers.filter((offer: any) => {
+                const device = (offer.device || '').toLowerCase();
+                if (!device) return true; // No device info = show to all
+                if (isAndroid) {
+                    // Android user: show if device includes 'android' or is a general offer (desktop/all)
+                    return device.includes('android') || (!device.includes('iphone') && !device.includes('ipad'));
+                }
+                if (isIOS) {
+                    // iOS user: show if device includes 'iphone'/'ipad' or is a general offer
+                    return device.includes('iphone') || device.includes('ipad') || (!device.includes('android'));
+                }
+                return true; // Desktop or unknown — show all
+            });
+
+            this.logger.log(`[OGAds] After OS filter: ${filtered.length}/${offers.length} offers (${isAndroid ? 'Android' : isIOS ? 'iOS' : 'Desktop'})`);
+
+            return filtered.map((offer: any, index: number) => ({
                 id: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
                 provider: 'OGADS',
                 externalId: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
