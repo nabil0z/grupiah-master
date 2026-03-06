@@ -57,22 +57,26 @@ export class TasksService {
                 // Use cached external tasks
                 providerResults = [
                     { status: 'fulfilled', value: cached.data[0] || [] },
-                    { status: 'fulfilled', value: cached.data[1] || [] }
+                    { status: 'fulfilled', value: cached.data[1] || [] },
+                    { status: 'fulfilled', value: cached.data[2] || [] }
                 ] as PromiseSettledResult<any[]>[];
             } else {
                 // Fetch fresh from providers
                 const ogadsAdapter = this.taskProviderFactory.getAdapter('OGADS');
                 const adBlueMediaAdapter = this.taskProviderFactory.getAdapter('ADBLUEMEDIA');
+                const cpaGripAdapter = this.taskProviderFactory.getAdapter('CPAGRIP');
 
                 providerResults = await Promise.allSettled([
                     ogadsAdapter.fetchTasks(userId, userIp, userAgent),
-                    adBlueMediaAdapter.fetchTasks(userId, userIp, userAgent)
+                    adBlueMediaAdapter.fetchTasks(userId, userIp, userAgent),
+                    cpaGripAdapter.fetchTasks(userId, userIp, userAgent)
                 ]);
 
                 // Cache successful results
                 const ogData = providerResults[0].status === 'fulfilled' ? providerResults[0].value : [];
                 const abData = providerResults[1].status === 'fulfilled' ? providerResults[1].value : [];
-                externalTaskCache.set(cacheKey, { data: [ogData, abData], timestamp: Date.now() });
+                const cgData = providerResults[2].status === 'fulfilled' ? providerResults[2].value : [];
+                externalTaskCache.set(cacheKey, { data: [ogData, abData, cgData], timestamp: Date.now() });
             }
 
             const results = providerResults;
@@ -148,6 +152,29 @@ export class TasksService {
                     { id: `ab_mock_1`, provider: 'ADBLUEMEDIA', externalId: 'ab_mock_1', title: 'Survey Pertanian AdBlue', description: 'Isi Survey.', reward: Math.floor(1.56 * exchangeRate * globalMultiplier), type: 'AUTO', isActive: true, providerUrl: '#', logoUrl: '' },
                     { id: `ab_mock_2`, provider: 'ADBLUEMEDIA', externalId: 'ab_mock_2', title: 'Download Lords Mobile', description: 'Main 5 Menit.', reward: Math.floor(2.81 * exchangeRate * globalMultiplier), type: 'AUTO', isActive: true, providerUrl: '#', logoUrl: '' }
                 ]);
+            }
+
+            // CPAGrip (3rd provider)
+            if (results[2] && results[2].status === 'fulfilled') {
+                const cpaGripValue = results[2].value;
+                if (cpaGripValue.length > 0) {
+                    allExternalOffers = allExternalOffers.concat(
+                        cpaGripValue.map(offer => ({
+                            id: offer.externalId || `cg_${Math.random()}`,
+                            provider: 'CPAGRIP',
+                            externalId: offer.externalId || `cg_${Math.random()}`,
+                            title: offer.title,
+                            description: offer.description,
+                            reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                            type: 'AUTO',
+                            isActive: true,
+                            providerUrl: offer.providerUrl,
+                            logoUrl: offer.logoUrl
+                        }))
+                    );
+                }
+            } else if (results[2]) {
+                console.error('[TasksService] CPAGrip Fetch Failed', results[2].reason);
             }
 
             const scoresRaw = await this.prisma.offerScore.findMany();

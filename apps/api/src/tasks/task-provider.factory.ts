@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { IOfferwallAdapter, OGAdsAdapter, AdBlueMediaAdapter } from '@grupiah/provider-adapters';
+import { IOfferwallAdapter, OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter } from '@grupiah/provider-adapters';
 
 @Injectable()
 export class TaskProviderFactory {
     // Inject all supported Offerwall Networks here
     constructor(
         private readonly ogAdsAdapter: OGAdsAdapter,
-        private readonly adBlueMediaAdapter: AdBlueMediaAdapter
+        private readonly adBlueMediaAdapter: AdBlueMediaAdapter,
+        private readonly cpaGripAdapter: CPAGripAdapter
     ) { }
 
     getAdapter(providerName: string): IOfferwallAdapter {
@@ -15,6 +16,8 @@ export class TaskProviderFactory {
                 return this.ogAdsAdapter;
             case 'ADBLUEMEDIA':
                 return this.adBlueMediaAdapter;
+            case 'CPAGRIP':
+                return this.cpaGripAdapter;
             default:
                 throw new Error(`Unsupported Task Provider: ${providerName}`);
         }
