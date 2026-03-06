@@ -56,9 +56,9 @@ export default function Settings() {
 
     const editableKeys = [
         { key: 'GLOBAL_OFFER_MULTIPLIER', label: 'Offer Multiplier', type: 'number', hint: '1 = Normal, 10 = x10 reward display' },
-        { key: 'INVITER_BONUS', label: 'Inviter Bonus (IDR)', type: 'number', hint: 'Bonus upline setelah downline selesai 1 task' },
-        { key: 'INVITEE_BONUS', label: 'Invitee Bonus (IDR)', type: 'number', hint: 'Welcome bonus user baru' },
-        { key: 'REFERRAL_REWARD_AMOUNT', label: 'Referral Cap Display', type: 'number', hint: 'Max amount di halaman Frens' },
+        { key: 'APP_REF_UPLINE', label: 'Bonus Pengundang (IDR)', type: 'number', hint: 'Bonus untuk yang mengajak setelah teman selesai 1 task' },
+        { key: 'APP_REF_DOWNLINE', label: 'Bonus Teman Baru (IDR)', type: 'number', hint: 'Welcome bonus untuk user yang diundang' },
+        { key: 'APP_MIN_WITHDRAW', label: 'Min. Withdraw (IDR)', type: 'number', hint: 'Minimal saldo untuk penarikan' },
         { key: 'AUTO_POST_ENABLED', label: 'Auto Broadcast', type: 'toggle', hint: 'Broadcast otomatis ke channel' },
     ];
 
