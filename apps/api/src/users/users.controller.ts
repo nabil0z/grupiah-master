@@ -38,13 +38,17 @@ export class UsersController {
             ));
 
             const minWithdrawStr = await this.configService.getConfigValue('APP_MIN_WITHDRAW', '500000');
+            const refUplineStr = await this.configService.getConfigValue('APP_REF_UPLINE', '500');
+            const refDownlineStr = await this.configService.getConfigValue('APP_REF_DOWNLINE', '250');
 
             return {
                 ...responseJson,
                 canClaimDaily,
                 currentStreak: user.dailyStreak,
                 appConfig: {
-                    minWithdraw: parseInt(minWithdrawStr) || 500000
+                    minWithdraw: parseInt(minWithdrawStr) || 500000,
+                    refUpline: parseInt(refUplineStr) || 500,
+                    refDownline: parseInt(refDownlineStr) || 250
                 }
             };
         } catch (e: any) {

@@ -6,12 +6,18 @@ export default function FrensPage() {
     const [referrals, setReferrals] = useState<any[]>([]);
     const [refCode, setRefCode] = useState<string>('loading...');
     const [isLoading, setIsLoading] = useState(true);
+    const [refUpline, setRefUpline] = useState(0);
+    const [refDownline, setRefDownline] = useState(0);
 
     useEffect(() => {
         const loadFrensData = async () => {
             try {
                 const profile = await userApi.getProfile();
                 setRefCode(profile.referralCode || 'guest123');
+                if (profile.appConfig) {
+                    setRefUpline(profile.appConfig.refUpline || 0);
+                    setRefDownline(profile.appConfig.refDownline || 0);
+                }
 
                 const refs = await userApi.getReferrals();
                 setReferrals(refs);
@@ -52,9 +58,15 @@ export default function FrensPage() {
                         <Users size={32} className="text-white drop-shadow-md" />
                     </div>
                     <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-md">Ajak Teman</h1>
-                    <h2 className="text-2xl font-extrabold text-yellow-300 drop-shadow-md mt-1">Dapat Bonus!</h2>
+                    <h2 className="text-2xl font-extrabold text-yellow-300 drop-shadow-md mt-1">
+                        {refUpline > 0 ? `Dapat Rp ${refUpline.toLocaleString('id-ID')}!` : 'Dapat Bonus!'}
+                    </h2>
                     <p className="text-emerald-50 text-xs mt-3 opacity-90 leading-relaxed px-4">
-                        Tidak ada batas! Undang sebanyak-banyaknya. Saldo langsung masuk saat temanmu menyelesaikan 1 Flash Task pertama mereka.
+                        {refUpline > 0 && refDownline > 0 ? (
+                            <>Setiap teman yang <b>menyelesaikan 1 task pertama</b>, kamu langsung dapat <b>Rp {refUpline.toLocaleString('id-ID')}</b> dan temanmu juga dapat <b>Rp {refDownline.toLocaleString('id-ID')}</b>. Semakin banyak yang diajak, semakin cuan! 🚀</>
+                        ) : (
+                            'Tidak ada batas! Undang sebanyak-banyaknya. Saldo langsung masuk saat temanmu menyelesaikan 1 Flash Task pertama mereka.'
+                        )}
                     </p>
                 </div>
             </div>
@@ -89,12 +101,31 @@ export default function FrensPage() {
                     </div>
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 flex flex-col justify-center items-center text-center">
                         <TrendingUp size={20} className="text-emerald-500 mb-1" />
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Hasil Kas</span>
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Est. Penghasilan</span>
                         <span className="text-xl font-black text-gray-900">
-                            {isLoading ? '-' : `${completedReferralsCount} Aktif`}
+                            {isLoading ? '-' : refUpline > 0 ? `Rp ${(completedReferralsCount * refUpline).toLocaleString('id-ID')}` : `${completedReferralsCount} Aktif`}
                         </span>
                     </div>
                 </div>
+
+                {/* Reward Info Card */}
+                {refUpline > 0 && (
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 shadow-sm border border-emerald-100 mb-6">
+                        <p className="text-xs font-bold text-emerald-700 mb-2">💰 Detail Bonus Referral</p>
+                        <div className="flex gap-3">
+                            <div className="flex-1 bg-white rounded-xl p-3 text-center">
+                                <p className="text-[10px] text-gray-500 font-bold">KAMU DAPAT</p>
+                                <p className="text-lg font-black text-emerald-600">Rp {refUpline.toLocaleString('id-ID')}</p>
+                                <p className="text-[10px] text-gray-400">per teman aktif</p>
+                            </div>
+                            <div className="flex-1 bg-white rounded-xl p-3 text-center">
+                                <p className="text-[10px] text-gray-500 font-bold">TEMAN DAPAT</p>
+                                <p className="text-lg font-black text-teal-600">Rp {refDownline.toLocaleString('id-ID')}</p>
+                                <p className="text-[10px] text-gray-400">bonus sambutan</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Live List (Social Proof) */}
                 <h3 className="font-bold text-gray-900 px-2 mb-3">Teman yang Bergabung</h3>
