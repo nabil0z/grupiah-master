@@ -318,10 +318,11 @@ export class TasksService {
                     const delayStr = await this.configService.getConfigValue('MARKETING_OFFER_DELAY_MS', '25000');
                     const delayMs = parseInt(delayStr) || 25000;
 
-                    // Get global multiplier and exchange rate for reward conversion
-                    const multiplierStr = await this.configService.getConfigValue('GLOBAL_OFFER_MULTIPLIER', '25000');
-                    const multiplier = parseFloat(multiplierStr) || 25000;
-                    const rewardInIDR = Math.round(reward * multiplier);
+                    // Use same conversion as the rest of the app: exchangeRate * globalMultiplier
+                    const multiplierStr = await this.configService.getConfigValue('GLOBAL_OFFER_MULTIPLIER', '1');
+                    const globalMultiplier = parseFloat(multiplierStr) || 1;
+                    const exchangeRate = 16000;
+                    const rewardInIDR = Math.round(reward * exchangeRate * globalMultiplier);
 
                     console.log(`[Marketing] Scheduling auto-credit for user ${userId}: Rp ${rewardInIDR} in ${delayMs}ms`);
 
