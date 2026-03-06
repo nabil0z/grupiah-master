@@ -32,7 +32,8 @@ export class BroadcastController {
         content: string,
         imageUrl?: string,
         buttonText?: string,
-        buttonUrl?: string
+        buttonUrl?: string,
+        showDefaultButton?: boolean
     }) {
         if (!body.content) {
             throw new HttpException('Content is required', HttpStatus.BAD_REQUEST);
@@ -41,7 +42,8 @@ export class BroadcastController {
             body.content,
             body.imageUrl,
             body.buttonText,
-            body.buttonUrl
+            body.buttonUrl,
+            body.showDefaultButton
         );
     }
 

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Send, Radio, MessageSquare, Timer, Loader2,
-    CheckCircle2, XCircle, Users, Image, Link
+    CheckCircle2, XCircle, Users, Image, Link, Zap, List
 } from 'lucide-react';
 import { adminApi } from '../api/adminClient';
 
@@ -15,12 +15,46 @@ export default function Broadcast() {
     const [sending, setSending] = useState(false);
     const [result, setResult] = useState<any>(null);
 
+    // DM-specific state
+    const [dmButtonType, setDmButtonType] = useState<'none' | 'link' | 'deeplink'>('none');
+    const [customTasks, setCustomTasks] = useState<any[]>([]);
+    const [selectedTaskId, setSelectedTaskId] = useState('');
+    const [showDefaultButton, setShowDefaultButton] = useState(true);
+
+    // Fetch tasks when DM tab opens
+    useEffect(() => {
+        if (tab === 'dm' && customTasks.length === 0) {
+            adminApi.getTasks().then(tasks => {
+                setCustomTasks(Array.isArray(tasks) ? tasks : []);
+            }).catch(console.error);
+        }
+    }, [tab]);
+
+    // Update buttonUrl when deeplink task changes
+    useEffect(() => {
+        if (dmButtonType === 'deeplink' && selectedTaskId) {
+            setButtonUrl(`https://t.me/GrupiahBot/app?startapp=task_${selectedTaskId}`);
+            if (!buttonText.trim()) setButtonText('📝 Kerjakan Sekarang');
+        }
+    }, [dmButtonType, selectedTaskId]);
+
     const buildBody = () => {
         const body: any = { content: message };
         if (imageUrl.trim()) body.imageUrl = imageUrl.trim();
-        if (buttonText.trim() && buttonUrl.trim()) {
-            body.buttonText = buttonText.trim();
-            body.buttonUrl = buttonUrl.trim();
+
+        if (tab === 'dm') {
+            // DM: handle button based on type selection
+            if (dmButtonType !== 'none' && buttonText.trim() && buttonUrl.trim()) {
+                body.buttonText = buttonText.trim();
+                body.buttonUrl = buttonUrl.trim();
+            }
+            body.showDefaultButton = showDefaultButton;
+        } else {
+            // Channel: use standard button fields
+            if (buttonText.trim() && buttonUrl.trim()) {
+                body.buttonText = buttonText.trim();
+                body.buttonUrl = buttonUrl.trim();
+            }
         }
         return body;
     };
@@ -46,6 +80,7 @@ export default function Broadcast() {
             const data = await adminApi.sendDmBlast(buildBody());
             setResult({ success: true, message: '✅ DM Blast selesai!', data });
             setMessage(''); setImageUrl(''); setButtonText(''); setButtonUrl('');
+            setDmButtonType('none'); setSelectedTaskId('');
         } catch (e: any) {
             setResult({ success: false, message: e?.response?.data?.message || 'Failed to send blast' });
         } finally {
@@ -137,29 +172,127 @@ export default function Broadcast() {
                         />
                     </div>
 
-                    {/* Button */}
-                    <div className="grid grid-cols-2 gap-2">
-                        <div>
-                            <label className="text-xs text-gray-500 flex items-center gap-1 mb-1">
-                                <Link size={12} /> Teks Tombol
-                            </label>
-                            <input
-                                value={buttonText}
-                                onChange={(e) => setButtonText(e.target.value)}
-                                placeholder="📱 Buka App"
-                                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
-                            />
+                    {/* Channel: Simple button fields */}
+                    {tab === 'channel' && (
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                                    <Link size={12} /> Teks Tombol
+                                </label>
+                                <input
+                                    value={buttonText}
+                                    onChange={(e) => setButtonText(e.target.value)}
+                                    placeholder="📱 Buka App"
+                                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 mb-1 block">URL Tombol</label>
+                                <input
+                                    value={buttonUrl}
+                                    onChange={(e) => setButtonUrl(e.target.value)}
+                                    placeholder="https://t.me/GRupiahBot/app"
+                                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <label className="text-xs text-gray-500 mb-1 block">URL Tombol</label>
-                            <input
-                                value={buttonUrl}
-                                onChange={(e) => setButtonUrl(e.target.value)}
-                                placeholder="https://t.me/GRupiahBot/app"
-                                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
-                            />
+                    )}
+
+                    {/* DM: Button type selector */}
+                    {tab === 'dm' && (
+                        <div className="space-y-3">
+                            {/* Button Type */}
+                            <div>
+                                <label className="text-xs text-gray-500 flex items-center gap-1 mb-2">
+                                    <Link size={12} /> Tombol Custom (opsional)
+                                </label>
+                                <div className="flex gap-1 bg-gray-50 rounded-lg p-1">
+                                    {[
+                                        { id: 'none' as const, label: 'Tanpa', icon: XCircle },
+                                        { id: 'link' as const, label: '🔗 Link', icon: Link },
+                                        { id: 'deeplink' as const, label: '⚡ Deeplink', icon: Zap },
+                                    ].map((opt) => (
+                                        <button key={opt.id}
+                                            onClick={() => { setDmButtonType(opt.id); setButtonText(''); setButtonUrl(''); setSelectedTaskId(''); }}
+                                            className={`flex-1 py-1.5 px-2 rounded-md text-[11px] font-bold transition-all ${dmButtonType === opt.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Manual Link */}
+                            {dmButtonType === 'link' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                    className="grid grid-cols-2 gap-2"
+                                >
+                                    <input
+                                        value={buttonText}
+                                        onChange={(e) => setButtonText(e.target.value)}
+                                        placeholder="📱 Buka App"
+                                        className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                                    />
+                                    <input
+                                        value={buttonUrl}
+                                        onChange={(e) => setButtonUrl(e.target.value)}
+                                        placeholder="https://..."
+                                        className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                                    />
+                                </motion.div>
+                            )}
+
+                            {/* Deeplink Task Picker */}
+                            {dmButtonType === 'deeplink' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                    className="space-y-2"
+                                >
+                                    <div>
+                                        <label className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                                            <List size={12} /> Pilih Task
+                                        </label>
+                                        <select
+                                            value={selectedTaskId}
+                                            onChange={(e) => setSelectedTaskId(e.target.value)}
+                                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                                        >
+                                            <option value="">-- Pilih task --</option>
+                                            {customTasks.map((t: any) => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.title} (Rp {Number(t.reward || 0).toLocaleString('id-ID')})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <input
+                                        value={buttonText}
+                                        onChange={(e) => setButtonText(e.target.value)}
+                                        placeholder="📝 Kerjakan Sekarang"
+                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)]"
+                                    />
+                                    {selectedTaskId && (
+                                        <p className="text-[10px] text-blue-500 bg-blue-50 px-3 py-1.5 rounded-lg break-all font-mono">
+                                            🔗 {buttonUrl}
+                                        </p>
+                                    )}
+                                </motion.div>
+                            )}
+
+                            {/* Default Button Toggle */}
+                            <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100">
+                                <div>
+                                    <p className="text-xs font-bold text-gray-700">Tombol Default "Buka Mini App"</p>
+                                    <p className="text-[10px] text-gray-400">Tombol standar buka GRupiah TMA</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowDefaultButton(!showDefaultButton)}
+                                    className={`w-10 h-6 rounded-full transition-colors relative ${showDefaultButton ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                >
+                                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${showDefaultButton ? 'left-5' : 'left-1'}`} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <button
                         onClick={tab === 'channel' ? sendToChannel : sendDmBlast}

@@ -78,8 +78,8 @@ export default function Tasks() {
     };
 
     const handleCopyLink = (task: any) => {
-        const link = task.link || `https://app.grupiah.online/task/${task.id}`;
-        navigator.clipboard.writeText(link);
+        const deeplink = `https://t.me/GrupiahBot/app?startapp=task_${task.id}`;
+        navigator.clipboard.writeText(deeplink);
         setCopiedId(task.id);
         setTimeout(() => setCopiedId(null), 2000);
     };

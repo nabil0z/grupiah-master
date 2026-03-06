@@ -121,7 +121,8 @@ Tuliskan draft broadcast tersebut sekarang:`
         content: string,
         imageUrl?: string,
         buttonText?: string,
-        buttonUrl?: string
+        buttonUrl?: string,
+        showDefaultButton?: boolean
     ): Promise<{ success: boolean; sent: number; failed: number; total: number }> {
         const botToken = process.env.BOT_TOKEN;
 
@@ -140,16 +141,20 @@ Tuliskan draft broadcast tersebut sekarang:`
         let sent = 0;
         let failed = 0;
 
-        // 2. Build the inline keyboard if a button is provided
-        const replyMarkup = (buttonText && buttonUrl) ? {
-            inline_keyboard: [
-                [{ text: buttonText, url: buttonUrl }]
-            ]
-        } : {
-            inline_keyboard: [
-                [{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]
-            ]
-        };
+        // 2. Build the inline keyboard
+        const buttons: Array<{ text: string; url: string }[]> = [];
+
+        // Custom button (from admin input)
+        if (buttonText && buttonUrl) {
+            buttons.push([{ text: buttonText, url: buttonUrl }]);
+        }
+
+        // Default button (togglable by admin, defaults to true)
+        if (showDefaultButton !== false) {
+            buttons.push([{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]);
+        }
+
+        const replyMarkup = buttons.length > 0 ? { inline_keyboard: buttons } : undefined;
 
         // 3. Define the batch sender
         const BATCH_SIZE = 25;
