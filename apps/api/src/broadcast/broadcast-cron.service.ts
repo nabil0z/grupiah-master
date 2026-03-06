@@ -40,7 +40,7 @@ export class BroadcastCronService {
         await this.rotateAndBroadcast(21);
     }
 
-    private async generateImageFromHtml(templateName: string, data: Record<string, string>, containerClass: string = '.receipt-container'): Promise<string> {
+    public async generateImageFromHtml(templateName: string, data: Record<string, string>, containerClass: string = '.receipt-container'): Promise<string> {
         try {
             const templatePath = path.join(__dirname, '..', '..', 'src', 'broadcast', 'templates', `${templateName}.html`);
             if (!fs.existsSync(templatePath)) {
@@ -305,6 +305,88 @@ export class BroadcastCronService {
 
         } catch (error: any) {
             this.logger.error(`Error during broadcast execution: ${error.message}`);
+        }
+    }
+
+    /**
+     * Generate a real withdrawal receipt image and DM it to the user.
+     */
+    public async sendReceiptToUser(
+        telegramId: bigint | string,
+        withdrawalData: {
+            id: string;
+            amount: number;
+            method: string;
+            accountInfo: string; // JSON string
+            processedAt?: Date;
+            username?: string;
+        }
+    ): Promise<boolean> {
+        try {
+            const botToken = process.env.BOT_TOKEN;
+            if (!botToken || botToken === 'mock_telegram_bot_token') {
+                this.logger.warn('Mock token — skipping receipt DM');
+                return false;
+            }
+
+            // Parse account info
+            let accountDisplay = '****';
+            try {
+                const parsed = JSON.parse(withdrawalData.accountInfo);
+                const num = parsed.number || parsed.accountNumber || '';
+                accountDisplay = num.length > 4
+                    ? num.substring(0, 4) + '****' + num.substring(num.length - 2)
+                    : num || '****';
+            } catch { }
+
+            // Method label
+            const methodLabels: Record<string, string> = {
+                'BANK_TRANSFER': 'Transfer Bank',
+                'DANA': 'DANA E-Wallet',
+                'OVO': 'OVO Cash',
+                'GOPAY': 'GoPay',
+            };
+            const methodLabel = methodLabels[withdrawalData.method] || withdrawalData.method;
+
+            // Generate receipt image
+            const imgPath = await this.generateImageFromHtml('receipt', {
+                txId: `WD-${withdrawalData.id.substring(0, 8).toUpperCase()}`,
+                dateStr: (withdrawalData.processedAt || new Date()).toLocaleString('id-ID'),
+                amount: `Rp ${withdrawalData.amount.toLocaleString('id-ID')}`,
+                username: withdrawalData.username || 'User',
+                method: methodLabel,
+                account: accountDisplay
+            });
+
+            // DM the receipt image to user
+            const fs = require('fs');
+            const FormData = require('form-data');
+            const formData = new FormData();
+            formData.append('chat_id', telegramId.toString());
+            formData.append('photo', fs.createReadStream(imgPath));
+            formData.append('caption', `✅ <b>Penarikan Berhasil!</b>\n\n💰 Nominal: <b>Rp ${withdrawalData.amount.toLocaleString('id-ID')}</b>\n📱 Metode: ${methodLabel}\n📋 ID: <code>${withdrawalData.id.substring(0, 8).toUpperCase()}</code>\n\nDana telah dikirim ke akun ${methodLabel} kamu. Terima kasih sudah menggunakan GRupiah! 🚀`);
+            formData.append('parse_mode', 'HTML');
+
+            const response = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json() as any;
+
+            // Cleanup temp image
+            try { fs.unlinkSync(imgPath); } catch { }
+
+            if (result.ok) {
+                this.logger.log(`Receipt DM sent to ${telegramId}`);
+                return true;
+            } else {
+                this.logger.error(`Receipt DM failed: ${result.description}`);
+                return false;
+            }
+        } catch (error: any) {
+            this.logger.error(`sendReceiptToUser error: ${error.message}`);
+            return false;
         }
     }
 }

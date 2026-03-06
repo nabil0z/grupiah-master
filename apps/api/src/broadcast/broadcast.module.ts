@@ -9,5 +9,6 @@ import { AdminConfigModule } from '../admin/config/admin-config.module';
     imports: [PrismaModule, AdminConfigModule],
     controllers: [BroadcastController],
     providers: [BroadcastCronService, BroadcastService],
+    exports: [BroadcastCronService],
 })
 export class BroadcastModule { }

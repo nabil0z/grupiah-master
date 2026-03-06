@@ -1,12 +1,18 @@
 import { Controller, Post, Body, UseGuards, Get, Param, Request, HttpException, HttpStatus, Put, Delete } from '@nestjs/common';
 import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { AdminService } from './admin.service';
+import { BroadcastCronService } from '../broadcast/broadcast-cron.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('admin')
 // Uncomment this once Prisma is fully integrated to enforce TMA Auth
 // @UseGuards(TelegramAuthGuard)
 export class AdminController {
-    constructor(private readonly adminService: AdminService) { }
+    constructor(
+        private readonly adminService: AdminService,
+        private readonly broadcastCron: BroadcastCronService,
+        private readonly prisma: PrismaService,
+    ) { }
 
     @Post('withdrawals/:id/action')
     async actionWithdrawal(@Param('id') withdrawalId: string, @Body() body: { action: 'APPROVE' | 'REJECT' }, @Request() req: any) {
@@ -14,7 +20,26 @@ export class AdminController {
         const adminId = req.user?.id === 'mock-user-123' ? 12345678 : Number(req.user?.id || 12345678);
 
         if (body.action === 'APPROVE') {
-            return this.adminService.approveWithdrawalByPartner(withdrawalId, adminId);
+            const result = await this.adminService.approveWithdrawalByPartner(withdrawalId, adminId);
+
+            // 🧾 Fire receipt DM in the background (non-blocking)
+            this.prisma.withdrawal.findUnique({
+                where: { id: withdrawalId },
+                include: { user: { select: { telegramId: true, username: true, firstName: true } } }
+            }).then(wd => {
+                if (wd && wd.user) {
+                    this.broadcastCron.sendReceiptToUser(wd.user.telegramId, {
+                        id: wd.id,
+                        amount: Number(wd.amount),
+                        method: wd.method,
+                        accountInfo: wd.accountInfo,
+                        processedAt: wd.updatedAt,
+                        username: wd.user.firstName || wd.user.username || 'User'
+                    }).catch(e => console.error('Receipt DM Error:', e));
+                }
+            }).catch(e => console.error('Receipt lookup error:', e));
+
+            return result;
         } else if (body.action === 'REJECT') {
             return this.adminService.rejectWithdrawalByPartner(withdrawalId, adminId);
         }
