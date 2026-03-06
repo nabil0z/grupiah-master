@@ -112,6 +112,9 @@ export default function FrensPage() {
                                     </div>
                                     <div>
                                         <h4 className="font-bold text-gray-900 text-sm leading-tight">{ref.name || 'User'}</h4>
+                                        {ref.username && (
+                                            <p className="text-[10px] text-gray-400 font-mono">@{ref.username}</p>
+                                        )}
                                         <span className={`text-[10px] px-1.5 py-0.5 rounded mt-1 inline-block font-medium ${ref.isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                                             {ref.isCompleted ? 'Selesai Task' : 'Menunggu Task'}
                                         </span>

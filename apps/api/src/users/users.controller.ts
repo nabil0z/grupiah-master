@@ -480,15 +480,17 @@ export class UsersController {
 
             if (!userWithRefs) return [];
 
-            const REWARD_IDR = 150000;
-
-            const mapped = userWithRefs.referrals.map(ref => ({
-                id: ref.id,
-                name: ref.firstName || ref.username || 'Anonymous User',
-                isCompleted: ref.isReferralActive,
-                reward: ref.isReferralActive ? `+ Rp ${REWARD_IDR.toLocaleString('id-ID')}` : 'Belum Selesai',
-                time: ref.createdAt.toISOString()
-            }));
+            const mapped = userWithRefs.referrals.map(ref => {
+                const fullName = [ref.firstName, ref.lastName].filter(Boolean).join(' ') || 'Anonymous User';
+                return {
+                    id: ref.id,
+                    name: fullName,
+                    username: ref.username || null,
+                    isCompleted: ref.isReferralActive,
+                    reward: ref.isReferralActive ? '✅ Aktif' : 'Menunggu',
+                    time: ref.createdAt.toISOString()
+                };
+            });
 
             return mapped;
         } catch (error: any) {
