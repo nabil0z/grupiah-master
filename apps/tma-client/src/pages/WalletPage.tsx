@@ -15,6 +15,7 @@ export default function WalletPage() {
     const [withdrawMethod, setWithdrawMethod] = useState('DANA');
     const [accountName, setAccountName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
+    const [withdrawAmount, setWithdrawAmount] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [balance, setBalance] = useState(0);
@@ -42,13 +43,21 @@ export default function WalletPage() {
     }, []);
 
     const canWithdraw = balance >= minWithdraw;
+    const validAmount = withdrawAmount >= minWithdraw && withdrawAmount <= balance;
+
+    const openWithdrawModal = () => {
+        if (canWithdraw) {
+            setWithdrawAmount(balance); // Default to full balance
+            setIsWithdrawModalOpen(true);
+        }
+    };
 
     const handleWithdrawSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
             await userApi.requestWithdrawal({
-                amount: balance,
+                amount: withdrawAmount,
                 method: withdrawMethod,
                 accountInfo: {
                     name: accountName,
@@ -56,7 +65,7 @@ export default function WalletPage() {
                 }
             });
             setIsSuccess(true);
-            setBalance(0); // Optimistic deduction
+            setBalance(prev => prev - withdrawAmount); // Optimistic deduction
 
             setTimeout(() => {
                 setIsWithdrawModalOpen(false);
@@ -91,7 +100,7 @@ export default function WalletPage() {
 
                     <div className="mt-6 flex gap-3 w-full max-w-xs">
                         <button
-                            onClick={() => { if (canWithdraw) setIsWithdrawModalOpen(true); }}
+                            onClick={openWithdrawModal}
                             className={`flex-1 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md ${canWithdraw ? 'bg-white hover:bg-slate-50 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
                         >
                             <ArrowRightLeft size={18} /> {canWithdraw ? 'Tarik Dana' : 'Belum Cukup'}
@@ -204,6 +213,47 @@ export default function WalletPage() {
                                 </div>
 
                                 <form onSubmit={handleWithdrawSubmit} className="space-y-4">
+                                    {/* Amount Input */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Jumlah Penarikan</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">Rp</span>
+                                            <input
+                                                type="number"
+                                                required
+                                                min={minWithdraw}
+                                                max={balance}
+                                                value={withdrawAmount || ''}
+                                                onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+                                                placeholder={minWithdraw.toLocaleString('id-ID')}
+                                                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5 pl-10 font-bold font-mono"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2 mt-2">
+                                            {[
+                                                { label: 'Min', value: minWithdraw },
+                                                { label: '50%', value: Math.floor(balance * 0.5) },
+                                                { label: '75%', value: Math.floor(balance * 0.75) },
+                                                { label: 'Semua', value: balance },
+                                            ].filter(opt => opt.value >= minWithdraw).map((opt) => (
+                                                <button
+                                                    key={opt.label}
+                                                    type="button"
+                                                    onClick={() => setWithdrawAmount(opt.value)}
+                                                    className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg border transition-all ${withdrawAmount === opt.value
+                                                            ? 'bg-slate-900 text-white border-slate-900'
+                                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                                                        }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-1.5">
+                                            Saldo: Rp {balance.toLocaleString('id-ID')} • Min: Rp {minWithdraw.toLocaleString('id-ID')}
+                                        </p>
+                                    </div>
+
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Metode Tujuan</label>
                                         <select
@@ -250,10 +300,10 @@ export default function WalletPage() {
                                     <div className="pt-2">
                                         <button
                                             type="submit"
-                                            disabled={isSubmitting}
+                                            disabled={isSubmitting || !validAmount}
                                             className="w-full text-white bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 font-bold rounded-xl text-sm px-5 py-4 text-center transition-all shadow-md flex items-center justify-center gap-2"
                                         >
-                                            {isSubmitting ? 'Memproses...' : `Kirim Rp ${balance.toLocaleString('id-ID')}`}
+                                            {isSubmitting ? 'Memproses...' : `Kirim Rp ${withdrawAmount.toLocaleString('id-ID')}`}
                                         </button>
                                     </div>
                                 </form>
