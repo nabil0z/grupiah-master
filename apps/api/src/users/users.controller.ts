@@ -5,7 +5,8 @@ import { AdminConfigService } from '../admin/config/admin-config.service';
 
 @Controller('users')
 export class UsersController {
-    private channelVerifyCache = new Map<string, { status: boolean, timestamp: number }>();
+    private channelVerifyCache = new Map<string, { status: boolean, timestamp: number, channelInfo?: any }>();
+    private channelInfoCache: any = null;
 
     constructor(private prisma: PrismaService, private configService: AdminConfigService) { }
 
@@ -175,7 +176,7 @@ export class UsersController {
         const userId = req.user.id;
 
         if (userId === 'mock-user-123') {
-            return { joined: true, cached: true };
+            return { joined: true, cached: true, channelInfo: { title: 'Grupiah Official', memberCount: 1200, photoUrl: null } };
         }
 
         const cacheKey = String(userId);
@@ -183,30 +184,64 @@ export class UsersController {
         const now = Date.now();
 
         if (cached && (now - cached.timestamp < 5 * 60 * 1000)) {
-            return { joined: cached.status, cached: true };
+            return { joined: cached.status, cached: true, channelInfo: cached.channelInfo || null };
         }
 
         try {
             const botToken = process.env.BOT_TOKEN;
-            const channelId = process.env.CHANNEL_ID || '@grupiah_official';
+            const channelId = process.env.CHANNEL_ID || '@Grupiah_id';
 
             if (!botToken || botToken === 'mock_telegram_bot_token') {
                 this.channelVerifyCache.set(cacheKey, { status: true, timestamp: now });
                 return { joined: true, cached: false, warning: "Mock token detected" };
             }
 
-            const url = `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${channelId}&user_id=${userId}`;
-            const response = await fetch(url);
-            const data = await response.json();
+            // Fetch membership status
+            const memberUrl = `https://api.telegram.org/bot${botToken}/getChatMember?chat_id=${channelId}&user_id=${userId}`;
+            const memberRes = await fetch(memberUrl);
+            const memberData = await memberRes.json();
 
-            if (data.ok) {
-                const status = data.result.status;
-                const isJoined = ['member', 'administrator', 'creator'].includes(status);
-                this.channelVerifyCache.set(cacheKey, { status: isJoined, timestamp: now });
-                return { joined: isJoined, cached: false };
-            } else {
-                return { joined: false, cached: false, error: data.description };
+            let isJoined = false;
+            if (memberData.ok) {
+                const status = memberData.result.status;
+                isJoined = ['member', 'administrator', 'creator'].includes(status);
             }
+
+            // Fetch channel info (cached separately for 30 min to reduce API calls)
+            let channelInfo = this.channelInfoCache;
+            if (!channelInfo || (now - channelInfo._timestamp > 30 * 60 * 1000)) {
+                try {
+                    const chatRes = await fetch(`https://api.telegram.org/bot${botToken}/getChat?chat_id=${channelId}`);
+                    const chatData = await chatRes.json();
+
+                    const countRes = await fetch(`https://api.telegram.org/bot${botToken}/getChatMemberCount?chat_id=${channelId}`);
+                    const countData = await countRes.json();
+
+                    let photoUrl: string | null = null;
+                    if (chatData.ok && chatData.result.photo?.big_file_id) {
+                        const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${chatData.result.photo.big_file_id}`);
+                        const fileData = await fileRes.json();
+                        if (fileData.ok) {
+                            photoUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+                        }
+                    }
+
+                    channelInfo = {
+                        title: chatData.ok ? chatData.result.title : 'Grupiah Official',
+                        memberCount: countData.ok ? countData.result : 0,
+                        photoUrl,
+                        _timestamp: now
+                    };
+                    this.channelInfoCache = channelInfo;
+                } catch (infoErr) {
+                    console.error('Failed to fetch channel info:', infoErr);
+                    channelInfo = { title: 'Grupiah Official', memberCount: 0, photoUrl: null, _timestamp: now };
+                }
+            }
+
+            const { _timestamp, ...channelInfoClean } = channelInfo;
+            this.channelVerifyCache.set(cacheKey, { status: isJoined, timestamp: now, channelInfo: channelInfoClean });
+            return { joined: isJoined, cached: false, channelInfo: channelInfoClean };
         } catch (err) {
             console.error('Network error checking channel:', err);
             return { joined: true, cached: false, error: "Network fault" };

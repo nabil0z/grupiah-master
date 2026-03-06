@@ -20,6 +20,7 @@ function MainApp() {
   const navigate = useNavigate();
   const [isJoined, setIsJoined] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [channelInfo, setChannelInfo] = useState<any>(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(1);
 
@@ -53,7 +54,10 @@ function MainApp() {
 
         // Verify channel afterwards
         const channelRes = await userApi.verifyChannel().catch(() => null);
-        if (channelRes && channelRes.joined === false) setIsJoined(false);
+        if (channelRes) {
+          if (channelRes.channelInfo) setChannelInfo(channelRes.channelInfo);
+          if (channelRes.joined === false) setIsJoined(false);
+        }
 
         // Show daily check-in if available (from login response)
         if (loginRes && loginRes.canClaimDaily) {
@@ -97,7 +101,7 @@ function MainApp() {
       </Routes>
       <FakeWithdrawTicker />
       <BottomNav />
-      {!isJoined && <ChannelLock onVerify={handleVerify} isVerifying={isVerifying} />}
+      {!isJoined && <ChannelLock onVerify={handleVerify} isVerifying={isVerifying} channelInfo={channelInfo} />}
       <DailyCheckIn isOpen={showCheckIn} onClose={() => setShowCheckIn(false)} currentStreak={currentStreak} />
     </div>
   );
