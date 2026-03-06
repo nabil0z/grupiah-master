@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, TrendingUp, Target, Boxes, X, Loader2, RefreshCw, Trophy, Flame, Zap, Star, ChevronRight } from 'lucide-react';
+import { Play, Target, Boxes, X, Loader2, RefreshCw, Trophy, Flame, Zap, Star, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { tasksApi } from '../api/client';
 
@@ -172,12 +172,12 @@ const TaskCard = ({ task, onPlay }: { task: any; onPlay: () => void }) => {
             <button
                 onClick={handleClick}
                 className={`shrink-0 ${task.userSubmissionStatus === 'APPROVED'
-                        ? 'bg-gray-100 text-gray-400'
-                        : task.userSubmissionStatus === 'PENDING'
-                            ? 'bg-amber-100 text-amber-500'
-                            : isAuto
-                                ? 'bg-[var(--color-flash-orange)] text-white shadow-md'
-                                : 'bg-amber-500 text-white shadow-md'
+                    ? 'bg-gray-100 text-gray-400'
+                    : task.userSubmissionStatus === 'PENDING'
+                        ? 'bg-amber-100 text-amber-500'
+                        : isAuto
+                            ? 'bg-[var(--color-flash-orange)] text-white shadow-md'
+                            : 'bg-amber-500 text-white shadow-md'
                     } p-2.5 rounded-full transition-transform group-hover:scale-105`}
                 disabled={task.userSubmissionStatus === 'APPROVED'}
             >
