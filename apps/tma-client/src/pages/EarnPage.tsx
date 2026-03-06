@@ -116,7 +116,7 @@ const TaskCard = ({ task, onPlay }: { task: any; onPlay: () => void }) => {
     }, [state]);
 
     const handleClick = () => {
-        tasksApi.recordClick(task.provider, task.externalId || task.id).catch(console.error);
+        tasksApi.recordClick(task.provider, task.externalId || task.id, task.reward).catch(console.error);
         if (task.provider === 'CUSTOM') {
             onPlay();
         } else {
@@ -247,7 +247,7 @@ export default function EarnPage() {
         if (task.provider === 'CUSTOM') {
             setSelectedTask(task);
         } else {
-            tasksApi.recordClick(task.provider, task.externalId || task.id).catch(console.error);
+            tasksApi.recordClick(task.provider, task.externalId || task.id, task.reward).catch(console.error);
             window.open(task.providerUrl, '_blank');
         }
     };

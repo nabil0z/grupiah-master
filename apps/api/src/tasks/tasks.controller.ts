@@ -137,10 +137,11 @@ export class TasksController {
     }
 
     @Post('click')
-    async recordClick(@Body() body: { provider: string, externalId: string }) {
+    async recordClick(@Body() body: { provider: string, externalId: string, reward?: number }, @Request() req: any) {
         try {
             if (!body.provider || !body.externalId) throw new Error('Missing provider or externalId');
-            await this.tasksService.recordClick(body.provider, body.externalId);
+            const userId = req.dbUser?.id || null;
+            await this.tasksService.recordClick(body.provider, body.externalId, userId, body.reward || 0);
             return { success: true };
         } catch (error: any) {
             console.error('[TasksController] recordClick failed:', error);

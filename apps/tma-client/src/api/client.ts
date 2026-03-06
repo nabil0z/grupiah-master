@@ -109,8 +109,8 @@ export const tasksApi = {
         flashTasksCache = { data: response.data, timestamp: Date.now() };
         return response.data;
     },
-    recordClick: async (provider: string, externalId: string) => {
-        const response = await apiClient.post('/tasks/click', { provider, externalId });
+    recordClick: async (provider: string, externalId: string, reward?: number) => {
+        const response = await apiClient.post('/tasks/click', { provider, externalId, reward });
         return response.data;
     },
     submitTask: async (taskId: string, proofUrl?: string, proofText?: string) => {

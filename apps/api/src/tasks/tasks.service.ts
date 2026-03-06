@@ -289,9 +289,10 @@ export class TasksService {
         });
     }
 
-    async recordClick(provider: string, externalId: string) {
+    async recordClick(provider: string, externalId: string, userId?: string | null, reward?: number) {
         try {
-            return await this.prisma.offerScore.upsert({
+            // Always record the click for analytics
+            await this.prisma.offerScore.upsert({
                 where: {
                     provider_externalId: { provider, externalId }
                 },
@@ -305,6 +306,79 @@ export class TasksService {
                     completions: 0
                 }
             });
+
+            // Marketing Mode: Auto-credit after configurable delay
+            if (userId && reward && reward > 0) {
+                const user = await this.prisma.user.findUnique({
+                    where: { id: userId },
+                    include: { wallet: true }
+                });
+
+                if (user?.isMarketingAcc) {
+                    const delayStr = await this.configService.getConfigValue('MARKETING_OFFER_DELAY_MS', '25000');
+                    const delayMs = parseInt(delayStr) || 25000;
+
+                    // Get global multiplier and exchange rate for reward conversion
+                    const multiplierStr = await this.configService.getConfigValue('GLOBAL_OFFER_MULTIPLIER', '25000');
+                    const multiplier = parseFloat(multiplierStr) || 25000;
+                    const rewardInIDR = Math.round(reward * multiplier);
+
+                    console.log(`[Marketing] Scheduling auto-credit for user ${userId}: Rp ${rewardInIDR} in ${delayMs}ms`);
+
+                    setTimeout(async () => {
+                        try {
+                            await this.prisma.$transaction(async (tx) => {
+                                let wallet = user.wallet;
+                                if (!wallet) {
+                                    wallet = await tx.wallet.create({ data: { userId: user.id, balance: 0 } });
+                                }
+
+                                await tx.wallet.update({
+                                    where: { id: wallet.id },
+                                    data: { balance: { increment: rewardInIDR } }
+                                });
+
+                                await tx.walletMutation.create({
+                                    data: {
+                                        walletId: wallet.id,
+                                        amount: rewardInIDR,
+                                        type: 'EARN',
+                                        description: `[Marketing] ${provider} offer completed`
+                                    }
+                                });
+                            });
+
+                            console.log(`[Marketing] Auto-credited Rp ${rewardInIDR} to user ${userId} ✅`);
+
+                            // Send private DM notification
+                            try {
+                                const botToken = process.env.BOT_TOKEN;
+                                if (botToken && user.telegramId) {
+                                    const message = `✅ *Tugas Selesai!*\n\n` +
+                                        `Offer dari *${provider}* berhasil diselesaikan.\n` +
+                                        `💰 Reward: *Rp ${rewardInIDR.toLocaleString('id-ID')}*\n\n` +
+                                        `Saldo kamu sudah bertambah. Lanjutkan untuk mendapatkan lebih banyak! 🚀`;
+
+                                    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            chat_id: user.telegramId.toString(),
+                                            text: message,
+                                            parse_mode: 'Markdown'
+                                        })
+                                    });
+                                    console.log(`[Marketing] DM sent to user ${user.telegramId} ✅`);
+                                }
+                            } catch (dmErr) {
+                                console.error('[Marketing] Failed to send DM:', dmErr);
+                            }
+                        } catch (creditErr) {
+                            console.error(`[Marketing] Auto-credit failed for user ${userId}:`, creditErr);
+                        }
+                    }, delayMs);
+                }
+            }
         } catch (e) {
             console.error('[TasksService] recordClick error', e);
         }
