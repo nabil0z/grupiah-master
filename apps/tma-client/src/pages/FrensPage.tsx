@@ -32,7 +32,7 @@ export default function FrensPage() {
         loadFrensData();
     }, []);
 
-    const shareUrl = `t.me/GrupiahBot?startapp=${refCode}`;
+    const shareUrl = `t.me/GrupiahBot/app?startapp=${refCode}`;
 
     const handleWhatsAppShare = () => {
         const text = encodeURIComponent(`Bro, bantuin gue cairin dana di sini dong. Klik link ini 👇\n\nhttps://${shareUrl}`);
