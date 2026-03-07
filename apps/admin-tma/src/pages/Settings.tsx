@@ -168,8 +168,8 @@ export default function Settings() {
             {/* Spacer for sticky button */}
             <div className="h-16" />
 
-            {/* ─── Sticky Save Button ─── */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-50">
+            {/* ─── Sticky Save Button (above navbar) ─── */}
+            <div className="fixed bottom-16 left-0 right-0 p-3 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-40">
                 <div className="max-w-md mx-auto">
                     <button
                         onClick={handleSave}
