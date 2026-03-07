@@ -55,6 +55,9 @@ export default function Settings() {
     }
 
     const editableKeys = [
+        { key: 'PROVIDER_OGADS_ENABLED', label: 'OGAds', type: 'toggle', hint: 'Aktifkan/nonaktifkan OGAds offers' },
+        { key: 'PROVIDER_ADBLUEMEDIA_ENABLED', label: 'AdBlueMedia', type: 'toggle', hint: 'Aktifkan/nonaktifkan AdBlueMedia offers' },
+        { key: 'PROVIDER_CPAGRIP_ENABLED', label: 'CPAGrip', type: 'toggle', hint: 'Aktifkan/nonaktifkan CPAGrip offers' },
         { key: 'GLOBAL_OFFER_MULTIPLIER', label: 'Offer Multiplier', type: 'number', hint: '1 = Normal, 10 = x10 reward display' },
         { key: 'APP_REF_UPLINE', label: 'Bonus Pengundang (IDR)', type: 'number', hint: 'Bonus untuk yang mengajak setelah teman selesai 1 task' },
         { key: 'APP_REF_DOWNLINE', label: 'Bonus Teman Baru (IDR)', type: 'number', hint: 'Welcome bonus untuk user yang diundang' },

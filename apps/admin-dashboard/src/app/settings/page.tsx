@@ -110,6 +110,39 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
+                {/* Offer Providers */}
+                <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-6">
+                    <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                        <Globe size={16} />
+                        Offer Providers
+                    </h2>
+
+                    <div className="space-y-3">
+                        {[
+                            { key: 'PROVIDER_OGADS_ENABLED', label: 'OGAds', color: 'bg-yellow-500' },
+                            { key: 'PROVIDER_ADBLUEMEDIA_ENABLED', label: 'AdBlueMedia', color: 'bg-blue-500' },
+                            { key: 'PROVIDER_CPAGRIP_ENABLED', label: 'CPAGrip', color: 'bg-orange-500' },
+                        ].map(p => {
+                            const isOn = configs[p.key] !== 'false';
+                            return (
+                                <div key={p.key} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-3 h-3 rounded-full ${isOn ? p.color : 'bg-slate-600'}`} />
+                                        <p className="text-sm text-white font-medium">{p.label}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleChange(p.key, isOn ? 'false' : 'true')}
+                                        className={`w-12 h-6 rounded-full relative shadow-inner transition-colors ${isOn ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isOn ? 'right-1' : 'left-1'}`} />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        <p className="text-[10px] text-slate-500">Toggle providers on/off. Changes apply after Save.</p>
+                    </div>
+                </div>
+
                 {/* Mobile Client Settings */}
                 <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 space-y-6">
                     <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">

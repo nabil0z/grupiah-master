@@ -53,23 +53,30 @@ export class TasksService {
             const cached = externalTaskCache.get(cacheKey);
             let providerResults: PromiseSettledResult<any[]>[];
 
-            if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-                // Use cached external tasks
-                providerResults = [
-                    { status: 'fulfilled', value: cached.data[0] || [] },
-                    { status: 'fulfilled', value: cached.data[1] || [] },
-                    { status: 'fulfilled', value: cached.data[2] || [] }
-                ] as PromiseSettledResult<any[]>[];
-            } else {
-                // Fetch fresh from providers
-                const ogadsAdapter = this.taskProviderFactory.getAdapter('OGADS');
-                const adBlueMediaAdapter = this.taskProviderFactory.getAdapter('ADBLUEMEDIA');
-                const cpaGripAdapter = this.taskProviderFactory.getAdapter('CPAGRIP');
+            // Check which providers are enabled
+            const ogadsEnabled = (await this.configService.getConfigValue('PROVIDER_OGADS_ENABLED', 'true')) === 'true';
+            const adblueEnabled = (await this.configService.getConfigValue('PROVIDER_ADBLUEMEDIA_ENABLED', 'true')) === 'true';
+            const cpagripEnabled = (await this.configService.getConfigValue('PROVIDER_CPAGRIP_ENABLED', 'true')) === 'true';
 
+            if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+                // Use cached external tasks (respect enabled flags)
+                providerResults = [
+                    ogadsEnabled ? { status: 'fulfilled' as const, value: cached.data[0] || [] } : { status: 'rejected' as const, reason: 'disabled' },
+                    adblueEnabled ? { status: 'fulfilled' as const, value: cached.data[1] || [] } : { status: 'rejected' as const, reason: 'disabled' },
+                    cpagripEnabled ? { status: 'fulfilled' as const, value: cached.data[2] || [] } : { status: 'rejected' as const, reason: 'disabled' }
+                ];
+            } else {
+                // Fetch fresh from enabled providers only
                 providerResults = await Promise.allSettled([
-                    ogadsAdapter.fetchTasks(userId, userIp, userAgent),
-                    adBlueMediaAdapter.fetchTasks(userId, userIp, userAgent),
-                    cpaGripAdapter.fetchTasks(userId, userIp, userAgent)
+                    ogadsEnabled
+                        ? this.taskProviderFactory.getAdapter('OGADS').fetchTasks(userId, userIp, userAgent)
+                        : Promise.reject('disabled'),
+                    adblueEnabled
+                        ? this.taskProviderFactory.getAdapter('ADBLUEMEDIA').fetchTasks(userId, userIp, userAgent)
+                        : Promise.reject('disabled'),
+                    cpagripEnabled
+                        ? this.taskProviderFactory.getAdapter('CPAGRIP').fetchTasks(userId, userIp, userAgent)
+                        : Promise.reject('disabled'),
                 ]);
 
                 // Cache successful results
