@@ -137,6 +137,48 @@ export default function Analytics() {
                 })}
             </div>
 
+            {/* EPC Optimizer Stats */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <BarChart3 size={16} className="text-indigo-500" />
+                        <h2 className="font-bold text-gray-800">EPC Optimizer</h2>
+                    </div>
+                    <div className="flex gap-2">
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">
+                            {data.totalOffersTracked || 0} tracked
+                        </span>
+                        {(data.deadOfferCount || 0) > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 bg-red-50 text-red-500 rounded-full">
+                                {data.deadOfferCount} hidden
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <div className="divide-y divide-gray-50">
+                    {(data.topByConversion || []).slice(0, 5).map((offer: any, i: number) => {
+                        const cr = Number(offer.cr) || 0;
+                        return (
+                            <div key={i} className="px-4 py-2.5 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-gray-300 w-4">#{i + 1}</span>
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-800 truncate max-w-[160px]">{offer.externalId}</p>
+                                        <p className="text-[10px] text-gray-400">{offer.provider} · {offer.completions}/{offer.clicks} clicks</p>
+                                    </div>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cr > 50 ? 'bg-emerald-50 text-emerald-600' : cr > 20 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-500'}`}>
+                                    {cr}%
+                                </span>
+                            </div>
+                        );
+                    })}
+                    {(!data.topByConversion || data.topByConversion.length === 0) && (
+                        <p className="text-center py-4 text-gray-300 text-xs">Belum ada data (butuh 10+ clicks)</p>
+                    )}
+                </div>
+            </div>
+
             {/* Live Feed */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-4 border-b border-gray-100 flex items-center gap-2">

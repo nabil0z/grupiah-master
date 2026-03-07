@@ -328,6 +328,21 @@ export class AdminService {
             _sum: { clicks: true, completions: true }
         });
 
+        // EPC Optimizer data
+        const allScores = await this.prisma.offerScore.findMany();
+        const deadOfferCount = allScores.filter(s => s.clicks >= 50 && s.completions === 0).length;
+        const topByConversion = allScores
+            .filter(s => s.clicks >= 10)
+            .map(s => ({
+                provider: s.provider,
+                externalId: s.externalId,
+                clicks: s.clicks,
+                completions: s.completions,
+                cr: s.clicks > 0 ? +(s.completions / s.clicks * 100).toFixed(1) : 0
+            }))
+            .sort((a, b) => b.cr - a.cr)
+            .slice(0, 10);
+
         return {
             onlineUsers,
             totalUsers,
@@ -336,6 +351,9 @@ export class AdminService {
             pendingTasks,
             profit: { today: profitToday, yesterday: profitYesterday },
             providerStats,
+            deadOfferCount,
+            totalOffersTracked: allScores.length,
+            topByConversion,
         };
     }
 

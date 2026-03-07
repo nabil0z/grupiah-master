@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  Users, Wallet, Activity, ArrowUpRight, ArrowDownRight, AlertTriangle, Target, Loader2, DollarSign
+  Users, Wallet, Activity, ArrowUpRight, ArrowDownRight, AlertTriangle, Target, Loader2, DollarSign, EyeOff, Database
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -33,11 +33,16 @@ export default function Home() {
   const pendingWD = analytics ? `Rp ${Number(analytics.pendingPayouts || 0).toLocaleString('id-ID')}` : '—';
   const tasksToday = analytics ? Number(analytics.tasksCompletedToday || 0).toLocaleString('id-ID') : '—';
 
+  const trackedOffers = analytics ? Number(analytics.totalOffersTracked || 0) : 0;
+  const deadOffers = analytics ? Number(analytics.deadOfferCount || 0) : 0;
+
   const stats: { title: string; value: string; sub: string; icon: any; trend: 'up' | 'down' | 'neutral' }[] = [
     { title: 'Total Fictional Balance', value: totalBalance, sub: 'Sum of all user wallets', icon: Wallet, trend: 'up' },
     { title: 'Tasks Completed Today', value: tasksToday, sub: 'Approved tasks in last 24h', icon: Target, trend: 'up' },
     { title: 'Active Grinders', value: totalUsers, sub: 'Total registered users', icon: Users, trend: 'up' },
     { title: 'Pending Payouts', value: pendingWD, sub: 'Require manual review', icon: AlertTriangle, trend: 'neutral' },
+    { title: 'Offers Tracked', value: String(trackedOffers), sub: 'Total offers with click/completion data', icon: Database, trend: 'neutral' },
+    { title: 'Dead Offers Hidden', value: String(deadOffers), sub: '50+ clicks, 0 completions → auto-hidden', icon: EyeOff, trend: deadOffers > 0 ? 'down' : 'neutral' },
   ];
 
   return (
@@ -50,24 +55,24 @@ export default function Home() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-start mb-4">
+            <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex justify-between items-start mb-3">
                 <div className="p-2 bg-slate-50 rounded-lg">
-                  <Icon className="text-slate-600" size={20} />
+                  <Icon className="text-slate-600" size={18} />
                 </div>
-                {stat.trend === 'up' && <ArrowUpRight className="text-emerald-500" size={20} />}
-                {stat.trend === 'down' && <ArrowDownRight className="text-rose-500" size={20} />}
+                {stat.trend === 'up' && <ArrowUpRight className="text-emerald-500" size={16} />}
+                {stat.trend === 'down' && <ArrowDownRight className="text-rose-500" size={16} />}
               </div>
               <div>
-                <h3 className="text-sm font-medium text-slate-500">{stat.title}</h3>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {loading ? <Loader2 className="animate-spin inline" size={20} /> : stat.value}
+                <h3 className="text-xs font-medium text-slate-500">{stat.title}</h3>
+                <p className="text-xl font-bold text-slate-900 mt-1">
+                  {loading ? <Loader2 className="animate-spin inline" size={18} /> : stat.value}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">{stat.sub}</p>
+                <p className="text-[10px] text-slate-400 mt-1">{stat.sub}</p>
               </div>
             </div>
           )
@@ -121,9 +126,9 @@ export default function Home() {
             <div className="flex-1 space-y-3 overflow-y-auto max-h-[200px]">
               {loading ? (
                 <div className="flex items-center justify-center p-8"><Loader2 className="animate-spin text-slate-400" /></div>
-              ) : analytics?.topOffers?.length > 0 ? (
-                analytics.topOffers.slice(0, 5).map((offer: any, i: number) => {
-                  const rate = offer.clicks > 0 ? Math.round((offer.completions / offer.clicks) * 100) : 0;
+              ) : analytics?.topByConversion?.length > 0 ? (
+                analytics.topByConversion.map((offer: any, i: number) => {
+                  const rate = Number(offer.cr) || 0;
                   return (
                     <div key={i} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50">
                       <div>
