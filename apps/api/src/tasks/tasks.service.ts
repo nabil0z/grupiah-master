@@ -164,25 +164,70 @@ export class TasksService {
             const deadThresholdStr = await this.configService.getConfigValue('DEAD_OFFER_CLICK_THRESHOLD', '50');
             const deadThreshold = parseInt(deadThresholdStr) || 50;
 
-            // Filter out dead offers (many clicks, zero completions)
+            // ── Hide completed offers: fetch user's completed offers from OfferCompletion ──
+            const userCompletions = await this.prisma.offerCompletion.findMany({
+                where: { userId },
+                select: { provider: true, externalId: true }
+            });
+            const completedSet = new Set(userCompletions.map(c => `${c.provider}_${c.externalId}`));
+
+            // ── Cooldown: fetch user's recent clicks ──
+            const cooldownStr = await this.configService.getConfigValue('OFFER_COOLDOWN_MINUTES', '30');
+            const cooldownMinutes = parseInt(cooldownStr) || 30;
+            const cooldownCutoff = new Date(Date.now() - cooldownMinutes * 60 * 1000);
+
+            const recentClicks = await this.prisma.userOfferClick.findMany({
+                where: { userId, createdAt: { gte: cooldownCutoff } },
+                select: { provider: true, externalId: true, createdAt: true }
+            });
+            const cooldownMap = new Map<string, Date>();
+            for (const click of recentClicks) {
+                const key = `${click.provider}_${click.externalId}`;
+                const existing = cooldownMap.get(key);
+                if (!existing || click.createdAt > existing) {
+                    cooldownMap.set(key, click.createdAt);
+                }
+            }
+
+            // Filter out dead offers AND completed offers
             const allOffers = [...mappedInternalTasks, ...allExternalOffers];
             const activeOffers = allOffers.filter(offer => {
                 const key = `${offer.provider}_${offer.externalId || offer.id}`;
+
+                // Hide completed offers
+                if (completedSet.has(key)) return false;
+
+                // Hide dead offers
                 const score = scoreMap.get(key);
                 if (score && score.clicks >= deadThreshold && score.completions === 0) {
-                    return false; // Hide dead offer
+                    return false;
                 }
                 return true;
             });
 
             const hiddenCount = allOffers.length - activeOffers.length;
             if (hiddenCount > 0) {
-                console.log(`[EPC Optimizer] Hidden ${hiddenCount} dead offers (${deadThreshold}+ clicks, 0 completions)`);
+                console.log(`[EPC Optimizer] Hidden ${hiddenCount} dead/completed offers`);
             }
+
+            // Inject cooldown status for offers user recently clicked
+            const offersWithCooldown = activeOffers.map(offer => {
+                const key = `${offer.provider}_${offer.externalId || offer.id}`;
+                const lastClick = cooldownMap.get(key);
+                if (lastClick && offer.type === 'AUTO') {
+                    const cooldownUntil = new Date(lastClick.getTime() + cooldownMinutes * 60 * 1000);
+                    return {
+                        ...offer,
+                        userSubmissionStatus: 'COOLDOWN',
+                        _cooldownUntil: cooldownUntil.toISOString()
+                    };
+                }
+                return offer;
+            });
 
             // Sort by EPC Score: reward × conversionRate
             // New offers (< 10 clicks) get a boost to give them a fair chance
-            return activeOffers.sort((a, b) => {
+            return offersWithCooldown.sort((a, b) => {
                 const rewardA = typeof a.reward === 'object' ? Number(a.reward) : a.reward;
                 const rewardB = typeof b.reward === 'object' ? Number(b.reward) : b.reward;
 
@@ -313,6 +358,13 @@ export class TasksService {
                     completions: 0
                 }
             });
+
+            // Record click in UserOfferClick for cooldown tracking
+            if (userId) {
+                await this.prisma.userOfferClick.create({
+                    data: { userId, provider, externalId }
+                });
+            }
 
             // Marketing Mode: Auto-credit after configurable delay
             if (userId && reward && reward > 0) {

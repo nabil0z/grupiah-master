@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api/adminClient';
-import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight, Zap, Users, Megaphone, Gift, Wallet, Plus, Minus } from 'lucide-react';
+import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight, Zap, Users, Megaphone, Gift, Wallet, Plus, Minus, ChevronDown, ChevronRight, Timer } from 'lucide-react';
 
 export default function Settings() {
     const [configs, setConfigs] = useState<Record<string, string>>({});
@@ -79,19 +79,9 @@ export default function Settings() {
     return (
         <div className="p-4 pb-24 max-w-md mx-auto space-y-3">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Settings2 size={20} className="text-[var(--color-admin-accent)]" />
-                    <h1 className="text-xl font-black text-gray-900">Setting</h1>
-                </div>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[var(--color-admin-accent)] text-white text-xs font-bold rounded-xl disabled:opacity-50 shadow-sm active:scale-95 transition-transform"
-                >
-                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    {saving ? 'Saving...' : 'Simpan'}
-                </button>
+            <div className="flex items-center gap-2">
+                <Settings2 size={20} className="text-[var(--color-admin-accent)]" />
+                <h1 className="text-xl font-black text-gray-900">Setting</h1>
             </div>
 
             {error && (
@@ -121,6 +111,14 @@ export default function Settings() {
                 <InputRow label="Auto-hide Threshold" hint="Clicks tanpa convert → hide offer" value={configs.DEAD_OFFER_CLICK_THRESHOLD || '50'} onChange={v => handleChange('DEAD_OFFER_CLICK_THRESHOLD', v)} type="number" />
             </Section>
 
+            {/* ─── Offer Cooldown ─── */}
+            <Section icon={Timer} iconColor="text-cyan-500" title="Offer Cooldown">
+                <InputRow label="Cooldown (Menit)" hint="Jeda antar-klik offer yang sama" value={configs.OFFER_COOLDOWN_MINUTES || '30'} onChange={v => handleChange('OFFER_COOLDOWN_MINUTES', v)} type="number" />
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                    ⏳ Setelah user klik offer, tombol akan <b>disabled</b> selama durasi ini. Mencegah spam klik ke publisher.
+                </p>
+            </Section>
+
             {/* ─── Referral ─── */}
             <Section icon={Users} iconColor="text-blue-500" title="Referral">
                 <InputRow label="Bonus Pengundang" hint="IDR, setelah teman selesai 1 task" value={configs.APP_REF_UPLINE || ''} onChange={v => handleChange('APP_REF_UPLINE', v)} type="number" />
@@ -132,8 +130,8 @@ export default function Settings() {
                 <InputRow label="Auto-credit Delay" hint="ms. 25000 = 25 detik" value={configs.MARKETING_OFFER_DELAY_MS || ''} onChange={v => handleChange('MARKETING_OFFER_DELAY_MS', v)} type="number" />
             </Section>
 
-            {/* ─── Daily Check-in ─── */}
-            <Section icon={Gift} iconColor="text-purple-500" title="Daily Check-in Rewards">
+            {/* ─── Daily Check-in (Collapsible) ─── */}
+            <CollapsibleSection icon={Gift} iconColor="text-purple-500" title="Daily Check-in Rewards" defaultOpen={false}>
                 <div className="space-y-2">
                     {dailyRewards.map((reward, i) => (
                         <div key={i} className="flex items-center gap-2">
@@ -160,15 +158,29 @@ export default function Settings() {
                         )}
                     </div>
                 </div>
-            </Section>
+            </CollapsibleSection>
 
             {/* ─── Broadcast ─── */}
             <Section icon={Megaphone} iconColor="text-indigo-500" title="Broadcast">
                 <ToggleRow label="Auto Broadcast" on={isOn('AUTO_POST_ENABLED')} onToggle={() => toggleBool('AUTO_POST_ENABLED')} sub="Kirim otomatis ke channel" />
             </Section>
 
-            {/* Floating Save */}
-            <div className="h-4" />
+            {/* Spacer for sticky button */}
+            <div className="h-16" />
+
+            {/* ─── Sticky Save Button ─── */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-50">
+                <div className="max-w-md mx-auto">
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--color-admin-accent)] text-white text-sm font-bold rounded-xl disabled:opacity-50 shadow-lg active:scale-[0.98] transition-all"
+                    >
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {saving ? 'Menyimpan...' : '💾 Simpan Semua Pengaturan'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
@@ -185,6 +197,29 @@ function Section({ icon: Icon, iconColor, title, children }: { icon: any; iconCo
             <div className="px-4 py-3 space-y-3">
                 {children}
             </div>
+        </div>
+    );
+}
+
+function CollapsibleSection({ icon: Icon, iconColor, title, children, defaultOpen = true }: { icon: any; iconColor: string; title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full px-4 py-2.5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50 active:bg-gray-100 transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    <Icon size={14} className={iconColor} />
+                    <h2 className="font-bold text-gray-700 text-xs uppercase tracking-wider">{title}</h2>
+                </div>
+                {isOpen ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronRight size={14} className="text-gray-400" />}
+            </button>
+            {isOpen && (
+                <div className="px-4 py-3 space-y-3">
+                    {children}
+                </div>
+            )}
         </div>
     );
 }

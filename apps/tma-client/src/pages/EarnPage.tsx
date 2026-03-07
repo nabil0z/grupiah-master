@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Target, Boxes, X, Loader2, RefreshCw, Trophy, Flame, Zap, Star, ChevronRight, ClipboardList } from 'lucide-react';
+import { Play, Target, Boxes, X, Loader2, RefreshCw, Trophy, Flame, Zap, Star, ChevronRight, ClipboardList, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { tasksApi } from '../api/client';
 import { useNavigate } from 'react-router-dom';
@@ -107,6 +107,24 @@ const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay:
 /* ──────── Task Card (unified) ──────── */
 const TaskCard = ({ task, onPlay }: { task: any; onPlay: (cb?: () => void) => void }) => {
     const [state, setState] = useState<'idle' | 'clicked' | 'verifying'>('idle');
+    const [cooldownLeft, setCooldownLeft] = useState('');
+
+    const isCooldown = task.userSubmissionStatus === 'COOLDOWN';
+
+    // Countdown timer for cooldown offers
+    useEffect(() => {
+        if (!isCooldown || !task._cooldownUntil) return;
+        const update = () => {
+            const diff = new Date(task._cooldownUntil).getTime() - Date.now();
+            if (diff <= 0) { setCooldownLeft(''); return; }
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            setCooldownLeft(`${m}:${s.toString().padStart(2, '0')}`);
+        };
+        update();
+        const interval = setInterval(update, 1000);
+        return () => clearInterval(interval);
+    }, [isCooldown, task._cooldownUntil]);
 
     useEffect(() => {
         if (state === 'clicked') {
@@ -122,15 +140,18 @@ const TaskCard = ({ task, onPlay }: { task: any; onPlay: (cb?: () => void) => vo
     };
 
     const isAuto = task.provider !== 'CUSTOM';
-    const stripeColor = isAuto ? 'from-[var(--color-flash-orange)] to-[var(--color-flash-red)]' : 'from-amber-400 to-amber-600';
+    const isDisabled = task.userSubmissionStatus === 'APPROVED' || isCooldown;
+    const stripeColor = isCooldown
+        ? 'from-cyan-400 to-cyan-600'
+        : isAuto ? 'from-[var(--color-flash-orange)] to-[var(--color-flash-red)]' : 'from-amber-400 to-amber-600';
 
     return (
         <motion.div
             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3.5 relative overflow-hidden group"
+            className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3.5 relative overflow-hidden group ${isCooldown ? 'opacity-75' : ''}`}
         >
             <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${stripeColor}`}></div>
-            <div className={`w-11 h-11 ${isAuto ? 'bg-orange-50 text-orange-500' : 'bg-amber-50 text-amber-500'} rounded-xl flex items-center justify-center shrink-0 overflow-hidden`}>
+            <div className={`w-11 h-11 ${isCooldown ? 'bg-cyan-50 text-cyan-500' : isAuto ? 'bg-orange-50 text-orange-500' : 'bg-amber-50 text-amber-500'} rounded-xl flex items-center justify-center shrink-0 overflow-hidden`}>
                 {task.logoUrl ? (
                     <img src={task.logoUrl} alt={task.title} className="w-full h-full object-cover" />
                 ) : isAuto ? (
@@ -149,7 +170,12 @@ const TaskCard = ({ task, onPlay }: { task: any; onPlay: (cb?: () => void) => vo
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isAuto ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
                         {isAuto ? '🤖 Auto' : '📝 Manual'}
                     </span>
-                    {state === 'verifying' && (
+                    {isCooldown && (
+                        <span className="text-[10px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap">
+                            ⏳ {cooldownLeft || 'Cooldown'}
+                        </span>
+                    )}
+                    {state === 'verifying' && !isCooldown && (
                         <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap">
                             <Loader2 size={10} className="animate-spin" /> Verifikasi
                         </span>
@@ -170,15 +196,17 @@ const TaskCard = ({ task, onPlay }: { task: any; onPlay: (cb?: () => void) => vo
                 onClick={handleClick}
                 className={`shrink-0 ${task.userSubmissionStatus === 'APPROVED'
                     ? 'bg-gray-100 text-gray-400'
-                    : task.userSubmissionStatus === 'PENDING'
-                        ? 'bg-amber-100 text-amber-500'
-                        : isAuto
-                            ? 'bg-[var(--color-flash-orange)] text-white shadow-md'
-                            : 'bg-amber-500 text-white shadow-md'
+                    : isCooldown
+                        ? 'bg-cyan-100 text-cyan-400'
+                        : task.userSubmissionStatus === 'PENDING'
+                            ? 'bg-amber-100 text-amber-500'
+                            : isAuto
+                                ? 'bg-[var(--color-flash-orange)] text-white shadow-md'
+                                : 'bg-amber-500 text-white shadow-md'
                     } p-2.5 rounded-full transition-transform group-hover:scale-105`}
-                disabled={task.userSubmissionStatus === 'APPROVED'}
+                disabled={isDisabled}
             >
-                {state === 'idle' ? <Play size={14} fill="currentColor" /> : <RefreshCw size={14} />}
+                {isCooldown ? <Clock size={14} /> : state === 'idle' ? <Play size={14} fill="currentColor" /> : <RefreshCw size={14} />}
             </button>
         </motion.div>
     );
