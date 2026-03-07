@@ -118,6 +118,7 @@ export default function Settings() {
             <Section icon={Wallet} iconColor="text-emerald-500" title="Ekonomi">
                 <InputRow label="Offer Multiplier" hint="1 = Normal, 10 = x10" value={configs.GLOBAL_OFFER_MULTIPLIER || ''} onChange={v => handleChange('GLOBAL_OFFER_MULTIPLIER', v)} type="number" />
                 <InputRow label="Min. Withdraw" hint="Minimal saldo agar bisa WD (IDR)" value={configs.APP_MIN_WITHDRAW || ''} onChange={v => handleChange('APP_MIN_WITHDRAW', v)} type="number" />
+                <InputRow label="Auto-hide Threshold" hint="Clicks tanpa convert → hide offer" value={configs.DEAD_OFFER_CLICK_THRESHOLD || '50'} onChange={v => handleChange('DEAD_OFFER_CLICK_THRESHOLD', v)} type="number" />
             </Section>
 
             {/* ─── Referral ─── */}

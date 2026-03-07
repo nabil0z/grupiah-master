@@ -352,6 +352,21 @@ export class AdminService {
             take: 10
         });
 
+        // EPC Optimizer analytics
+        const allScores = await this.prisma.offerScore.findMany();
+        const deadOfferCount = allScores.filter(s => s.clicks >= 50 && s.completions === 0).length;
+        const topByConversion = allScores
+            .filter(s => s.clicks >= 10)
+            .map(s => ({
+                provider: s.provider,
+                externalId: s.externalId,
+                clicks: s.clicks,
+                completions: s.completions,
+                cr: s.clicks > 0 ? +(s.completions / s.clicks * 100).toFixed(1) : 0
+            }))
+            .sort((a, b) => b.cr - a.cr)
+            .slice(0, 10);
+
         // Calculate a rough completion rate per provider
         const providerStats = await this.prisma.offerScore.groupBy({
             by: ['provider'],
@@ -385,6 +400,9 @@ export class AdminService {
         return {
             livePostbacks,
             topOffers,
+            topByConversion,
+            deadOfferCount,
+            totalOffersTracked: allScores.length,
             providerStats,
             totalFictionalBalance,
             totalUsers,

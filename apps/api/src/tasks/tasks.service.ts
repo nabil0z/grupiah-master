@@ -160,22 +160,52 @@ export class TasksService {
                 scoreMap.set(`${s.provider}_${s.externalId}`, s);
             }
 
-            // Merge Internal + External Tasks and sort by Expected Value descending
-            return [...mappedInternalTasks, ...allExternalOffers].sort((a, b) => {
+            // Auto-hide threshold: offers with this many clicks but 0 completions are hidden
+            const deadThresholdStr = await this.configService.getConfigValue('DEAD_OFFER_CLICK_THRESHOLD', '50');
+            const deadThreshold = parseInt(deadThresholdStr) || 50;
+
+            // Filter out dead offers (many clicks, zero completions)
+            const allOffers = [...mappedInternalTasks, ...allExternalOffers];
+            const activeOffers = allOffers.filter(offer => {
+                const key = `${offer.provider}_${offer.externalId || offer.id}`;
+                const score = scoreMap.get(key);
+                if (score && score.clicks >= deadThreshold && score.completions === 0) {
+                    return false; // Hide dead offer
+                }
+                return true;
+            });
+
+            const hiddenCount = allOffers.length - activeOffers.length;
+            if (hiddenCount > 0) {
+                console.log(`[EPC Optimizer] Hidden ${hiddenCount} dead offers (${deadThreshold}+ clicks, 0 completions)`);
+            }
+
+            // Sort by EPC Score: reward × conversionRate
+            // New offers (< 10 clicks) get a boost to give them a fair chance
+            return activeOffers.sort((a, b) => {
                 const rewardA = typeof a.reward === 'object' ? Number(a.reward) : a.reward;
                 const rewardB = typeof b.reward === 'object' ? Number(b.reward) : b.reward;
 
                 const scoreA = scoreMap.get(`${a.provider}_${a.externalId || a.id}`);
                 const scoreB = scoreMap.get(`${b.provider}_${b.externalId || b.id}`);
 
-                // Default conversion rate for new offers (e.g. 5%) to give them a chance
-                const conversionA = scoreA && scoreA.clicks >= 5 ? (scoreA.completions / scoreA.clicks) : 0.05;
-                const conversionB = scoreB && scoreB.clicks >= 5 ? (scoreB.completions / scoreB.clicks) : 0.05;
+                // New offers (< 10 clicks) get default 8% CR boost
+                // Established offers use real CR data
+                const crA = scoreA && scoreA.clicks >= 10
+                    ? (scoreA.completions / scoreA.clicks)
+                    : scoreA && scoreA.clicks >= 1
+                        ? Math.max(scoreA.completions / scoreA.clicks, 0.05)
+                        : 0.08; // New offer boost
+                const crB = scoreB && scoreB.clicks >= 10
+                    ? (scoreB.completions / scoreB.clicks)
+                    : scoreB && scoreB.clicks >= 1
+                        ? Math.max(scoreB.completions / scoreB.clicks, 0.05)
+                        : 0.08;
 
-                const expectedValueA = rewardA * conversionA;
-                const expectedValueB = rewardB * conversionB;
+                const epcA = rewardA * crA;
+                const epcB = rewardB * crB;
 
-                return expectedValueB - expectedValueA;
+                return epcB - epcA;
             });
         } catch (error: any) {
 
