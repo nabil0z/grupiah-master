@@ -97,11 +97,11 @@ export class BroadcastCronService {
         try {
             this.logger.log(`Executing Telegram MediaGroup request with ${mediaPaths.length} photos...`);
 
-            // Build multipart FormData with actual file buffers (Node 18+ native FormData + Blob)
+            // Step 1: Send album photos WITHOUT caption (clean gallery)
             const formData = new FormData();
             formData.append('chat_id', channelId);
 
-            const mediaArray = mediaPaths.map((filePath, index) => {
+            const mediaArray = mediaPaths.map((filePath) => {
                 const fileName = path.basename(filePath);
                 const fileBuffer = fs.readFileSync(filePath);
                 const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
@@ -109,8 +109,6 @@ export class BroadcastCronService {
                 return {
                     type: 'photo',
                     media: `attach://${fileName}`,
-                    parse_mode: 'HTML',
-                    ...(index === 0 ? { caption } : {})
                 };
             });
 
@@ -130,13 +128,13 @@ export class BroadcastCronService {
                 if (fs.existsSync(p)) fs.unlinkSync(p);
             }
 
-            // Follow up with CTA button message
+            // Step 2: Send AI caption + inline button as separate follow-up message
             await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: channelId,
-                    text: '👇 <b>TUNGGU APA LAGI? MAIN SEKARANG!</b> 👇',
+                    text: caption,
                     parse_mode: 'HTML',
                     reply_markup: {
                         inline_keyboard: [[{ text: '📱 Buka Mini App GRupiah', url: 'https://t.me/GRupiahBot/app' }]]

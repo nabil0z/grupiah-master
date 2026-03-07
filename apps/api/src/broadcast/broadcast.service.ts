@@ -39,12 +39,12 @@ Style/Tone: ${tone}
 Syarat Wajib:
 1. Gunakan Bahasa Indonesia yang asik, gaul, agak FOMO (Fear of Missing Out), tapi tetap profesional dan mudah dibaca.
 2. Gunakan emoji secukupnya untuk menarik perhatian.
-3. Gunakan HTML formatting standard Telegram (<b> untuk bold, <i> untuk italic, <a> untuk link). JANGAN GUNAAN MARKDOWN (** atau __).
-4. Di bagian akhir, SELALU berikan Call To Action (CTA) dengan teks link: <a href="https://t.me/GRupiahBot/app">MAINKAN GRUPIAH SEKARANG</a>.
-5. Pesan tidak boleh terlalu panjang (maksimal 3 paragraf pendek).
+3. Gunakan HTML formatting standard Telegram (<b> untuk bold, <i> untuk italic). JANGAN GUNAKAN MARKDOWN (** atau __).
+4. JANGAN sertakan link atau Call To Action (CTA) apapun. Link sudah ditangani oleh tombol inline secara terpisah.
+5. Pesan HARUS singkat, padat, maksimal 2 paragraf pendek saja.
 6. Jangan sertakan tag pembuka atau penutup tambahan, langsung berikan output isi text nya saja.
 
-Tuliskan draft broadcast tersebut sekarang:`
+Tuliskan draft broadcast tersebut sekarang:`;
 
             const response = await this.ai.models.generateContent({
                 model: 'gemini-2.5-flash',
