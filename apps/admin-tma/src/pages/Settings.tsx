@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api/adminClient';
-import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight, Zap, Users, Megaphone, Gift, Wallet } from 'lucide-react';
+
+type SettingItem = {
+    key: string;
+    label: string;
+    type: 'number' | 'text' | 'toggle';
+    hint?: string;
+};
+
+type SettingSection = {
+    title: string;
+    icon: any;
+    color: string;
+    items: SettingItem[];
+};
 
 export default function Settings() {
     const [configs, setConfigs] = useState<Record<string, string>>({});
@@ -54,18 +68,87 @@ export default function Settings() {
         );
     }
 
-    const editableKeys = [
-        { key: 'PROVIDER_OGADS_ENABLED', label: 'OGAds', type: 'toggle', hint: 'Aktifkan/nonaktifkan OGAds offers' },
-        { key: 'PROVIDER_ADBLUEMEDIA_ENABLED', label: 'AdBlueMedia', type: 'toggle', hint: 'Aktifkan/nonaktifkan AdBlueMedia offers' },
-        { key: 'PROVIDER_CPAGRIP_ENABLED', label: 'CPAGrip', type: 'toggle', hint: 'Aktifkan/nonaktifkan CPAGrip offers' },
-        { key: 'GLOBAL_OFFER_MULTIPLIER', label: 'Offer Multiplier', type: 'number', hint: '1 = Normal, 10 = x10 reward display' },
-        { key: 'APP_REF_UPLINE', label: 'Bonus Pengundang (IDR)', type: 'number', hint: 'Bonus untuk yang mengajak setelah teman selesai 1 task' },
-        { key: 'APP_REF_DOWNLINE', label: 'Bonus Teman Baru (IDR)', type: 'number', hint: 'Welcome bonus untuk user yang diundang' },
-        { key: 'APP_MIN_WITHDRAW', label: 'Min. Withdraw (IDR)', type: 'number', hint: 'Minimal saldo untuk penarikan' },
-        { key: 'MARKETING_OFFER_DELAY_MS', label: 'Marketing Delay (ms)', type: 'number', hint: 'Delay auto-credit marketing mode. 25000 = 25 detik' },
-        { key: 'DAILY_LOGIN_REWARDS', label: 'Daily Check-in Rewards', type: 'text', hint: 'JSON array rewards per hari. Contoh: [100,200,300,400,500,750,1500]' },
-        { key: 'AUTO_POST_ENABLED', label: 'Auto Broadcast', type: 'toggle', hint: 'Broadcast otomatis ke channel' },
+    const sections: SettingSection[] = [
+        {
+            title: 'Offer Providers',
+            icon: Zap,
+            color: 'text-yellow-500',
+            items: [
+                { key: 'PROVIDER_OGADS_ENABLED', label: 'OGAds', type: 'toggle', hint: 'CPA offers dari OGAds network' },
+                { key: 'PROVIDER_ADBLUEMEDIA_ENABLED', label: 'AdBlueMedia', type: 'toggle', hint: 'CPA offers dari AdBlueMedia' },
+                { key: 'PROVIDER_CPAGRIP_ENABLED', label: 'CPAGrip', type: 'toggle', hint: 'CPA offers dari CPAGrip network' },
+            ]
+        },
+        {
+            title: 'Ekonomi',
+            icon: Wallet,
+            color: 'text-emerald-500',
+            items: [
+                { key: 'GLOBAL_OFFER_MULTIPLIER', label: 'Offer Multiplier', type: 'number', hint: '1 = Normal, 10 = x10 reward display' },
+                { key: 'APP_MIN_WITHDRAW', label: 'Min. Withdraw (IDR)', type: 'number', hint: 'Minimal saldo untuk penarikan' },
+            ]
+        },
+        {
+            title: 'Referral',
+            icon: Users,
+            color: 'text-blue-500',
+            items: [
+                { key: 'APP_REF_UPLINE', label: 'Bonus Pengundang (IDR)', type: 'number', hint: 'Bonus setelah teman selesai 1 task' },
+                { key: 'APP_REF_DOWNLINE', label: 'Bonus Teman Baru (IDR)', type: 'number', hint: 'Welcome bonus via kode referral' },
+            ]
+        },
+        {
+            title: 'Marketing Mode',
+            icon: Megaphone,
+            color: 'text-orange-500',
+            items: [
+                { key: 'MARKETING_OFFER_DELAY_MS', label: 'Auto-credit Delay (ms)', type: 'number', hint: '25000 = 25 detik sebelum reward otomatis masuk' },
+            ]
+        },
+        {
+            title: 'Rewards & Broadcast',
+            icon: Gift,
+            color: 'text-purple-500',
+            items: [
+                { key: 'DAILY_LOGIN_REWARDS', label: 'Daily Check-in Rewards', type: 'text', hint: 'JSON array. Contoh: [100,200,300,400,500,750,1500]' },
+                { key: 'AUTO_POST_ENABLED', label: 'Auto Broadcast', type: 'toggle', hint: 'Broadcast otomatis ke channel' },
+            ]
+        },
     ];
+
+    const renderItem = (item: SettingItem) => {
+        if (item.type === 'toggle') {
+            const isOn = configs[item.key] === 'true';
+            return (
+                <div className="flex items-center justify-between py-2" key={item.key}>
+                    <div>
+                        <p className="text-sm font-medium text-gray-700">{item.label}</p>
+                        {item.hint && <p className="text-[10px] text-gray-400 mt-0.5">{item.hint}</p>}
+                    </div>
+                    <button onClick={() => toggleBool(item.key)}>
+                        {isOn ? (
+                            <ToggleRight size={32} className="text-emerald-500" />
+                        ) : (
+                            <ToggleLeft size={32} className="text-gray-300" />
+                        )}
+                    </button>
+                </div>
+            );
+        }
+
+        return (
+            <div className="space-y-1 py-2" key={item.key}>
+                <label className="block text-sm font-medium text-gray-700">{item.label}</label>
+                <input
+                    type={item.type}
+                    value={configs[item.key] || ''}
+                    onChange={(e) => handleChange(item.key, e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)] focus:bg-white transition-colors"
+                />
+                {item.hint && <p className="text-[10px] text-gray-400">{item.hint}</p>}
+            </div>
+        );
+    };
 
     return (
         <div className="p-4 pb-24 max-w-md mx-auto space-y-4">
@@ -87,55 +170,30 @@ export default function Settings() {
                 </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-100">
-                    <h2 className="font-bold text-gray-800">Economy Parameters</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">Atur variabel ekonomi platform</p>
-                </div>
-
-                <div className="p-4 space-y-5">
-                    {editableKeys.map(item => (
-                        <div key={item.key}>
-                            {item.type === 'toggle' ? (
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-700">{item.label}</label>
-                                        {item.hint && <p className="text-[10px] text-gray-400 mt-0.5">{item.hint}</p>}
-                                    </div>
-                                    <button onClick={() => toggleBool(item.key)}>
-                                        {configs[item.key] === 'true' ? (
-                                            <ToggleRight size={32} className="text-emerald-500" />
-                                        ) : (
-                                            <ToggleLeft size={32} className="text-gray-300" />
-                                        )}
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">{item.label}</label>
-                                    <input
-                                        type={item.type}
-                                        value={configs[item.key] || ''}
-                                        onChange={(e) => handleChange(item.key, e.target.value)}
-                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)] focus:bg-white transition-colors"
-                                    />
-                                    {item.hint && <p className="text-[10px] text-gray-400">{item.hint}</p>}
-                                </div>
-                            )}
+            {sections.map((section) => {
+                const Icon = section.icon;
+                return (
+                    <div key={section.title} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                            <Icon size={16} className={section.color} />
+                            <h2 className="font-bold text-gray-800 text-sm">{section.title}</h2>
                         </div>
-                    ))}
-                </div>
+                        <div className="px-4 py-2 divide-y divide-gray-50">
+                            {section.items.map(renderItem)}
+                        </div>
+                    </div>
+                );
+            })}
 
-                <div className="p-4 bg-gray-50 border-t border-gray-100">
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="w-full bg-[var(--color-admin-accent)] hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm"
-                    >
-                        {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                        {saving ? 'Menyimpan...' : 'Simpan Setting'}
-                    </button>
-                </div>
+            <div className="pt-2">
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="w-full bg-[var(--color-admin-accent)] hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm"
+                >
+                    {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                    {saving ? 'Menyimpan...' : 'Simpan Setting'}
+                </button>
             </div>
         </div>
     );
