@@ -94,93 +94,63 @@ export class TasksService {
 
             let allExternalOffers: any[] = [];
 
-            if (results[0].status === 'fulfilled') {
-                let ogAdsValue = results[0].value;
-                if (ogAdsValue.length === 0) {
-                    ogAdsValue = [
-                        { externalId: 'og_mock_1', title: 'Rise of Kingdoms (OGAds)', description: 'Reach level 5.', reward: 3.12 * exchangeRate * globalMultiplier, providerUrl: '#', logoUrl: '' },
-                        { externalId: 'og_mock_2', title: 'Bank Jago KYC', description: 'Complete KYC.', reward: 4.68 * exchangeRate * globalMultiplier, providerUrl: '#', logoUrl: '' }
-                    ];
-                    allExternalOffers = allExternalOffers.concat(ogAdsValue);
-                } else {
-                    allExternalOffers = allExternalOffers.concat(
-                        ogAdsValue.map(offer => ({
-                            id: offer.externalId || `og_${Math.random()}`,
-                            provider: 'OGADS',
-                            externalId: offer.externalId || `og_${Math.random()}`,
-                            title: offer.title,
-                            description: offer.description,
-                            reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
-                            type: 'AUTO',
-                            isActive: true,
-                            providerUrl: offer.providerUrl,
-                            logoUrl: offer.logoUrl
-                        }))
-                    );
-                }
-            } else {
+            // OGAds
+            if (results[0].status === 'fulfilled' && results[0].value.length > 0) {
+                allExternalOffers = allExternalOffers.concat(
+                    results[0].value.map(offer => ({
+                        id: offer.externalId || `og_${Math.random()}`,
+                        provider: 'OGADS',
+                        externalId: offer.externalId || `og_${Math.random()}`,
+                        title: offer.title,
+                        description: offer.description,
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        type: 'AUTO',
+                        isActive: true,
+                        providerUrl: offer.providerUrl,
+                        logoUrl: offer.logoUrl
+                    }))
+                );
+            } else if (results[0].status === 'rejected' && results[0].reason !== 'disabled') {
                 console.error('[TasksService] OGAds Fetch Failed', results[0].reason);
-                // INJECT DUMMIES ON FAIL
-                allExternalOffers = allExternalOffers.concat([
-                    { id: `og_mock_1`, provider: 'OGADS', externalId: 'og_mock_1', title: 'Rise of Kingdoms (OGAds)', description: 'Reach level 5.', reward: Math.floor(3.12 * exchangeRate * globalMultiplier), type: 'AUTO', isActive: true, providerUrl: '#', logoUrl: '' },
-                    { id: `og_mock_2`, provider: 'OGADS', externalId: 'og_mock_2', title: 'Bank Jago KYC', description: 'Complete KYC.', reward: Math.floor(4.68 * exchangeRate * globalMultiplier), type: 'AUTO', isActive: true, providerUrl: '#', logoUrl: '' }
-                ]);
             }
 
-            if (results[1].status === 'fulfilled') {
-                let adBlueValue = results[1].value;
-                if (adBlueValue.length === 0) {
-                    adBlueValue = [
-                        { externalId: 'ab_mock_1', title: 'Survey Pertanian AdBlue', description: 'Isi Survey.', reward: Math.floor(1.56 * exchangeRate * globalMultiplier), providerUrl: '#', logoUrl: '' },
-                        { externalId: 'ab_mock_2', title: 'Download Lords Mobile', description: 'Main 5 Menit.', reward: Math.floor(2.81 * exchangeRate * globalMultiplier), providerUrl: '#', logoUrl: '' }
-                    ];
-                    allExternalOffers = allExternalOffers.concat(adBlueValue);
-                } else {
-                    allExternalOffers = allExternalOffers.concat(
-                        adBlueValue.map(offer => ({
-                            id: offer.externalId || `ab_${Math.random()}`,
-                            provider: 'ADBLUEMEDIA',
-                            externalId: offer.externalId || `ab_${Math.random()}`,
-                            title: offer.title,
-                            description: offer.description,
-                            reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
-                            type: 'AUTO',
-                            isActive: true,
-                            providerUrl: offer.providerUrl,
-                            logoUrl: offer.logoUrl
-                        }))
-                    );
-                }
-
-            } else {
+            // AdBlueMedia
+            if (results[1].status === 'fulfilled' && results[1].value.length > 0) {
+                allExternalOffers = allExternalOffers.concat(
+                    results[1].value.map(offer => ({
+                        id: offer.externalId || `ab_${Math.random()}`,
+                        provider: 'ADBLUEMEDIA',
+                        externalId: offer.externalId || `ab_${Math.random()}`,
+                        title: offer.title,
+                        description: offer.description,
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        type: 'AUTO',
+                        isActive: true,
+                        providerUrl: offer.providerUrl,
+                        logoUrl: offer.logoUrl
+                    }))
+                );
+            } else if (results[1].status === 'rejected' && results[1].reason !== 'disabled') {
                 console.error('[TasksService] AdBlueMedia Fetch Failed', results[1].reason);
-                // INJECT DUMMIES ON FAIL
-                allExternalOffers = allExternalOffers.concat([
-                    { id: `ab_mock_1`, provider: 'ADBLUEMEDIA', externalId: 'ab_mock_1', title: 'Survey Pertanian AdBlue', description: 'Isi Survey.', reward: Math.floor(1.56 * exchangeRate * globalMultiplier), type: 'AUTO', isActive: true, providerUrl: '#', logoUrl: '' },
-                    { id: `ab_mock_2`, provider: 'ADBLUEMEDIA', externalId: 'ab_mock_2', title: 'Download Lords Mobile', description: 'Main 5 Menit.', reward: Math.floor(2.81 * exchangeRate * globalMultiplier), type: 'AUTO', isActive: true, providerUrl: '#', logoUrl: '' }
-                ]);
             }
 
-            // CPAGrip (3rd provider)
-            if (results[2] && results[2].status === 'fulfilled') {
-                const cpaGripValue = results[2].value;
-                if (cpaGripValue.length > 0) {
-                    allExternalOffers = allExternalOffers.concat(
-                        cpaGripValue.map(offer => ({
-                            id: offer.externalId || `cg_${Math.random()}`,
-                            provider: 'CPAGRIP',
-                            externalId: offer.externalId || `cg_${Math.random()}`,
-                            title: offer.title,
-                            description: offer.description,
-                            reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
-                            type: 'AUTO',
-                            isActive: true,
-                            providerUrl: offer.providerUrl,
-                            logoUrl: offer.logoUrl
-                        }))
-                    );
-                }
-            } else if (results[2]) {
+            // CPAGrip
+            if (results[2] && results[2].status === 'fulfilled' && results[2].value.length > 0) {
+                allExternalOffers = allExternalOffers.concat(
+                    results[2].value.map(offer => ({
+                        id: offer.externalId || `cg_${Math.random()}`,
+                        provider: 'CPAGRIP',
+                        externalId: offer.externalId || `cg_${Math.random()}`,
+                        title: offer.title,
+                        description: offer.description,
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        type: 'AUTO',
+                        isActive: true,
+                        providerUrl: offer.providerUrl,
+                        logoUrl: offer.logoUrl
+                    }))
+                );
+            } else if (results[2] && results[2].status === 'rejected' && results[2].reason !== 'disabled') {
                 console.error('[TasksService] CPAGrip Fetch Failed', results[2].reason);
             }
 
