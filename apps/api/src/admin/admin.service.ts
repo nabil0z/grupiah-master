@@ -343,6 +343,23 @@ export class AdminService {
             .sort((a, b) => b.cr - a.cr)
             .slice(0, 10);
 
+        // Recent postbacks (last 20 EARN mutations for live feed)
+        const recentPostbacks = (await this.prisma.walletMutation.findMany({
+            where: { type: 'EARN' },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+            select: { id: true, amount: true, description: true, createdAt: true }
+        })).map(p => ({
+            id: p.id,
+            amount: Number(p.amount),
+            description: p.description,
+            createdAt: p.createdAt,
+            provider: (p.description || '').toLowerCase().includes('ogads') ? 'OGAds'
+                : (p.description || '').toLowerCase().includes('adblue') ? 'AdBlue'
+                    : (p.description || '').toLowerCase().includes('cpagrip') ? 'CPAGrip'
+                        : 'Other'
+        }));
+
         return {
             onlineUsers,
             totalUsers,
@@ -354,6 +371,7 @@ export class AdminService {
             deadOfferCount,
             totalOffersTracked: allScores.length,
             topByConversion,
+            recentPostbacks,
         };
     }
 

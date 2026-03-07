@@ -185,19 +185,37 @@ export default function Analytics() {
                     <Activity size={16} className="text-emerald-500" />
                     <h2 className="font-bold text-gray-800">Live Postback Feed</h2>
                 </div>
-                <div className="max-h-48 overflow-y-auto">
-                    {(!data.profit.today.total && !data.profit.yesterday.total) ? (
+                <div className="max-h-64 overflow-y-auto">
+                    {(!data.recentPostbacks || data.recentPostbacks.length === 0) ? (
                         <p className="text-center py-6 text-gray-300 text-sm">No postbacks yet</p>
                     ) : (
                         <div className="divide-y divide-gray-50">
-                            {/* Placeholder: real feed would come from live postbacks */}
-                            <div className="px-4 py-3 flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-700">OGAds Postback</p>
-                                    <p className="text-[10px] text-gray-400">Today's total from all providers</p>
-                                </div>
-                                <span className="text-sm font-bold text-emerald-600">{formatRp(data.profit.today.total)}</span>
-                            </div>
+                            {data.recentPostbacks.map((pb: any) => {
+                                const providerColors: Record<string, string> = {
+                                    'OGAds': 'bg-blue-50 text-blue-600',
+                                    'AdBlue': 'bg-purple-50 text-purple-600',
+                                    'CPAGrip': 'bg-orange-50 text-orange-600',
+                                    'Other': 'bg-gray-50 text-gray-600',
+                                };
+                                const timeAgo = (date: string) => {
+                                    const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+                                    if (diff < 60) return `${diff}s ago`;
+                                    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                                    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                                    return `${Math.floor(diff / 86400)}d ago`;
+                                };
+                                return (
+                                    <div key={pb.id} className="px-4 py-2.5 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${providerColors[pb.provider] || providerColors['Other']}`}>
+                                                {pb.provider}
+                                            </span>
+                                            <span className="text-[10px] text-gray-400">{timeAgo(pb.createdAt)}</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-600">+{formatRp(pb.amount)}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
