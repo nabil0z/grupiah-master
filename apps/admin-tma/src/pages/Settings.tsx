@@ -1,20 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api/adminClient';
-import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight, Zap, Users, Megaphone, Gift, Wallet } from 'lucide-react';
-
-type SettingItem = {
-    key: string;
-    label: string;
-    type: 'number' | 'text' | 'toggle';
-    hint?: string;
-};
-
-type SettingSection = {
-    title: string;
-    icon: any;
-    color: string;
-    items: SettingItem[];
-};
+import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight, Zap, Users, Megaphone, Gift, Wallet, Plus, Minus } from 'lucide-react';
 
 export default function Settings() {
     const [configs, setConfigs] = useState<Record<string, string>>({});
@@ -22,6 +8,7 @@ export default function Settings() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    const [dailyRewards, setDailyRewards] = useState<number[]>([100, 200, 300, 400, 500, 750, 1500]);
 
     useEffect(() => { fetchSettings(); }, []);
 
@@ -30,6 +17,11 @@ export default function Settings() {
             setLoading(true);
             const data = await adminApi.getSettings();
             setConfigs(data);
+            // Parse daily rewards
+            try {
+                const parsed = JSON.parse(data.DAILY_LOGIN_REWARDS || '[]');
+                if (Array.isArray(parsed) && parsed.length > 0) setDailyRewards(parsed);
+            } catch { /* keep defaults */ }
             setError(null);
         } catch {
             setError('Gagal memuat settings. Pastikan API jalan.');
@@ -41,7 +33,8 @@ export default function Settings() {
     const handleSave = async () => {
         try {
             setSaving(true); setSuccessMsg(null); setError(null);
-            await adminApi.updateSettings(configs);
+            const toSave = { ...configs, DAILY_LOGIN_REWARDS: JSON.stringify(dailyRewards) };
+            await adminApi.updateSettings(toSave);
             setSuccessMsg('✅ Settings tersimpan!');
             setTimeout(() => setSuccessMsg(null), 3000);
         } catch {
@@ -59,6 +52,19 @@ export default function Settings() {
         setConfigs(prev => ({ ...prev, [key]: prev[key] === 'true' ? 'false' : 'true' }));
     };
 
+    const updateDailyReward = (index: number, value: number) => {
+        setDailyRewards(prev => prev.map((r, i) => i === index ? value : r));
+    };
+
+    const addDay = () => {
+        const last = dailyRewards[dailyRewards.length - 1] || 0;
+        setDailyRewards(prev => [...prev, Math.round(last * 1.5)]);
+    };
+
+    const removeDay = () => {
+        if (dailyRewards.length > 1) setDailyRewards(prev => prev.slice(0, -1));
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[80vh] text-gray-400">
@@ -68,93 +74,24 @@ export default function Settings() {
         );
     }
 
-    const sections: SettingSection[] = [
-        {
-            title: 'Offer Providers',
-            icon: Zap,
-            color: 'text-yellow-500',
-            items: [
-                { key: 'PROVIDER_OGADS_ENABLED', label: 'OGAds', type: 'toggle', hint: 'CPA offers dari OGAds network' },
-                { key: 'PROVIDER_ADBLUEMEDIA_ENABLED', label: 'AdBlueMedia', type: 'toggle', hint: 'CPA offers dari AdBlueMedia' },
-                { key: 'PROVIDER_CPAGRIP_ENABLED', label: 'CPAGrip', type: 'toggle', hint: 'CPA offers dari CPAGrip network' },
-            ]
-        },
-        {
-            title: 'Ekonomi',
-            icon: Wallet,
-            color: 'text-emerald-500',
-            items: [
-                { key: 'GLOBAL_OFFER_MULTIPLIER', label: 'Offer Multiplier', type: 'number', hint: '1 = Normal, 10 = x10 reward display' },
-                { key: 'APP_MIN_WITHDRAW', label: 'Min. Withdraw (IDR)', type: 'number', hint: 'Minimal saldo untuk penarikan' },
-            ]
-        },
-        {
-            title: 'Referral',
-            icon: Users,
-            color: 'text-blue-500',
-            items: [
-                { key: 'APP_REF_UPLINE', label: 'Bonus Pengundang (IDR)', type: 'number', hint: 'Bonus setelah teman selesai 1 task' },
-                { key: 'APP_REF_DOWNLINE', label: 'Bonus Teman Baru (IDR)', type: 'number', hint: 'Welcome bonus via kode referral' },
-            ]
-        },
-        {
-            title: 'Marketing Mode',
-            icon: Megaphone,
-            color: 'text-orange-500',
-            items: [
-                { key: 'MARKETING_OFFER_DELAY_MS', label: 'Auto-credit Delay (ms)', type: 'number', hint: '25000 = 25 detik sebelum reward otomatis masuk' },
-            ]
-        },
-        {
-            title: 'Rewards & Broadcast',
-            icon: Gift,
-            color: 'text-purple-500',
-            items: [
-                { key: 'DAILY_LOGIN_REWARDS', label: 'Daily Check-in Rewards', type: 'text', hint: 'JSON array. Contoh: [100,200,300,400,500,750,1500]' },
-                { key: 'AUTO_POST_ENABLED', label: 'Auto Broadcast', type: 'toggle', hint: 'Broadcast otomatis ke channel' },
-            ]
-        },
-    ];
-
-    const renderItem = (item: SettingItem) => {
-        if (item.type === 'toggle') {
-            const isOn = configs[item.key] === 'true';
-            return (
-                <div className="flex items-center justify-between py-2" key={item.key}>
-                    <div>
-                        <p className="text-sm font-medium text-gray-700">{item.label}</p>
-                        {item.hint && <p className="text-[10px] text-gray-400 mt-0.5">{item.hint}</p>}
-                    </div>
-                    <button onClick={() => toggleBool(item.key)}>
-                        {isOn ? (
-                            <ToggleRight size={32} className="text-emerald-500" />
-                        ) : (
-                            <ToggleLeft size={32} className="text-gray-300" />
-                        )}
-                    </button>
-                </div>
-            );
-        }
-
-        return (
-            <div className="space-y-1 py-2" key={item.key}>
-                <label className="block text-sm font-medium text-gray-700">{item.label}</label>
-                <input
-                    type={item.type}
-                    value={configs[item.key] || ''}
-                    onChange={(e) => handleChange(item.key, e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)] focus:bg-white transition-colors"
-                />
-                {item.hint && <p className="text-[10px] text-gray-400">{item.hint}</p>}
-            </div>
-        );
-    };
+    const isOn = (key: string) => configs[key] !== 'false';
 
     return (
-        <div className="p-4 pb-24 max-w-md mx-auto space-y-4">
-            <div className="flex items-center gap-2">
-                <Settings2 size={20} className="text-[var(--color-admin-accent)]" />
-                <h1 className="text-xl font-black text-gray-900">Setting</h1>
+        <div className="p-4 pb-24 max-w-md mx-auto space-y-3">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Settings2 size={20} className="text-[var(--color-admin-accent)]" />
+                    <h1 className="text-xl font-black text-gray-900">Setting</h1>
+                </div>
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[var(--color-admin-accent)] text-white text-xs font-bold rounded-xl disabled:opacity-50 shadow-sm active:scale-95 transition-transform"
+                >
+                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {saving ? 'Saving...' : 'Simpan'}
+                </button>
             </div>
 
             {error && (
@@ -170,31 +107,117 @@ export default function Settings() {
                 </div>
             )}
 
-            {sections.map((section) => {
-                const Icon = section.icon;
-                return (
-                    <div key={section.title} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                            <Icon size={16} className={section.color} />
-                            <h2 className="font-bold text-gray-800 text-sm">{section.title}</h2>
-                        </div>
-                        <div className="px-4 py-2 divide-y divide-gray-50">
-                            {section.items.map(renderItem)}
-                        </div>
-                    </div>
-                );
-            })}
+            {/* ─── Offer Providers ─── */}
+            <Section icon={Zap} iconColor="text-yellow-500" title="Offer Providers">
+                <ToggleRow label="OGAds" on={isOn('PROVIDER_OGADS_ENABLED')} onToggle={() => toggleBool('PROVIDER_OGADS_ENABLED')} dot="bg-yellow-400" />
+                <ToggleRow label="AdBlueMedia" on={isOn('PROVIDER_ADBLUEMEDIA_ENABLED')} onToggle={() => toggleBool('PROVIDER_ADBLUEMEDIA_ENABLED')} dot="bg-blue-400" />
+                <ToggleRow label="CPAGrip" on={isOn('PROVIDER_CPAGRIP_ENABLED')} onToggle={() => toggleBool('PROVIDER_CPAGRIP_ENABLED')} dot="bg-orange-400" />
+            </Section>
 
-            <div className="pt-2">
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="w-full bg-[var(--color-admin-accent)] hover:opacity-90 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm"
-                >
-                    {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                    {saving ? 'Menyimpan...' : 'Simpan Setting'}
-                </button>
+            {/* ─── Ekonomi ─── */}
+            <Section icon={Wallet} iconColor="text-emerald-500" title="Ekonomi">
+                <InputRow label="Offer Multiplier" hint="1 = Normal, 10 = x10" value={configs.GLOBAL_OFFER_MULTIPLIER || ''} onChange={v => handleChange('GLOBAL_OFFER_MULTIPLIER', v)} type="number" />
+                <InputRow label="Min. Withdraw" hint="Minimal saldo agar bisa WD (IDR)" value={configs.APP_MIN_WITHDRAW || ''} onChange={v => handleChange('APP_MIN_WITHDRAW', v)} type="number" />
+            </Section>
+
+            {/* ─── Referral ─── */}
+            <Section icon={Users} iconColor="text-blue-500" title="Referral">
+                <InputRow label="Bonus Pengundang" hint="IDR, setelah teman selesai 1 task" value={configs.APP_REF_UPLINE || ''} onChange={v => handleChange('APP_REF_UPLINE', v)} type="number" />
+                <InputRow label="Bonus Teman Baru" hint="IDR, welcome bonus via referral" value={configs.APP_REF_DOWNLINE || ''} onChange={v => handleChange('APP_REF_DOWNLINE', v)} type="number" />
+            </Section>
+
+            {/* ─── Marketing ─── */}
+            <Section icon={Megaphone} iconColor="text-orange-500" title="Marketing Mode">
+                <InputRow label="Auto-credit Delay" hint="ms. 25000 = 25 detik" value={configs.MARKETING_OFFER_DELAY_MS || ''} onChange={v => handleChange('MARKETING_OFFER_DELAY_MS', v)} type="number" />
+            </Section>
+
+            {/* ─── Daily Check-in ─── */}
+            <Section icon={Gift} iconColor="text-purple-500" title="Daily Check-in Rewards">
+                <div className="space-y-2">
+                    {dailyRewards.map((reward, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-gray-400 w-12 shrink-0">Hari {i + 1}</span>
+                            <div className="relative flex-1">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">Rp</span>
+                                <input
+                                    type="number"
+                                    value={reward}
+                                    onChange={e => updateDailyReward(i, parseInt(e.target.value) || 0)}
+                                    className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-purple-300 focus:bg-white transition-colors"
+                                />
+                            </div>
+                        </div>
+                    ))}
+                    <div className="flex gap-2 pt-1">
+                        <button onClick={addDay} className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-bold text-purple-600 bg-purple-50 rounded-lg border border-purple-100 active:scale-95 transition-transform">
+                            <Plus size={14} /> Tambah Hari
+                        </button>
+                        {dailyRewards.length > 1 && (
+                            <button onClick={removeDay} className="flex items-center justify-center gap-1 px-4 py-2 text-xs font-bold text-red-500 bg-red-50 rounded-lg border border-red-100 active:scale-95 transition-transform">
+                                <Minus size={14} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </Section>
+
+            {/* ─── Broadcast ─── */}
+            <Section icon={Megaphone} iconColor="text-indigo-500" title="Broadcast">
+                <ToggleRow label="Auto Broadcast" on={isOn('AUTO_POST_ENABLED')} onToggle={() => toggleBool('AUTO_POST_ENABLED')} sub="Kirim otomatis ke channel" />
+            </Section>
+
+            {/* Floating Save */}
+            <div className="h-4" />
+        </div>
+    );
+}
+
+/* ── Sub-components ── */
+
+function Section({ icon: Icon, iconColor, title, children }: { icon: any; iconColor: string; title: string; children: React.ReactNode }) {
+    return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-gray-50 flex items-center gap-2 bg-gray-50/50">
+                <Icon size={14} className={iconColor} />
+                <h2 className="font-bold text-gray-700 text-xs uppercase tracking-wider">{title}</h2>
             </div>
+            <div className="px-4 py-3 space-y-3">
+                {children}
+            </div>
+        </div>
+    );
+}
+
+function ToggleRow({ label, on, onToggle, dot, sub }: { label: string; on: boolean; onToggle: () => void; dot?: string; sub?: string }) {
+    return (
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                {dot && <div className={`w-2 h-2 rounded-full ${on ? dot : 'bg-gray-300'}`} />}
+                <div>
+                    <p className="text-sm font-medium text-gray-700">{label}</p>
+                    {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+                </div>
+            </div>
+            <button onClick={onToggle}>
+                {on ? <ToggleRight size={30} className="text-emerald-500" /> : <ToggleLeft size={30} className="text-gray-300" />}
+            </button>
+        </div>
+    );
+}
+
+function InputRow({ label, hint, value, onChange, type = 'text' }: { label: string; hint?: string; value: string; onChange: (v: string) => void; type?: string }) {
+    return (
+        <div className="space-y-1">
+            <div className="flex items-baseline justify-between">
+                <label className="text-sm font-medium text-gray-700">{label}</label>
+                {hint && <span className="text-[10px] text-gray-400">{hint}</span>}
+            </div>
+            <input
+                type={type}
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-accent)] focus:bg-white transition-colors"
+            />
         </div>
     );
 }
