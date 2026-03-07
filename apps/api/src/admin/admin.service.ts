@@ -298,22 +298,23 @@ export class AdminService {
         // Pending custom tasks for review
         const pendingTasks = await this.getPendingCustomTasks();
 
-        // Profit per provider — count EARN mutations by description containing provider name
-        const earningsToday = await this.prisma.walletMutation.findMany({
-            where: { type: 'EARN', createdAt: { gte: todayStart } }
+        // Profit per provider — count completions in OfferCompletion to get raw USD revenue
+        const earningsToday = await this.prisma.offerCompletion.findMany({
+            where: { createdAt: { gte: todayStart } }
         });
-        const earningsYesterday = await this.prisma.walletMutation.findMany({
-            where: { type: 'EARN', createdAt: { gte: yesterdayStart, lt: todayStart } }
+        const earningsYesterday = await this.prisma.offerCompletion.findMany({
+            where: { createdAt: { gte: yesterdayStart, lt: todayStart } }
         });
 
-        const calcProviderProfit = (mutations: any[]) => {
+        const calcProviderProfit = (completions: any[]) => {
             let ogads = 0, adblue = 0, cpagrip = 0, other = 0;
-            for (const m of mutations) {
-                const desc = (m.description || '').toLowerCase();
-                const amount = Math.abs(Number(m.amount));
-                if (desc.includes('ogads')) ogads += amount;
-                else if (desc.includes('adblue')) adblue += amount;
-                else if (desc.includes('cpagrip')) cpagrip += amount;
+            for (const c of completions) {
+                const provider = (c.provider || '').toLowerCase();
+                const amount = Math.abs(Number(c.revenue || 0));
+
+                if (provider.includes('ogads')) ogads += amount;
+                else if (provider.includes('adbluemedia')) adblue += amount;
+                else if (provider.includes('cpagrip')) cpagrip += amount;
                 else other += amount;
             }
             return { ogads, adblue, cpagrip, other, total: ogads + adblue + cpagrip + other };

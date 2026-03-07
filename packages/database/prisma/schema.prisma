@@ -121,10 +121,22 @@ model OfferScore {
   externalId  String   // ID dari provider atau ID Task internal
   clicks      Int      @default(0)
   completions Int      @default(0)
+  revenue     Decimal  @default(0) // Raw USD revenue from provider
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([provider, externalId])
+}
+
+model OfferCompletion {
+  id          String   @id @default(uuid())
+  provider    String
+  externalId  String
+  userId      String
+  revenue     Decimal  @default(0) // Raw USD revenue from provider
+  createdAt   DateTime @default(now())
+  
+  @@unique([provider, externalId, userId]) // Mencegah postback ganda
 }
 
 model Withdrawal {

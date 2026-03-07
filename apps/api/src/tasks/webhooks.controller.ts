@@ -101,11 +101,29 @@ export class WebhooksController {
                     }
                 });
 
-                // Auto-Approve the UserTask if it was marked PENDING previously
+                // Mencegah duplicate postback di level aplikasi & user
                 if (rewardDetail.taskId) {
-                    await tx.userTask.updateMany({
-                        where: { userId: rewardDetail.userId, taskId: rewardDetail.taskId, status: 'PENDING' },
-                        data: { status: 'APPROVED', reward: finalReward }
+                    const existingCompletion = await tx.offerCompletion.findUnique({
+                        where: {
+                            provider_externalId_userId: {
+                                provider: normalizedProviderName,
+                                externalId: rewardDetail.taskId,
+                                userId: user.id
+                            }
+                        }
+                    });
+
+                    if (existingCompletion) {
+                        throw new Error('Offer already completed by this user in our system');
+                    }
+
+                    await tx.offerCompletion.create({
+                        data: {
+                            provider: normalizedProviderName,
+                            externalId: rewardDetail.taskId,
+                            userId: user.id,
+                            revenue: rewardDetail.reward
+                        }
                     });
 
                     // Record completion for Analytics
@@ -113,12 +131,16 @@ export class WebhooksController {
                         where: {
                             provider_externalId: { provider: normalizedProviderName, externalId: rewardDetail.taskId }
                         },
-                        update: { completions: { increment: 1 } },
+                        update: {
+                            completions: { increment: 1 },
+                            revenue: { increment: rewardDetail.reward }
+                        },
                         create: {
                             provider: normalizedProviderName,
                             externalId: rewardDetail.taskId,
                             clicks: 1,
-                            completions: 1
+                            completions: 1,
+                            revenue: rewardDetail.reward
                         }
                     });
                 }
