@@ -61,4 +61,12 @@ export class BroadcastController {
 
         return { success: true, message: `Cron simulation for hour ${body.hour}:00 started! Check server logs.` };
     }
+
+    @Post('test-shaving')
+    async testShaving() {
+        this.broadcastCronService.handleShavingDetection().catch(e => {
+            console.error('Shaving Detection Test Error:', e);
+        });
+        return { success: true, message: 'Shaving detection triggered! Check Telegram group and server logs.' };
+    }
 }

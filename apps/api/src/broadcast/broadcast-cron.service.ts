@@ -391,4 +391,104 @@ export class BroadcastCronService {
             return false;
         }
     }
+
+    // ─── Shaving Detection Alert ───
+    // Runs every 6 hours: WIB 06:00, 12:00, 18:00, 00:00
+    // CET equivalents: 00:00, 06:00, 12:00, 18:00
+    @Cron('0 */6 * * *')
+    async handleShavingDetection() {
+        this.logger.log('🔍 Cron fired: Shaving Detection Check');
+
+        try {
+            const alertsEnabled = await this.configService.getConfigValue('ADMIN_GROUP_ALERTS', 'false');
+            const groupId = await this.configService.getConfigValue('ADMIN_GROUP_ID', '');
+
+            if (alertsEnabled !== 'true' || !groupId) {
+                this.logger.log('Shaving alerts disabled or no group ID set. Skipping.');
+                return;
+            }
+
+            const botToken = process.env.BOT_TOKEN;
+            if (!botToken) return;
+
+            // Get today's click/completion data
+            const now = new Date();
+            const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+
+            // Get today's EARN mutations to count completions per provider
+            const todayEarnings = await this.prisma.walletMutation.findMany({
+                where: { type: 'EARN', createdAt: { gte: todayStart } }
+            });
+
+            const todayByProvider: Record<string, number> = {};
+            for (const m of todayEarnings) {
+                const desc = (m.description || '').toLowerCase();
+                if (desc.includes('ogads')) todayByProvider['OGADS'] = (todayByProvider['OGADS'] || 0) + 1;
+                else if (desc.includes('adblue')) todayByProvider['ADBLUEMEDIA'] = (todayByProvider['ADBLUEMEDIA'] || 0) + 1;
+                else if (desc.includes('cpagrip')) todayByProvider['CPAGRIP'] = (todayByProvider['CPAGRIP'] || 0) + 1;
+            }
+
+            // Get overall provider stats (all-time)
+            const providerStats = await this.prisma.offerScore.groupBy({
+                by: ['provider'],
+                _sum: { clicks: true, completions: true }
+            });
+
+            const alerts: string[] = [];
+
+            for (const stat of providerStats) {
+                const provider = stat.provider;
+                const totalClicks = stat._sum.clicks || 0;
+                const totalCompletions = stat._sum.completions || 0;
+                const historicalCR = totalClicks > 0 ? (totalCompletions / totalClicks) * 100 : 0;
+                const todayCompletions = todayByProvider[provider] || 0;
+
+                // Alert 1: Provider has 50+ total clicks but 0 completions ever → likely shaving
+                if (totalClicks >= 50 && totalCompletions === 0) {
+                    alerts.push(`🚨 *${provider}*: ${totalClicks} clicks, 0 completions ever! Possible full shaving.`);
+                }
+
+                // Alert 2: Provider had good historical CR but today has many clicks, 0 completions
+                if (historicalCR > 2 && totalClicks >= 30) {
+                    // Check if recent pattern shows drop
+                    const recentScores = await this.prisma.offerScore.findMany({
+                        where: { provider, clicks: { gte: 10 } }
+                    });
+                    const deadOffers = recentScores.filter(s => s.completions === 0);
+                    const deadRatio = recentScores.length > 0 ? (deadOffers.length / recentScores.length) * 100 : 0;
+
+                    if (deadRatio > 60) {
+                        alerts.push(`⚠️ *${provider}*: ${deadRatio.toFixed(0)}% of tracked offers are dead (${deadOffers.length}/${recentScores.length}). Historical CR: ${historicalCR.toFixed(1)}%`);
+                    }
+                }
+
+                // Alert 3: Today had 20+ completions yesterday range but 0 today
+                if (historicalCR > 3 && todayCompletions === 0 && totalCompletions > 10) {
+                    alerts.push(`📉 *${provider}*: 0 completions today. Historical CR: ${historicalCR.toFixed(1)}%. Check if postbacks are working.`);
+                }
+            }
+
+            if (alerts.length === 0) {
+                this.logger.log('✅ No shaving anomalies detected.');
+                return;
+            }
+
+            // Send alert to admin group
+            const message = `🔍 *Shaving Detection Report*\n${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}\n\n${alerts.join('\n\n')}\n\n_Check admin dashboard for details._`;
+
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: groupId,
+                    text: message,
+                    parse_mode: 'Markdown'
+                })
+            });
+
+            this.logger.log(`📤 Sent shaving alert with ${alerts.length} warning(s) to group ${groupId}`);
+        } catch (error: any) {
+            this.logger.error(`Shaving detection error: ${error.message}`);
+        }
+    }
 }
