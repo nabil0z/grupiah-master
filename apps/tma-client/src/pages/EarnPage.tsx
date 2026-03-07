@@ -18,7 +18,7 @@ function scoreTask(task: any): number {
 }
 
 /* ──────── Top Featured Card ──────── */
-const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay: () => void }) => {
+const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay: (cb?: () => void) => void }) => {
     const medals = [
         { emoji: '🥇', border: 'border-amber-400', glow: 'shadow-amber-200/50', bg: 'bg-gradient-to-br from-amber-50 to-orange-50', badge: 'bg-amber-500' },
         { emoji: '🥈', border: 'border-gray-300', glow: 'shadow-gray-200/50', bg: 'bg-gradient-to-br from-gray-50 to-slate-50', badge: 'bg-gray-500' },
@@ -58,7 +58,7 @@ const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay:
                             </span>
                         </div>
                     </div>
-                    <button onClick={onPlay}
+                    <button onClick={() => onPlay()}
                         className="shrink-0 flash-gradient-bg text-white p-3 rounded-full shadow-md hover:scale-105 transition-transform"
                     >
                         <Play size={18} fill="white" />
@@ -94,7 +94,7 @@ const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay:
                         Rp {Number(task.reward).toLocaleString('id-ID')}
                     </span>
                 </div>
-                <button onClick={onPlay}
+                <button onClick={() => onPlay()}
                     className="shrink-0 bg-white border border-gray-200 text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
                 >
                     <ChevronRight size={14} />
@@ -105,7 +105,7 @@ const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay:
 };
 
 /* ──────── Task Card (unified) ──────── */
-const TaskCard = ({ task, onPlay }: { task: any; onPlay: () => void }) => {
+const TaskCard = ({ task, onPlay }: { task: any; onPlay: (cb?: () => void) => void }) => {
     const [state, setState] = useState<'idle' | 'clicked' | 'verifying'>('idle');
 
     useEffect(() => {
@@ -116,13 +116,9 @@ const TaskCard = ({ task, onPlay }: { task: any; onPlay: () => void }) => {
     }, [state]);
 
     const handleClick = () => {
-        tasksApi.recordClick(task.provider, task.externalId || task.id, task.reward).catch(console.error);
-        if (task.provider === 'CUSTOM') {
-            onPlay();
-        } else {
+        onPlay(() => {
             if (state === 'idle') setState('clicked');
-            window.open(task.providerUrl, '_blank');
-        }
+        });
     };
 
     const isAuto = task.provider !== 'CUSTOM';
@@ -196,6 +192,7 @@ export default function EarnPage() {
 
     // Modal for Custom tasks
     const [selectedTask, setSelectedTask] = useState<any | null>(null);
+    const [selectedTaskCallback, setSelectedTaskCallback] = useState<(() => void) | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [proofText, setProofText] = useState("");
     const [proofFile, setProofFile] = useState<File | null>(null);
@@ -243,12 +240,12 @@ export default function EarnPage() {
     const autoCount = allTasks.filter(t => t.provider !== 'CUSTOM').length;
     const manualCount = allTasks.filter(t => t.provider === 'CUSTOM').length;
 
-    const handleTaskPlay = (task: any) => {
-        if (task.provider === 'CUSTOM') {
-            setSelectedTask(task);
+    const handleTaskPlay = (task: any, cb?: () => void) => {
+        setSelectedTask(task);
+        if (cb) {
+            setSelectedTaskCallback(() => cb);
         } else {
-            tasksApi.recordClick(task.provider, task.externalId || task.id, task.reward).catch(console.error);
-            window.open(task.providerUrl, '_blank');
+            setSelectedTaskCallback(null);
         }
     };
 
@@ -355,8 +352,8 @@ export default function EarnPage() {
                 )}
             </div>
 
-            {/* ── Custom Task Modal ── */}
-            {selectedTask && selectedTask.provider === 'CUSTOM' && (
+            {/* ── Task Modal ── */}
+            {selectedTask && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative">
                         <button onClick={() => setSelectedTask(null)} className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 z-10 transition-colors">
@@ -365,80 +362,108 @@ export default function EarnPage() {
 
                         <div className="p-6">
                             <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-amber-100">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border ${selectedTask.provider === 'CUSTOM' ? 'bg-amber-50 border-amber-100' : 'bg-orange-50 border-orange-100'}`}>
                                     {selectedTask.logoUrl ? (
                                         <img src={selectedTask.logoUrl} alt="" className="w-full h-full object-cover" />
-                                    ) : (
+                                    ) : selectedTask.provider === 'CUSTOM' ? (
                                         <Boxes className="text-amber-500" size={24} />
+                                    ) : (
+                                        <Zap className="text-orange-500" size={24} />
                                     )}
                                 </div>
                                 <div>
                                     <h2 className="font-bold text-gray-900 text-lg leading-tight">{selectedTask.title}</h2>
-                                    <div className="text-sm font-black text-amber-600">Rp {Number(selectedTask.reward).toLocaleString('id-ID')}</div>
+                                    <div className={`text-sm font-black ${selectedTask.provider === 'CUSTOM' ? 'text-amber-600' : 'text-orange-600'}`}>Rp {Number(selectedTask.reward).toLocaleString('id-ID')}</div>
                                 </div>
                             </div>
 
                             <p className="text-sm text-gray-600 mb-4">{selectedTask.description}</p>
 
-                            {selectedTask.instructions && (
-                                <div className="bg-amber-50 rounded-xl p-3 mb-4 text-sm text-amber-900 border border-amber-100 max-h-32 overflow-y-auto">
-                                    <span className="font-bold block mb-1">Cara Mengerjakan:</span>
-                                    {selectedTask.instructions.split('\\n').map((line: string, i: number) => (
-                                        <div key={i}>{line}</div>
-                                    ))}
-                                </div>
+                            {selectedTask.provider === 'CUSTOM' ? (
+                                <>
+                                    {selectedTask.instructions && (
+                                        <div className="bg-amber-50 rounded-xl p-3 mb-4 text-sm text-amber-900 border border-amber-100 max-h-32 overflow-y-auto">
+                                            <span className="font-bold block mb-1">Cara Mengerjakan:</span>
+                                            {selectedTask.instructions.split('\\n').map((line: string, i: number) => (
+                                                <div key={i}>{line}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {selectedTask.link && (
+                                        <button onClick={() => window.open(selectedTask.link, '_blank')} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl mb-4 transition-colors">
+                                            Buka Link Tugas
+                                        </button>
+                                    )}
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 mb-1">Upload Bukti Screenshot (Wajib)</label>
+                                            <input
+                                                type="file" accept="image/*"
+                                                onChange={e => setProofFile(e.target.files?.[0] || null)}
+                                                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none transition-shadow file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 cursor-pointer"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 mb-1">Username / Info Tambahan</label>
+                                            <input type="text" value={proofText} onChange={e => setProofText(e.target.value)} placeholder="@username atau email" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none transition-shadow" />
+                                            <p className="text-[10px] text-gray-400 mt-1">Harap isi username akun social media yang Anda gunakan</p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                if (!proofFile) {
+                                                    alert("Harap pilih gambar screenshot bukti tugas terlebih dahulu.");
+                                                    return;
+                                                }
+                                                setIsSubmitting(true);
+                                                const uploadRes = await tasksApi.uploadProof(proofFile);
+                                                if (!uploadRes.success) throw new Error(uploadRes.message || "Gagal mengupload gambar.");
+                                                await tasksApi.submitTask(selectedTask.id, uploadRes.data.link, proofText);
+                                                setAllTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, userSubmissionStatus: 'PENDING' } : t));
+                                                setSelectedTask(null);
+                                                setProofFile(null);
+                                                setProofText("");
+                                            } catch (e: any) {
+                                                alert(e.message || "Gagal mengirim bukti tugas.");
+                                            } finally {
+                                                setIsSubmitting(false);
+                                            }
+                                        }}
+                                        disabled={isSubmitting}
+                                        className="w-full text-white bg-amber-500 hover:bg-amber-600 border border-amber-600 font-bold rounded-xl text-sm px-5 py-3.5 text-center transition-all shadow-md mt-6 disabled:bg-amber-300 disabled:border-amber-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {isSubmitting ? (
+                                            <><Loader2 size={18} className="animate-spin" /> Mengupload...</>
+                                        ) : "Kirim Bukti Tugas"}
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="bg-orange-50 rounded-xl p-3 mb-6 text-sm text-orange-900 border border-orange-100">
+                                        Klik tombol di bawah untuk membuka halaman penawaran. Selesaikan instruksi yang diberikan dengan teliti untuk mendapatkan hadiah. Saldo akan masuk secara otomatis jika sudah terverifikasi selesai.
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            tasksApi.recordClick(selectedTask.provider, selectedTask.externalId || selectedTask.id, selectedTask.reward).catch(console.error);
+                                            const win = window as any;
+                                            if (win.Telegram?.WebApp?.openLink) {
+                                                win.Telegram.WebApp.openLink(selectedTask.providerUrl, { try_instant_view: false });
+                                            } else {
+                                                window.open(selectedTask.providerUrl, '_blank');
+                                            }
+                                            if (selectedTaskCallback) selectedTaskCallback();
+                                            setSelectedTask(null);
+                                        }}
+                                        className="w-full text-white flash-gradient-bg pulsing-border font-black rounded-xl text-base px-5 py-4 text-center transition-transform hover:scale-105 shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 mt-4"
+                                    >
+                                        <Play size={20} fill="currentColor" /> Kerjakan Tugas Sekarang
+                                    </button>
+                                </>
                             )}
-
-                            {selectedTask.link && (
-                                <button onClick={() => window.open(selectedTask.link, '_blank')} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl mb-4 transition-colors">
-                                    Buka Link Tugas
-                                </button>
-                            )}
-
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Upload Bukti Screenshot (Wajib)</label>
-                                    <input
-                                        type="file" accept="image/*"
-                                        onChange={e => setProofFile(e.target.files?.[0] || null)}
-                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none transition-shadow file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 cursor-pointer"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-1">Username / Info Tambahan</label>
-                                    <input type="text" value={proofText} onChange={e => setProofText(e.target.value)} placeholder="@username atau email" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none transition-shadow" />
-                                    <p className="text-[10px] text-gray-400 mt-1">Harap isi username akun social media yang Anda gunakan</p>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        if (!proofFile) {
-                                            alert("Harap pilih gambar screenshot bukti tugas terlebih dahulu.");
-                                            return;
-                                        }
-                                        setIsSubmitting(true);
-                                        const uploadRes = await tasksApi.uploadProof(proofFile);
-                                        if (!uploadRes.success) throw new Error(uploadRes.message || "Gagal mengupload gambar.");
-                                        await tasksApi.submitTask(selectedTask.id, uploadRes.data.link, proofText);
-                                        setAllTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, userSubmissionStatus: 'PENDING' } : t));
-                                        setSelectedTask(null);
-                                        setProofFile(null);
-                                        setProofText("");
-                                    } catch (e: any) {
-                                        alert(e.message || "Gagal mengirim bukti tugas.");
-                                    } finally {
-                                        setIsSubmitting(false);
-                                    }
-                                }}
-                                disabled={isSubmitting}
-                                className="w-full text-white bg-amber-500 hover:bg-amber-600 border border-amber-600 font-bold rounded-xl text-sm px-5 py-3.5 text-center transition-all shadow-md mt-6 disabled:bg-amber-300 disabled:border-amber-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                {isSubmitting ? (
-                                    <><Loader2 size={18} className="animate-spin" /> Mengupload...</>
-                                ) : "Kirim Bukti Tugas"}
-                            </button>
                         </div>
                     </motion.div>
                 </div>
