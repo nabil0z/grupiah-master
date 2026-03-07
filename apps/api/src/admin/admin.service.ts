@@ -487,6 +487,12 @@ export class AdminService {
     }
 
     async deleteCustomTask(taskId: string, adminTelegramId: number) {
+        // First delete any related UserTask records to prevent foreign key errors
+        await this.prisma.userTask.deleteMany({
+            where: { taskId }
+        });
+
+        // Then delete the task itself
         const deleted = await this.prisma.task.delete({
             where: { id: taskId, provider: 'CUSTOM', type: 'MANUAL' }
         });
