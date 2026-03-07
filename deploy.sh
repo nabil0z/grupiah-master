@@ -41,7 +41,12 @@ NEXT_PUBLIC_API_URL=$API_URL npm run build --workspace=admin-dashboard
 echo "🔄 Restarting services..."
 fuser -k 53000/tcp 2>/dev/null || true
 sleep 2
-pm2 restart grupiah-api grupiah-client grupiah-admin grupiah-admin-tma
+pm2 restart grupiah-api grupiah-client grupiah-admin
+
+# Restart admin-tma with SPA mode (absolute path + -s flag)
+pm2 delete grupiah-admin-tma 2>/dev/null || true
+pm2 start "npx serve /opt/grupiah/apps/admin-tma/dist -l 53007 -s" --name grupiah-admin-tma
+pm2 save
 
 echo "================================"
 echo "✅ Deploy complete!"
