@@ -235,8 +235,9 @@ export class BroadcastCronService {
                 const methodLabels = ['DANA E-Wallet', 'OVO Cash', 'GoPay'];
 
                 for (let i = 0; i < 10; i++) {
-                    // Range: 1.5jt - 5jt (top 10 earners, di atas min WD)
-                    amounts.push(Math.floor(Math.random() * 3500000) + 1500000);
+                    // Range: 1.5jt - 5jt, kelipatan 50rb supaya terlihat natural
+                    const raw = Math.floor(Math.random() * 70) + 30; // 30-99 → × 50rb = 1.5jt-4.95jt
+                    amounts.push(raw * 50000);
                 }
                 // Sort descending so #1 is highest
                 amounts.sort((a, b) => b - a);
@@ -265,7 +266,7 @@ export class BroadcastCronService {
                 // 15:00 PM - AFTERNOON HUSTLE (TOP OFFER IMAGE)
                 this.logger.log('Executing AFTERNOON Broadcast (Top Offer)');
 
-                const offerReward = Math.floor(Math.random() * 30000) + 40000; // 40k - 70k
+                const offerReward = (Math.floor(Math.random() * 6) + 8) * 5000; // 40k - 65k, kelipatan 5rb
                 const quota = Math.floor(Math.random() * 15) + 5; // 5-20 slot
                 const imgPath = await this.generateImageFromHtml('offer', {
                     title: 'APP INSTALL<br />REWARD!!!',
@@ -283,9 +284,8 @@ export class BroadcastCronService {
                 // 21:00 PM - NIGHT OWL (DAILY RECAP STATS)
                 this.logger.log('Executing NIGHT Broadcast (Daily Recap)');
 
-                // Daily total harus jauh lebih besar dari top 10 earners (top 10 = ~10-20% total)
-                // Top 10 rata-rata ~30jt, jadi daily total = 150jt - 350jt
-                const dailyTotal = Math.floor(Math.random() * 200000000) + 150000000;
+                // Daily total: 150jt - 350jt, kelipatan 1jt
+                const dailyTotal = (Math.floor(Math.random() * 200) + 150) * 1000000;
                 const tasksCompleted = Math.floor(Math.random() * 5000) + 6000; // 6k-11k
                 const wdCompleted = Math.floor(Math.random() * 300) + 200; // 200-500
 
