@@ -340,12 +340,24 @@ export class AdminService {
     }
 
     async getAnalytics() {
-        const livePostbacks = await this.prisma.walletMutation.findMany({
+        const livePostbacksRaw = await this.prisma.walletMutation.findMany({
             where: { type: 'EARN' },
             orderBy: { createdAt: 'desc' },
             take: 20,
             include: { wallet: { include: { user: { select: { username: true, telegramId: true } } } } }
         });
+
+        // Convert BigInt telegramId to string to prevent JSON serialization crash
+        const livePostbacks = livePostbacksRaw.map(p => ({
+            ...p,
+            wallet: p.wallet ? {
+                ...p.wallet,
+                user: p.wallet.user ? {
+                    ...p.wallet.user,
+                    telegramId: p.wallet.user.telegramId?.toString() || null
+                } : null
+            } : null
+        }));
 
         const topOffers = await this.prisma.offerScore.findMany({
             orderBy: { completions: 'desc' },
