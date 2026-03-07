@@ -29,6 +29,10 @@ npm run build --workspace=grupiah-api
 echo "📱 Building TMA Client..."
 VITE_API_URL=$API_URL npm run build --workspace=tma-client
 
+# 4.5. Build TMA Landing
+echo "🌍 Building TMA Landing..."
+npm run build --workspace=tma-landing
+
 # 5. Build Admin TMA
 echo "📱 Building Admin TMA..."
 VITE_API_URL=$API_URL npm run build --workspace=admin-tma
@@ -41,7 +45,7 @@ NEXT_PUBLIC_API_URL=$API_URL npm run build --workspace=admin-dashboard
 echo "🔄 Restarting services..."
 fuser -k 53000/tcp 2>/dev/null || true
 sleep 2
-pm2 restart grupiah-api grupiah-client grupiah-admin
+pm2 restart grupiah-api grupiah-client grupiah-admin grupiah-landing
 
 # Restart admin-tma with SPA mode (absolute path + -s flag)
 pm2 delete grupiah-admin-tma 2>/dev/null || true
