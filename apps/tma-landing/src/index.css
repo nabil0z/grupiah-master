@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --color-flash-orange: #FF5A00;
   --color-flash-red: #E11C1C;
   --color-flash-yellow: #FFD100;
