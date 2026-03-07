@@ -412,10 +412,11 @@ export class TasksService {
                             try {
                                 const botToken = process.env.BOT_TOKEN;
                                 if (botToken && user.telegramId) {
-                                    const message = `✅ *Tugas Selesai!*\n\n` +
-                                        `Offer dari *${provider}* berhasil diselesaikan.\n` +
-                                        `💰 Reward: *Rp ${rewardInIDR.toLocaleString('id-ID')}*\n\n` +
-                                        `Saldo kamu sudah bertambah. Lanjutkan untuk mendapatkan lebih banyak! 🚀`;
+                                    const message = `🎉 *Tugas Berhasil Diverifikasi!*\n\n` +
+                                        `Hei ${user.firstName || user.username || 'Kawan'}! Tugas yang kamu kerjakan sudah diverifikasi oleh sistem kami.\n\n` +
+                                        `💰 Reward: *+Rp ${rewardInIDR.toLocaleString('id-ID')}*\n` +
+                                        `💳 Saldo kamu sudah ditambahkan otomatis.\n\n` +
+                                        `Kerjakan lebih banyak tugas untuk memperbesar penghasilanmu! 🚀`;
 
                                     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                                         method: 'POST',

@@ -206,10 +206,11 @@ export class WebhooksController {
                     const globalMultiplier = parseFloat(globalMultiplierStr) || 1;
                     const dmReward = Math.floor(rewardDetail.reward * EXCHANGE_RATE_IDR * globalMultiplier);
 
-                    const message = `✅ *Offer Berhasil!*\n\n` +
-                        `Selamat! Kamu baru saja menyelesaikan offer dari *${normalizedProviderName}*.\n` +
-                        `💰 Reward: *Rp ${dmReward.toLocaleString('id-ID')}*\n\n` +
-                        `Saldo kamu sudah ditambahkan otomatis. Terus kumpulkan rupiahnya! 🚀`;
+                    const message = `🎉 *Tugas Berhasil Diverifikasi!*\n\n` +
+                        `Hei ${dmUser.firstName || dmUser.username || 'Kawan'}! Tugas yang kamu kerjakan sudah diverifikasi oleh sistem kami.\n\n` +
+                        `💰 Reward: *+Rp ${dmReward.toLocaleString('id-ID')}*\n` +
+                        `💳 Saldo kamu sudah ditambahkan otomatis.\n\n` +
+                        `Kerjakan lebih banyak tugas untuk memperbesar penghasilanmu! 🚀`;
 
                     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                         method: 'POST',
