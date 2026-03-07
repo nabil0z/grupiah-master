@@ -65,8 +65,8 @@ export const userApi = {
         const response = await apiClient.post('/users/me/boost', payload);
         return response.data;
     },
-    verifyChannel: async () => {
-        const response = await apiClient.get('/users/verify-channel');
+    verifyChannel: async (force?: boolean) => {
+        const response = await apiClient.get(`/users/verify-channel${force ? '?force=true' : ''}`);
         return response.data;
     },
     claimDaily: async () => {

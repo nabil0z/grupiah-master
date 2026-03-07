@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminConfigService } from '../admin/config/admin-config.service';
@@ -172,7 +172,7 @@ export class UsersController {
 
     @Get('verify-channel')
     @UseGuards(TelegramAuthGuard)
-    async verifyChannel(@Request() req: any) {
+    async verifyChannel(@Request() req: any, @Query('force') force?: string) {
         const userId = req.user.id;
 
         if (userId === 'mock-user-123') {
@@ -183,7 +183,7 @@ export class UsersController {
         const cached = this.channelVerifyCache.get(cacheKey);
         const now = Date.now();
 
-        if (cached && (now - cached.timestamp < 5 * 60 * 1000)) {
+        if (cached && (now - cached.timestamp < 5 * 60 * 1000) && force !== 'true') {
             return { joined: cached.status, cached: true, channelInfo: cached.channelInfo || null };
         }
 

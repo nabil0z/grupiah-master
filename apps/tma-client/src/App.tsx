@@ -77,7 +77,7 @@ function MainApp() {
 
   const handleVerify = () => {
     setIsVerifying(true);
-    userApi.verifyChannel()
+    userApi.verifyChannel(true)
       .then(res => {
         if (res && res.joined) setIsJoined(true);
       })
