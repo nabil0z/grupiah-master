@@ -1,9 +1,28 @@
 @import "tailwindcss";
 
+@theme {
+  --color-flash-orange: #FF5A00;
+  --color-flash-red: #E11C1C;
+  --color-flash-yellow: #FFD100;
+  --color-flash-bg: #F5F5F5;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
 @layer base {
   body {
-    background-color: #030712;
-    color: #f9fafb;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-flash-bg);
+    color: #333333;
+    font-family: var(--font-sans);
   }
+}
+
+.flash-gradient-text {
+  background: linear-gradient(90deg, var(--color-flash-orange) 0%, var(--color-flash-red) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.flash-gradient-bg {
+  background: linear-gradient(135deg, var(--color-flash-orange) 0%, var(--color-flash-red) 100%);
 }

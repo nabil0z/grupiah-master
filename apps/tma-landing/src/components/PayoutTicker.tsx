@@ -44,7 +44,7 @@ const PayoutTicker: React.FC = () => {
     }, []);
 
     return (
-        <div className="w-full h-24 flex items-center overflow-hidden">
+        <div className="w-full h-24 flex items-center overflow-hidden bg-white/50 border-y border-gray-200 backdrop-blur-sm">
             <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex items-center justify-center w-full relative">
                 <div className="flex gap-4 items-center">
 
@@ -57,16 +57,16 @@ const PayoutTicker: React.FC = () => {
                                 animate={{ opacity: 1, x: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
                                 transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                                className="flex items-center gap-3 bg-gray-800/80 backdrop-blur border border-gray-700/50 px-4 py-3 rounded-full shrink-0"
+                                className="flex items-center gap-3 bg-white border border-gray-100 shadow-sm px-4 py-3 rounded-full shrink-0"
                             >
-                                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                                    <CheckCircle2 className="w-4 h-4 text-[var(--color-flash-orange)]" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-semibold text-gray-200">
+                                    <span className="text-sm font-semibold text-gray-800">
                                         {payout.name} menarik Rp {payout.amount.toLocaleString('id-ID')}
                                     </span>
-                                    <span className="text-xs text-gray-400">
+                                    <span className="text-xs text-gray-500">
                                         ke {payout.wallet} • {payout.time}
                                     </span>
                                 </div>
