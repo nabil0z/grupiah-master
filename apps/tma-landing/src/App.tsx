@@ -6,7 +6,7 @@ import { Play, Wallet, Gift, ArrowRight, CheckCircle2, Zap } from 'lucide-react'
 import PayoutTicker from './components/PayoutTicker';
 
 const App: React.FC = () => {
-  const botUrl = "https://t.me/grupiah_bot";
+  const botUrl = "https://t.me/grupiahbot";
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
