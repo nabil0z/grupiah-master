@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api/adminClient';
-import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight, Zap, Users, Megaphone, Gift, Wallet, Plus, Minus, ChevronDown, ChevronRight, Timer } from 'lucide-react';
+import { Save, Loader2, AlertCircle, Settings2, ToggleLeft, ToggleRight, Zap, Users, Megaphone, Gift, Wallet, Plus, Minus, ChevronDown, ChevronRight, Timer, Film, CreditCard, ShieldCheck, XCircle, Ban } from 'lucide-react';
 
 export default function Settings() {
     const [configs, setConfigs] = useState<Record<string, string>>({});
@@ -9,8 +9,30 @@ export default function Settings() {
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [dailyRewards, setDailyRewards] = useState<number[]>([100, 200, 300, 400, 500, 750, 1500]);
+    const [creators, setCreators] = useState<any[]>([]);
+    const [creatorLoading, setCreatorLoading] = useState(false);
 
-    useEffect(() => { fetchSettings(); }, []);
+    useEffect(() => { fetchSettings(); fetchCreators(); }, []);
+
+    const fetchCreators = async () => {
+        setCreatorLoading(true);
+        try { setCreators(await adminApi.getCreators()); } catch { }
+        finally { setCreatorLoading(false); }
+    };
+
+    const handleCreatorAction = async (userId: string, action: 'approve' | 'reject' | 'revoke') => {
+        try {
+            if (action === 'approve') await adminApi.approveCreator(userId);
+            else if (action === 'reject') await adminApi.rejectCreator(userId);
+            else if (action === 'revoke') {
+                if (!confirm('Revoke creator? Saldo akan direset ke 0 dan semua data demo dihapus.')) return;
+                await adminApi.revokeCreator(userId);
+            }
+            setSuccessMsg(`Creator ${action}d! ✅`);
+            setTimeout(() => setSuccessMsg(null), 3000);
+            fetchCreators();
+        } catch { setError(`Gagal ${action} creator`); }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -129,6 +151,93 @@ export default function Settings() {
             <Section icon={Megaphone} iconColor="text-orange-500" title="Marketing Mode">
                 <InputRow label="Auto-credit Delay" hint="ms. 25000 = 25 detik" value={configs.MARKETING_OFFER_DELAY_MS || ''} onChange={v => handleChange('MARKETING_OFFER_DELAY_MS', v)} type="number" />
             </Section>
+
+            {/* ─── Withdrawal Mode ─── */}
+            <Section icon={CreditCard} iconColor="text-teal-500" title="Withdrawal Mode">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-gray-700">Mode WD Global</p>
+                        <p className="text-[10px] text-gray-400">AUTO = langsung approve setelah delay</p>
+                    </div>
+                    <select value={configs.WD_MODE || 'MANUAL'} onChange={e => handleChange('WD_MODE', e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white font-bold">
+                        <option value="MANUAL">Manual</option>
+                        <option value="AUTO">Otomatis</option>
+                    </select>
+                </div>
+                {configs.WD_MODE === 'AUTO' && (
+                    <InputRow label="Auto-Approve Delay" hint="menit" value={configs.WD_AUTO_DELAY_MINUTES || '5'} onChange={v => handleChange('WD_AUTO_DELAY_MINUTES', v)} type="number" />
+                )}
+            </Section>
+
+            {/* ─── Creator Eligibility ─── */}
+            <Section icon={ShieldCheck} iconColor="text-violet-500" title="Creator Eligibility">
+                <InputRow label="Min. Usia Akun" hint="hari" value={configs.CREATOR_MIN_DAYS || '14'} onChange={v => handleChange('CREATOR_MIN_DAYS', v)} type="number" />
+                <InputRow label="Min. Tugas Selesai" hint="jumlah" value={configs.CREATOR_MIN_TASKS || '5'} onChange={v => handleChange('CREATOR_MIN_TASKS', v)} type="number" />
+            </Section>
+
+            {/* ─── Creator Management ─── */}
+            <CollapsibleSection icon={Film} iconColor="text-violet-500" title={`Creator Program (${creators.length})`} defaultOpen={false}>
+                {creatorLoading ? (
+                    <div className="flex justify-center py-4"><Loader2 size={20} className="animate-spin text-gray-400" /></div>
+                ) : creators.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-4">Belum ada lamaran creator.</p>
+                ) : (
+                    <div className="space-y-3">
+                        {creators.map((c: any) => (
+                            <div key={c.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <span className="text-sm font-bold text-gray-800">{c.firstName || c.username || 'Unknown'}</span>
+                                        {c.username && <span className="text-xs text-gray-400 ml-1">@{c.username}</span>}
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${c.creatorStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                                            c.creatorStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                        {c.creatorStatus === 'PENDING' ? '⏳ Pending' : '✅ Aktif'}
+                                    </span>
+                                </div>
+                                {/* Channels */}
+                                {c.creatorChannels && (() => {
+                                    try {
+                                        const ch = JSON.parse(c.creatorChannels);
+                                        return (
+                                            <div className="flex flex-wrap gap-1 mb-2">
+                                                {ch.map((item: any, i: number) => (
+                                                    <span key={i} className="text-[10px] bg-violet-50 text-violet-600 px-2 py-0.5 rounded-full font-bold">
+                                                        {item.platform}: {item.channel}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        );
+                                    } catch { return null; }
+                                })()}
+                                {/* Action Buttons */}
+                                <div className="flex gap-2">
+                                    {c.creatorStatus === 'PENDING' && (
+                                        <>
+                                            <button onClick={() => handleCreatorAction(c.id, 'approve')}
+                                                className="flex-1 py-1.5 text-[10px] font-bold bg-emerald-500 text-white rounded-lg flex items-center justify-center gap-1">
+                                                <ShieldCheck size={12} /> Approve
+                                            </button>
+                                            <button onClick={() => handleCreatorAction(c.id, 'reject')}
+                                                className="flex-1 py-1.5 text-[10px] font-bold bg-red-500 text-white rounded-lg flex items-center justify-center gap-1">
+                                                <XCircle size={12} /> Reject
+                                            </button>
+                                        </>
+                                    )}
+                                    {c.creatorStatus === 'APPROVED' && (
+                                        <button onClick={() => handleCreatorAction(c.id, 'revoke')}
+                                            className="flex-1 py-1.5 text-[10px] font-bold bg-red-100 text-red-600 rounded-lg flex items-center justify-center gap-1 border border-red-200">
+                                            <Ban size={12} /> Revoke Creator
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </CollapsibleSection>
 
             {/* ─── Daily Check-in (Collapsible) ─── */}
             <CollapsibleSection icon={Gift} iconColor="text-purple-500" title="Daily Check-in Rewards" defaultOpen={false}>

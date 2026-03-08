@@ -116,12 +116,19 @@ export class AdminService {
     }
 
     async getUsersList() {
-        return this.prisma.user.findMany({
+        const users = await this.prisma.user.findMany({
+            where: { isFake: false },
             orderBy: { createdAt: 'desc' },
             include: {
-                wallet: { select: { balance: true } }
+                wallet: { select: { balance: true } },
+                _count: { select: { referrals: { where: { isFake: true } } } }
             }
         });
+        return users.map(u => ({
+            ...u,
+            fakeReferralCount: (u as any)._count?.referrals || 0,
+            _count: undefined
+        }));
     }
 
     async toggleUserBan(userId: string, adminTelegramId: number) {
@@ -769,6 +776,104 @@ export class AdminService {
                     referrals: deletedUsers.count
                 }
             };
+        });
+    }
+
+    // ========== Creator Program ==========
+
+    async getCreatorList() {
+        const creators = await this.prisma.user.findMany({
+            where: { creatorStatus: { in: ['PENDING', 'APPROVED'] } },
+            orderBy: { updatedAt: 'desc' },
+            select: {
+                id: true, telegramId: true, username: true, firstName: true,
+                creatorStatus: true, creatorChannels: true, isMarketingAcc: true,
+                createdAt: true, updatedAt: true
+            }
+        });
+        return JSON.parse(JSON.stringify(creators, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+    }
+
+    async approveCreator(userId: string, adminTelegramId: number) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new Error('User not found');
+
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { creatorStatus: 'APPROVED', isMarketingAcc: true }
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                actorId: adminTelegramId.toString(), actorType: 'ADMIN',
+                action: 'CREATOR_APPROVED', entityType: 'User', entityId: userId
+            }
+        });
+
+        // Send DM notification
+        const botToken = process.env.BOT_TOKEN;
+        if (botToken && user.telegramId) {
+            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: user.telegramId.toString(),
+                    text: `🎉 *Selamat! Kamu Diterima Sebagai Creator GRupiah!*\n\nAkun kamu sekarang memiliki Creator Mode aktif. Buka Settings di aplikasi untuk melihat panduan dan pengaturan creator.\n\n🚀 Mulai buat konten dan dapatkan penghasilan!`,
+                    parse_mode: 'Markdown'
+                })
+            }).catch(() => { });
+        }
+
+        return { success: true };
+    }
+
+    async rejectCreator(userId: string, adminTelegramId: number) {
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { creatorStatus: 'REJECTED' }
+        });
+
+        await this.prisma.auditLog.create({
+            data: {
+                actorId: adminTelegramId.toString(), actorType: 'ADMIN',
+                action: 'CREATOR_REJECTED', entityType: 'User', entityId: userId
+            }
+        });
+
+        return { success: true };
+    }
+
+    async revokeCreator(userId: string, adminTelegramId: number) {
+        return await this.prisma.$transaction(async (tx) => {
+            // 1. Reset creator flags
+            await tx.user.update({
+                where: { id: userId },
+                data: { creatorStatus: 'NONE', isMarketingAcc: false, wdMode: null, marketingDelaySeconds: 30 }
+            });
+
+            // 2. Reset wallet balance to 0
+            const wallet = await tx.wallet.findUnique({ where: { userId } });
+            if (wallet) {
+                await tx.wallet.update({ where: { id: wallet.id }, data: { balance: 0 } });
+                // Delete marketing mutations
+                await tx.walletMutation.deleteMany({
+                    where: { walletId: wallet.id, description: { contains: '[Marketing]' } }
+                });
+            }
+
+            // 3. Cleanup fake data
+            await tx.userTask.deleteMany({ where: { isFake: true, userId } });
+            await tx.withdrawal.deleteMany({ where: { isFake: true, userId } });
+            await tx.user.deleteMany({ where: { isFake: true, referredById: userId } });
+
+            // Audit
+            await tx.auditLog.create({
+                data: {
+                    actorId: adminTelegramId.toString(), actorType: 'ADMIN',
+                    action: 'CREATOR_REVOKED', entityType: 'User', entityId: userId
+                }
+            });
+
+            return { success: true };
         });
     }
 }

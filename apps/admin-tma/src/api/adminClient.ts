@@ -93,5 +93,21 @@ export const adminApi = {
     deleteTask: async (id: string) => {
         const response = await adminClient.delete(`/admin/tasks/${id}`);
         return response.data;
+    },
+    getCreators: async () => {
+        const response = await adminClient.get('/admin/creators');
+        return response.data;
+    },
+    approveCreator: async (userId: string) => {
+        const response = await adminClient.post(`/admin/creators/${userId}/approve`);
+        return response.data;
+    },
+    rejectCreator: async (userId: string) => {
+        const response = await adminClient.post(`/admin/creators/${userId}/reject`);
+        return response.data;
+    },
+    revokeCreator: async (userId: string) => {
+        const response = await adminClient.post(`/admin/creators/${userId}/revoke`);
+        return response.data;
     }
 };

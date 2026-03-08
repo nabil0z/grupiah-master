@@ -488,16 +488,46 @@ export class UsersController {
                         amount: requestedAmount,
                         method: method,
                         accountInfo: JSON.stringify(accountInfo),
-                        status: 'PENDING'
+                        status: 'PENDING',
+                        isFake: user.isMarketingAcc
                     }
                 });
 
-                return withdrawal;
+                return { withdrawal, user };
             });
+
+            // WD Mode Hierarchy: creator's wdMode > admin's global WD_MODE
+            let wdMode = await this.configService.getConfigValue('WD_MODE', 'MANUAL');
+            if (result.user.isMarketingAcc && (result.user as any).wdMode) {
+                wdMode = (result.user as any).wdMode;
+            }
+
+            if (wdMode === 'AUTO') {
+                const delayStr = await this.configService.getConfigValue('WD_AUTO_DELAY_MINUTES', '5');
+                const delayMin = parseInt(delayStr) || 5;
+
+                setTimeout(async () => {
+                    try {
+                        await this.prisma.withdrawal.update({
+                            where: { id: result.withdrawal.id },
+                            data: { status: 'PAID' }
+                        });
+                        // Send receipt DM
+                        const botToken = process.env.BOT_TOKEN;
+                        if (botToken && result.user.telegramId) {
+                            const msg = `💸 *Penarikan Berhasil!*\n\nHei ${result.user.firstName || result.user.username || 'Kawan'}!\n\n💰 Jumlah: *Rp ${requestedAmount.toLocaleString('id-ID')}*\n🏦 Metode: *${method}*\n📋 Status: ✅ BERHASIL\n\nDana akan masuk ke akunmu dalam beberapa saat. Terima kasih! 🚀`;
+                            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ chat_id: result.user.telegramId.toString(), text: msg, parse_mode: 'Markdown' })
+                            }).catch(() => { });
+                        }
+                    } catch (e) { console.error('[WD Auto] Error:', e); }
+                }, delayMin * 60 * 1000);
+            }
 
             return {
                 success: true,
-                withdrawalId: result.id,
+                withdrawalId: result.withdrawal.id,
                 message: 'Withdrawal request submitted successfully'
             };
         } catch (e: any) {
@@ -541,5 +571,195 @@ export class UsersController {
             console.error('[Fetch Referrals]', error);
             throw new HttpException('Failed retrieving referrals', HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // ========== Creator Program (User-facing) ==========
+
+    @Get('creator-status')
+    @UseGuards(TelegramAuthGuard)
+    async getCreatorStatus(@Request() req: any) {
+        const reqId = req.user.id === 'mock-user-123' ? '123' : req.user.id;
+        const telegramId = BigInt(reqId);
+        const user = await this.prisma.user.findUnique({
+            where: { telegramId },
+            select: {
+                id: true, creatorStatus: true, creatorChannels: true,
+                isMarketingAcc: true, wdMode: true, marketingDelaySeconds: true,
+                referralCode: true, createdAt: true,
+                _count: { select: { userTasks: { where: { status: 'APPROVED' } } } }
+            }
+        });
+        if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+        // Check eligibility
+        const minDaysStr = await this.configService.getConfigValue('CREATOR_MIN_DAYS', '14');
+        const minTasksStr = await this.configService.getConfigValue('CREATOR_MIN_TASKS', '5');
+        const minDays = parseInt(minDaysStr) || 14;
+        const minTasks = parseInt(minTasksStr) || 5;
+
+        const accountAgeDays = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+        const completedTasks = (user as any)._count?.userTasks || 0;
+
+        return {
+            creatorStatus: user.creatorStatus,
+            creatorChannels: user.creatorChannels ? JSON.parse(user.creatorChannels) : [],
+            isMarketingAcc: user.isMarketingAcc,
+            wdMode: user.wdMode,
+            marketingDelaySeconds: user.marketingDelaySeconds,
+            referralCode: user.referralCode,
+            eligible: accountAgeDays >= minDays && completedTasks >= minTasks,
+            eligibility: {
+                minDays, minTasks,
+                currentDays: accountAgeDays,
+                currentTasks: completedTasks
+            }
+        };
+    }
+
+    @Post('apply-creator')
+    @UseGuards(TelegramAuthGuard)
+    async applyCreator(@Request() req: any, @Body() body: { channels: { platform: string, channel: string }[] }) {
+        const reqId = req.user.id === 'mock-user-123' ? '123' : req.user.id;
+        const telegramId = BigInt(reqId);
+        const user = await this.prisma.user.findUnique({ where: { telegramId } });
+        if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+        if (user.creatorStatus === 'PENDING' || user.creatorStatus === 'APPROVED') {
+            throw new HttpException('Already applied or approved', HttpStatus.BAD_REQUEST);
+        }
+
+        // Check eligibility
+        const minDaysStr = await this.configService.getConfigValue('CREATOR_MIN_DAYS', '14');
+        const minTasksStr = await this.configService.getConfigValue('CREATOR_MIN_TASKS', '5');
+        const minDays = parseInt(minDaysStr) || 14;
+        const minTasks = parseInt(minTasksStr) || 5;
+
+        const accountAgeDays = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+        const completedTasks = await this.prisma.userTask.count({
+            where: { userId: user.id, status: 'APPROVED' }
+        });
+
+        if (accountAgeDays < minDays || completedTasks < minTasks) {
+            throw new HttpException(`Belum memenuhi syarat: min ${minDays} hari & ${minTasks} tugas`, HttpStatus.FORBIDDEN);
+        }
+
+        if (!body.channels || body.channels.length === 0) {
+            throw new HttpException('Minimal 1 channel harus diisi', HttpStatus.BAD_REQUEST);
+        }
+
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                creatorStatus: 'PENDING',
+                creatorChannels: JSON.stringify(body.channels)
+            }
+        });
+
+        return { success: true, message: 'Lamaran terkirim! Tunggu persetujuan admin.' };
+    }
+
+    @Post('creator-settings')
+    @UseGuards(TelegramAuthGuard)
+    async updateCreatorSettings(@Request() req: any, @Body() body: { wdMode?: string, marketingDelaySeconds?: number }) {
+        const reqId = req.user.id === 'mock-user-123' ? '123' : req.user.id;
+        const telegramId = BigInt(reqId);
+        const user = await this.prisma.user.findUnique({ where: { telegramId } });
+        if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        if (user.creatorStatus !== 'APPROVED') {
+            throw new HttpException('Not a creator', HttpStatus.FORBIDDEN);
+        }
+
+        const updateData: any = {};
+        if (body.wdMode === 'AUTO' || body.wdMode === 'MANUAL') updateData.wdMode = body.wdMode;
+        if (body.marketingDelaySeconds && body.marketingDelaySeconds >= 5 && body.marketingDelaySeconds <= 600) {
+            updateData.marketingDelaySeconds = body.marketingDelaySeconds;
+        }
+
+        await this.prisma.user.update({ where: { id: user.id }, data: updateData });
+        return { success: true };
+    }
+
+    @Post('inject-demo')
+    @UseGuards(TelegramAuthGuard)
+    async injectDemo(@Request() req: any) {
+        const reqId = req.user.id === 'mock-user-123' ? '123' : req.user.id;
+        const telegramId = BigInt(reqId);
+        const user = await this.prisma.user.findUnique({ where: { telegramId }, include: { wallet: true } });
+        if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        if (!user.isMarketingAcc) throw new HttpException('Not in creator mode', HttpStatus.FORBIDDEN);
+
+        // Inject demo balance
+        if (user.wallet) {
+            await this.prisma.wallet.update({
+                where: { id: user.wallet.id },
+                data: { balance: { increment: 500000 } }
+            });
+            await this.prisma.walletMutation.create({
+                data: {
+                    walletId: user.wallet.id, amount: 500000,
+                    type: 'EARN', description: '[Marketing] Demo Balance Injection'
+                }
+            });
+        }
+
+        // Inject fake referrals, tasks, withdrawals (reuse existing admin patterns)
+        const fakeNames = ['Andi', 'Budi', 'Cika', 'Dewi', 'Eka'];
+        for (const name of fakeNames) {
+            await this.prisma.user.create({
+                data: {
+                    telegramId: BigInt(Math.floor(Math.random() * 9000000000) + 1000000000),
+                    username: name.toLowerCase() + Math.floor(Math.random() * 100),
+                    firstName: name,
+                    referralCode: `ref_FAKE_${Math.random().toString(36).substring(2, 8)}`,
+                    referredById: user.id,
+                    isFake: true,
+                    isReferralActive: true,
+                    wallet: { create: { balance: 0 } }
+                }
+            });
+        }
+
+        // Fake WD history
+        const methods = ['DANA', 'GOPAY', 'OVO'];
+        for (let i = 0; i < 3; i++) {
+            await this.prisma.withdrawal.create({
+                data: {
+                    userId: user.id,
+                    amount: [50000, 100000, 200000][i],
+                    method: methods[i] as any,
+                    accountInfo: JSON.stringify({ number: '0812****' + (1000 + i) }),
+                    status: 'PAID',
+                    isFake: true
+                }
+            });
+        }
+
+        return { success: true, message: 'Demo data injected! Saldo +Rp 500.000, 5 referral, 3 WD history' };
+    }
+
+    @Post('reset-demo')
+    @UseGuards(TelegramAuthGuard)
+    async resetDemo(@Request() req: any) {
+        const reqId = req.user.id === 'mock-user-123' ? '123' : req.user.id;
+        const telegramId = BigInt(reqId);
+        const user = await this.prisma.user.findUnique({ where: { telegramId }, include: { wallet: true } });
+        if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        if (!user.isMarketingAcc) throw new HttpException('Not in creator mode', HttpStatus.FORBIDDEN);
+
+        await this.prisma.$transaction(async (tx) => {
+            // Reset balance
+            if (user.wallet) {
+                await tx.wallet.update({ where: { id: user.wallet.id }, data: { balance: 0 } });
+                await tx.walletMutation.deleteMany({
+                    where: { walletId: user.wallet.id, description: { contains: '[Marketing]' } }
+                });
+            }
+            // Delete fake data
+            await tx.userTask.deleteMany({ where: { isFake: true, userId: user.id } });
+            await tx.withdrawal.deleteMany({ where: { isFake: true, userId: user.id } });
+            await tx.user.deleteMany({ where: { isFake: true, referredById: user.id } });
+        });
+
+        return { success: true, message: 'Demo data berhasil dihapus. Saldo direset ke Rp 0.' };
     }
 }

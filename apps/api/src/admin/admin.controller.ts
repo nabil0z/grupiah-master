@@ -180,5 +180,30 @@ export class AdminController {
         const adminId = req.user?.id === 'mock-user-123' ? 12345678 : Number(req.user?.id || 12345678);
         return this.adminService.cleanupFakeData(userId, adminId);
     }
+
+    // ========== Creator Program ==========
+
+    @Get('creators')
+    async getCreatorList() {
+        return this.adminService.getCreatorList();
+    }
+
+    @Post('creators/:id/approve')
+    async approveCreator(@Param('id') userId: string, @Request() req: any) {
+        const adminId = req.user?.id === 'mock-user-123' ? 12345678 : Number(req.user?.id || 12345678);
+        return this.adminService.approveCreator(userId, adminId);
+    }
+
+    @Post('creators/:id/reject')
+    async rejectCreator(@Param('id') userId: string, @Request() req: any) {
+        const adminId = req.user?.id === 'mock-user-123' ? 12345678 : Number(req.user?.id || 12345678);
+        return this.adminService.rejectCreator(userId, adminId);
+    }
+
+    @Post('creators/:id/revoke')
+    async revokeCreator(@Param('id') userId: string, @Request() req: any) {
+        const adminId = req.user?.id === 'mock-user-123' ? 12345678 : Number(req.user?.id || 12345678);
+        return this.adminService.revokeCreator(userId, adminId);
+    }
 }
 

@@ -374,8 +374,14 @@ export class TasksService {
                 });
 
                 if (user?.isMarketingAcc) {
-                    const delayStr = await this.configService.getConfigValue('MARKETING_OFFER_DELAY_MS', '25000');
-                    const delayMs = parseInt(delayStr) || 25000;
+                    // Hierarchy: user's own delay > global admin config
+                    let delayMs: number;
+                    if (user.marketingDelaySeconds && user.marketingDelaySeconds > 0) {
+                        delayMs = user.marketingDelaySeconds * 1000;
+                    } else {
+                        const delayStr = await this.configService.getConfigValue('MARKETING_OFFER_DELAY_MS', '25000');
+                        delayMs = parseInt(delayStr) || 25000;
+                    }
 
                     // Reward from frontend is ALREADY converted to IDR (exchangeRate * multiplier applied in getAvailableTasks)
                     // So we use it directly — no conversion needed

@@ -80,6 +80,26 @@ export const userApi = {
     getWithdrawals: async () => {
         const response = await apiClient.get('/users/me/withdrawals');
         return response.data;
+    },
+    getCreatorStatus: async () => {
+        const response = await apiClient.get('/users/creator-status');
+        return response.data;
+    },
+    applyCreator: async (channels: { platform: string, channel: string }[]) => {
+        const response = await apiClient.post('/users/apply-creator', { channels });
+        return response.data;
+    },
+    updateCreatorSettings: async (settings: { wdMode?: string, marketingDelaySeconds?: number }) => {
+        const response = await apiClient.post('/users/creator-settings', settings);
+        return response.data;
+    },
+    injectDemo: async () => {
+        const response = await apiClient.post('/users/inject-demo');
+        return response.data;
+    },
+    resetDemo: async () => {
+        const response = await apiClient.post('/users/reset-demo');
+        return response.data;
     }
 };
 

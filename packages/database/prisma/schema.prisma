@@ -30,6 +30,10 @@ model User {
   userTasks       UserTask[]
   withdrawals     Withdrawal[]
   offerClicks     UserOfferClick[]
+  creatorStatus         String         @default("NONE") // NONE | PENDING | APPROVED | REJECTED
+  creatorChannels       String?        // JSON: [{"platform":"TIKTOK","channel":"@budi"}]
+  wdMode                String?        // AUTO | MANUAL (null = ikut global admin)
+  marketingDelaySeconds Int            @default(30) // Delay auto-approve task (detik)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
