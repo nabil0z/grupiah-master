@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npm run db:generate --workspace=@grupiah/database && npx nest build",
+    "build": "npm run db:generate --workspace=@grupiah/database && node ../../node_modules/@nestjs/cli/bin/nest.js build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
     "dev": "npx nest start --watch",
