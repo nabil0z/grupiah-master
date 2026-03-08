@@ -12,6 +12,7 @@ type UserData = {
     role: string;
     isBanned: boolean;
     isMarketingAcc?: boolean;
+    fakeReferralCount?: number;
     wallet?: { balance: number | string };
 };
 
@@ -193,7 +194,14 @@ export default function UserManagement() {
                             {!loading && filteredUsers.map((user) => (
                                 <tr key={user.id} className={`hover:bg-slate-50 transition-colors ${user.isMarketingAcc ? 'bg-orange-50/50' : ''}`}>
                                     <td className="px-6 py-4">
-                                        <div className="font-medium text-slate-900">{user.firstName || 'Unknown'}</div>
+                                        <div className="font-medium text-slate-900">
+                                            {user.firstName || 'Unknown'}
+                                            {(user.fakeReferralCount || 0) > 0 && (
+                                                <span className="ml-1.5 px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full" title={`${user.fakeReferralCount} fake referrals`}>
+                                                    🤖{user.fakeReferralCount}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="text-slate-500 text-xs mt-0.5">@{user.username || String(user.telegramId)}</div>
                                     </td>
                                     <td className="px-6 py-4">
