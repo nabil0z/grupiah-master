@@ -71,8 +71,8 @@ pm2 start "npx serve /opt/grupiah/apps/tma-client/dist -l 53002 -s" --name grupi
 # TMA Landing (port 53003)
 pm2 start "npx serve /opt/grupiah/apps/tma-landing/dist -l 53003 -s" --name grupiah-landing
 
-# Admin Dashboard (port 53004)
-pm2 start "npx next start /opt/grupiah/apps/admin-dashboard -p 53004" --name grupiah-admin
+# Admin Dashboard (port 53004) - static export, use serve
+pm2 start "npx serve /opt/grupiah/apps/admin-dashboard/out -l 53004 -s" --name grupiah-admin
 
 # Admin TMA (port 53007)
 pm2 start "npx serve /opt/grupiah/apps/admin-tma/dist -l 53007 -s" --name grupiah-admin-tma
