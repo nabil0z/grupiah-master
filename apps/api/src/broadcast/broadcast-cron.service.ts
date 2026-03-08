@@ -73,10 +73,15 @@ export class BroadcastCronService {
 
             htmlContent = htmlContent.replace(/{LOGO_PATH}/g, logoSrc);
 
-            const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+            const browser = await puppeteer.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+                protocolTimeout: 60000,
+                timeout: 30000
+            });
             const page = await browser.newPage();
             await page.setViewport({ width: 480, height: 600, deviceScaleFactor: 2 });
-            await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+            await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
             // Automatically find the container to screenshot precisely
             const element = await page.$(containerClass);
