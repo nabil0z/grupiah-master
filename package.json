@@ -14,11 +14,15 @@
     "start:prod": "npm run db:generate --workspace=@grupiah/database && npm run db:push --workspace=@grupiah/database && node apps/api/dist/main.js"
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "latest"
+    "prettier": "latest",
+    "prisma": "^5.22.0",
+    "turbo": "latest"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  }
 }
