@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AdminModule } from './admin/admin.module';
@@ -20,6 +22,10 @@ import { BroadcastModule } from './broadcast/broadcast.module';
       isGlobal: true,
       envFilePath: ['../../.env', '.env']
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,   // 60 seconds window
+      limit: 60,    // max 60 requests per window per IP
+    }]),
     ScheduleModule.forRoot(),
     AdminModule,
     AuthModule,
@@ -30,6 +36,9 @@ import { BroadcastModule } from './broadcast/broadcast.module';
     BroadcastModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule { }

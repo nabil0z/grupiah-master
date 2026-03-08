@@ -156,17 +156,18 @@ model UserOfferClick {
 }
 
 model Withdrawal {
-  id            String           @id @default(uuid())
-  userId        String
-  user          User             @relation(fields: [userId], references: [id])
-  amount        Decimal
-  method        WithdrawalMethod
-  accountInfo   String           // JSON berisi no_rekening, bank, dll. (disarankan terenkripsi)
-  status        WithdrawStatus   @default(PENDING)
-  isFake        Boolean          @default(false) // Marketing/influencer fake WD
-  processedBy   String?          // ID Admin pengekseskusi
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id])
+  amount          Decimal
+  method          WithdrawalMethod
+  accountInfo     String           // JSON berisi no_rekening, bank, dll. (disarankan terenkripsi)
+  status          WithdrawStatus   @default(PENDING)
+  isFake          Boolean          @default(false) // Marketing/influencer fake WD
+  processedBy     String?          // ID Admin pengekseskusi
+  autoApproveAt   DateTime?        // If set, cron will auto-approve at this time
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 enum WithdrawalMethod {

@@ -51,7 +51,11 @@ NEXT_PUBLIC_API_URL=$API_URL npm run build --workspace=admin-dashboard
 echo "🔄 Restarting services..."
 fuser -k 53000/tcp 2>/dev/null || true
 sleep 2
-pm2 restart grupiah-api grupiah-client grupiah-admin grupiah-landing
+
+# API: restart in cluster mode (multi-core for performance)
+pm2 delete grupiah-api 2>/dev/null || true
+pm2 start apps/api/dist/main.js --name grupiah-api -i max
+pm2 restart grupiah-client grupiah-admin grupiah-landing
 
 # Restart admin-tma with SPA mode (absolute path + -s flag)
 pm2 delete grupiah-admin-tma 2>/dev/null || true

@@ -115,14 +115,26 @@ export class AdminService {
         });
     }
 
-    async getUsersList() {
-        const users = await this.prisma.user.findMany({
-            where: { isFake: false },
-            orderBy: { createdAt: 'desc' },
-            include: {
-                wallet: { select: { balance: true } }
-            }
-        });
+    async getUsersList(page = 1, limit = 50, search?: string) {
+        const skip = (page - 1) * limit;
+        const where: any = { isFake: false };
+        if (search) {
+            where.OR = [
+                { username: { contains: search, mode: 'insensitive' } },
+                { firstName: { contains: search, mode: 'insensitive' } },
+            ];
+        }
+
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                include: { wallet: { select: { balance: true } } },
+                skip,
+                take: limit
+            }),
+            this.prisma.user.count({ where })
+        ]);
 
         // Count fake referrals per user (only for marketing users to save queries)
         const marketingUserIds = users.filter(u => u.isMarketingAcc).map(u => u.id);
@@ -138,10 +150,16 @@ export class AdminService {
             } catch { /* ignore if schema not yet pushed */ }
         }
 
-        return users.map(u => ({
-            ...u,
-            fakeReferralCount: fakeCounts[u.id] || 0
-        }));
+        return {
+            data: users.map(u => ({
+                ...u,
+                fakeReferralCount: fakeCounts[u.id] || 0
+            })),
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async toggleUserBan(userId: string, adminTelegramId: number) {

@@ -507,24 +507,13 @@ export class UsersController {
             if (wdMode === 'AUTO') {
                 const delayStr = await this.configService.getConfigValue('WD_AUTO_DELAY_MINUTES', '5');
                 const delayMin = parseInt(delayStr) || 5;
+                const autoApproveAt = new Date(Date.now() + delayMin * 60 * 1000);
 
-                setTimeout(async () => {
-                    try {
-                        await this.prisma.withdrawal.update({
-                            where: { id: result.withdrawal.id },
-                            data: { status: 'PAID' }
-                        });
-                        // Send receipt DM
-                        const botToken = process.env.BOT_TOKEN;
-                        if (botToken && result.user.telegramId) {
-                            const msg = `💸 *Penarikan Berhasil!*\n\nHei ${result.user.firstName || result.user.username || 'Kawan'}!\n\n💰 Jumlah: *Rp ${requestedAmount.toLocaleString('id-ID')}*\n🏦 Metode: *${method}*\n📋 Status: ✅ BERHASIL\n\nDana akan masuk ke akunmu dalam beberapa saat. Terima kasih! 🚀`;
-                            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-                                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ chat_id: result.user.telegramId.toString(), text: msg, parse_mode: 'Markdown' })
-                            }).catch(() => { });
-                        }
-                    } catch (e) { console.error('[WD Auto] Error:', e); }
-                }, delayMin * 60 * 1000);
+                // Set autoApproveAt — cron job in withdrawal-cron.service.ts will pick it up
+                await this.prisma.withdrawal.update({
+                    where: { id: result.withdrawal.id },
+                    data: { autoApproveAt }
+                });
             }
 
             return {

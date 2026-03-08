@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, Param, Request, HttpException, HttpStatus, Put, Delete } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param, Request, HttpException, HttpStatus, Put, Delete, Query } from '@nestjs/common';
 import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { AdminService } from './admin.service';
 import { BroadcastCronService } from '../broadcast/broadcast-cron.service';
@@ -60,9 +60,13 @@ export class AdminController {
     }
 
     @Get('users')
-    async getUsersList() {
-        const users = await this.adminService.getUsersList();
-        return JSON.parse(JSON.stringify(users, (key, value) =>
+    async getUsersList(@Query('page') page?: string, @Query('limit') limit?: string, @Query('search') search?: string) {
+        const result = await this.adminService.getUsersList(
+            parseInt(page || '1') || 1,
+            Math.min(parseInt(limit || '50') || 50, 100),
+            search
+        );
+        return JSON.parse(JSON.stringify(result, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value
         ));
     }
