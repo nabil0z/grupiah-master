@@ -54,7 +54,9 @@ export class UsersController {
                 appConfig: {
                     minWithdraw: parseInt(minWithdrawStr) || 500000,
                     refUpline: parseInt(refUplineStr) || 500,
-                    refDownline: parseInt(refDownlineStr) || 250
+                    refDownline: parseInt(refDownlineStr) || 250,
+                    bannerImageUrl: await this.configService.getConfigValue('BANNER_IMAGE_URL', ''),
+                    bannerLinkUrl: await this.configService.getConfigValue('BANNER_LINK_URL', ''),
                 }
             };
         } catch (e: any) {

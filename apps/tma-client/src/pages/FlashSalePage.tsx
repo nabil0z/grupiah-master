@@ -13,6 +13,7 @@ const FlashSalePage = () => {
     const [tasks, setTasks] = useState<any[]>([]);
     const [fetchError, setFetchError] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState(0);
+    const [bannerConfig, setBannerConfig] = useState<{ imageUrl: string, linkUrl: string }>({ imageUrl: '', linkUrl: '' });
     const navigate = useNavigate();
 
     // Flash Sale Countdown & Auth Simulator
@@ -37,6 +38,12 @@ const FlashSalePage = () => {
                 userApi.getProfile().then(profile => {
                     setBalance(Number(profile?.wallet?.balance || 0));
                     setTargetWithdrawal(Number(profile?.appConfig?.minWithdraw || 500000));
+                    if (profile?.appConfig?.bannerImageUrl) {
+                        setBannerConfig({
+                            imageUrl: profile.appConfig.bannerImageUrl,
+                            linkUrl: profile.appConfig.bannerLinkUrl || ''
+                        });
+                    }
                 }).catch(() => { });
 
                 // Auto-retry flash tasks up to 3 times with 3s delay
@@ -161,16 +168,24 @@ const FlashSalePage = () => {
                 </motion.div>
             </div>
 
-            {/* 1.5. Ad Provider Banner Space (e.g Monetag, Adsterra, PropellerAds) */}
-            <div className="px-5 mb-6 relative z-20">
-                <div className="bg-slate-200 w-full h-16 sm:h-20 rounded-xl flex flex-col items-center justify-center border border-slate-300 shadow-inner relative overflow-hidden group cursor-pointer">
-                    <span className="text-slate-400 text-xs font-bold font-mono tracking-widest mb-1 shadow-sm">ADVERTISEMENT</span>
-                    <span className="text-slate-500 text-[10px] italic group-hover:opacity-0 transition-opacity">Space for Monetag / Adsterra Banner</span>
-                    <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-blue-600 text-xs font-bold">Tempat Pasang Script Iklan Banner 320x50</span>
-                    </div>
+            {/* 1.5. Dynamic Banner from Admin Settings */}
+            {bannerConfig.imageUrl && (
+                <div className="px-5 mb-6 relative z-20">
+                    <motion.div
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => bannerConfig.linkUrl && window.open(bannerConfig.linkUrl, '_blank')}
+                        className={`w-full rounded-xl overflow-hidden shadow-sm border border-gray-100 ${bannerConfig.linkUrl ? 'cursor-pointer' : ''}`}
+                    >
+                        <img
+                            src={bannerConfig.imageUrl}
+                            alt="Promo Banner"
+                            className="w-full h-auto object-cover rounded-xl"
+                            style={{ maxHeight: '120px', objectFit: 'cover' }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                    </motion.div>
                 </div>
-            </div>
+            )}
 
             {/* 2. Flash Sale Section */}
             <div className="px-5 relative z-20">

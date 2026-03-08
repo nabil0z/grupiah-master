@@ -133,6 +133,18 @@ export default function Settings() {
                 <InputRow label="Auto-hide Threshold" hint="Clicks tanpa convert → hide offer" value={configs.DEAD_OFFER_CLICK_THRESHOLD || '50'} onChange={v => handleChange('DEAD_OFFER_CLICK_THRESHOLD', v)} type="number" />
             </Section>
 
+            {/* ─── Banner ─── */}
+            <Section icon={Megaphone} iconColor="text-pink-500" title="Banner Flash Sale">
+                <InputRow label="Image URL" hint="Link gambar banner (kosongkan = tidak tampil)" value={configs.BANNER_IMAGE_URL || ''} onChange={v => handleChange('BANNER_IMAGE_URL', v)} />
+                <InputRow label="Link URL" hint="URL tujuan saat diklik (opsional)" value={configs.BANNER_LINK_URL || ''} onChange={v => handleChange('BANNER_LINK_URL', v)} />
+                {configs.BANNER_IMAGE_URL && (
+                    <div className="mt-2">
+                        <p className="text-[10px] text-gray-400 mb-1">Preview:</p>
+                        <img src={configs.BANNER_IMAGE_URL} alt="Banner Preview" className="w-full h-20 object-cover rounded-lg border border-gray-200" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    </div>
+                )}
+            </Section>
+
             {/* ─── Offer Cooldown ─── */}
             <Section icon={Timer} iconColor="text-cyan-500" title="Offer Cooldown">
                 <InputRow label="Cooldown (Menit)" hint="Jeda antar-klik offer yang sama" value={configs.OFFER_COOLDOWN_MINUTES || '30'} onChange={v => handleChange('OFFER_COOLDOWN_MINUTES', v)} type="number" />
@@ -192,7 +204,7 @@ export default function Settings() {
                                         {c.username && <span className="text-xs text-gray-400 ml-1">@{c.username}</span>}
                                     </div>
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${c.creatorStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                                            c.creatorStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                                        c.creatorStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
                                         }`}>
                                         {c.creatorStatus === 'PENDING' ? '⏳ Pending' : '✅ Aktif'}
                                     </span>
