@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npm run db:generate --workspace=@grupiah/database && ../../node_modules/.bin/tsc -p tsconfig.build.json",
+    "build": "npm run db:generate --workspace=@grupiah/database && ../../node_modules/.bin/tsc -p tsconfig.build.json && cp -r src/broadcast/templates dist/broadcast/ && cp -r src/broadcast/images dist/broadcast/ 2>/dev/null; true",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
     "dev": "npx nest start --watch",
