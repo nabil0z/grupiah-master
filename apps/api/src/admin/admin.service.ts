@@ -762,24 +762,68 @@ export class AdminService {
 
     async cleanupFakeData(userId: string, adminTelegramId: number) {
         return await this.prisma.$transaction(async (tx) => {
-            // 1. Delete fake UserTasks (must delete before fake Tasks due to FK)
+            // 0. Get user + wallet
+            const user = await tx.user.findUnique({
+                where: { id: userId },
+                include: { wallet: true }
+            });
+            if (!user) throw new Error('User not found');
+
+            // 1. Calculate injected marketing balance from mutations
+            let restoredAmount = 0;
+            if (user.wallet) {
+                const marketingMutations = await tx.walletMutation.findMany({
+                    where: {
+                        walletId: user.wallet.id,
+                        description: { contains: '[Marketing]' }
+                    }
+                });
+                const injectedTotal = marketingMutations.reduce((sum, m) => sum + Number(m.amount), 0);
+
+                // Restore by subtracting injected amount (don't go below 0)
+                if (injectedTotal > 0) {
+                    const currentBalance = Number(user.wallet.balance);
+                    const restoredBalance = Math.max(0, currentBalance - injectedTotal);
+                    await tx.wallet.update({
+                        where: { id: user.wallet.id },
+                        data: { balance: restoredBalance }
+                    });
+                    restoredAmount = injectedTotal;
+                }
+
+                // Delete marketing mutations
+                await tx.walletMutation.deleteMany({
+                    where: {
+                        walletId: user.wallet.id,
+                        description: { contains: '[Marketing]' }
+                    }
+                });
+            }
+
+            // 2. Delete fake UserTasks
             const deletedUserTasks = await tx.userTask.deleteMany({
                 where: { isFake: true, userId }
             });
 
-            // 2. Delete fake Tasks created for this user
+            // 3. Delete fake Tasks
             const deletedTasks = await tx.task.deleteMany({
                 where: { isFake: true, isActive: false }
             });
 
-            // 3. Delete fake Withdrawals
+            // 4. Delete fake Withdrawals
             const deletedWithdrawals = await tx.withdrawal.deleteMany({
                 where: { isFake: true, userId }
             });
 
-            // 4. Delete fake referral Users (those with isFake=true referred by this user)
+            // 5. Delete fake referral Users
             const deletedUsers = await tx.user.deleteMany({
                 where: { isFake: true, referredById: userId }
+            });
+
+            // 6. Deactivate marketing mode
+            await tx.user.update({
+                where: { id: userId },
+                data: { isMarketingAcc: false }
             });
 
             // Audit Log
@@ -791,10 +835,12 @@ export class AdminService {
                     entityType: 'User',
                     entityId: userId,
                     changes: JSON.stringify({
+                        balanceRestored: restoredAmount,
                         deletedUserTasks: deletedUserTasks.count,
                         deletedTasks: deletedTasks.count,
                         deletedWithdrawals: deletedWithdrawals.count,
-                        deletedUsers: deletedUsers.count
+                        deletedUsers: deletedUsers.count,
+                        marketingDeactivated: true
                     })
                 }
             });
@@ -804,7 +850,9 @@ export class AdminService {
                 cleaned: {
                     tasks: deletedUserTasks.count,
                     withdrawals: deletedWithdrawals.count,
-                    referrals: deletedUsers.count
+                    referrals: deletedUsers.count,
+                    balanceRestored: restoredAmount,
+                    marketingDeactivated: true
                 }
             };
         });

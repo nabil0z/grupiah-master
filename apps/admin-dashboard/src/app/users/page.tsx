@@ -120,11 +120,13 @@ export default function UserManagement() {
     };
 
     const handleCleanupFake = async (userId: string, username: string) => {
-        if (!confirm(`🧹 Hapus SEMUA data marketing palsu untuk ${username}?\n\nIni akan menghapus semua fake tasks, withdrawals, dan referrals.`)) return;
+        if (!confirm(`🧹 Purge SEMUA data marketing untuk ${username}?\n\nIni akan:\n- Hapus fake tasks, withdrawals, referrals\n- Kembalikan saldo ke sebelum marketing\n- Deaktifkan marketing mode`)) return;
         setActionId(userId);
         try {
             const result = await usersApi.cleanupFakeData(userId);
-            showToast('success', `Cleaned: ${result.cleaned.tasks} tasks, ${result.cleaned.withdrawals} WDs, ${result.cleaned.referrals} referrals`);
+            showToast('success', `Cleaned: ${result.cleaned.tasks} tasks, ${result.cleaned.withdrawals} WDs, ${result.cleaned.referrals} refs. Saldo dikembalikan Rp ${Number(result.cleaned.balanceRestored || 0).toLocaleString('id-ID')}. Marketing OFF.`);
+            // Refresh user in list
+            setUsers(users.map(u => u.id === userId ? { ...u, isMarketingAcc: false, fakeReferralCount: 0 } : u));
         } catch (error) {
             showToast('error', 'Failed to cleanup fake data');
         } finally {
