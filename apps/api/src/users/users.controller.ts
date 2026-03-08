@@ -594,8 +594,8 @@ export class UsersController {
         // Check eligibility
         const minDaysStr = await this.configService.getConfigValue('CREATOR_MIN_DAYS', '14');
         const minTasksStr = await this.configService.getConfigValue('CREATOR_MIN_TASKS', '5');
-        const minDays = parseInt(minDaysStr) || 14;
-        const minTasks = parseInt(minTasksStr) || 5;
+        const minDays = isNaN(parseInt(minDaysStr)) ? 14 : parseInt(minDaysStr);
+        const minTasks = isNaN(parseInt(minTasksStr)) ? 5 : parseInt(minTasksStr);
 
         const accountAgeDays = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
         const completedTasks = (user as any)._count?.userTasks || 0;
@@ -631,8 +631,8 @@ export class UsersController {
         // Check eligibility
         const minDaysStr = await this.configService.getConfigValue('CREATOR_MIN_DAYS', '14');
         const minTasksStr = await this.configService.getConfigValue('CREATOR_MIN_TASKS', '5');
-        const minDays = parseInt(minDaysStr) || 14;
-        const minTasks = parseInt(minTasksStr) || 5;
+        const minDays = isNaN(parseInt(minDaysStr)) ? 14 : parseInt(minDaysStr);
+        const minTasks = isNaN(parseInt(minTasksStr)) ? 5 : parseInt(minTasksStr);
 
         const accountAgeDays = Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
         const completedTasks = await this.prisma.userTask.count({
