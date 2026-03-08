@@ -17,6 +17,10 @@ cd /opt/grupiah
 echo "📥 Pulling latest code..."
 git pull
 
+# 1.5. Install dependencies (picks up new packages)
+echo "📦 Installing dependencies..."
+npm install
+
 # 2. Build provider-adapters (dependency)
 echo "📦 Building provider-adapters..."
 cd packages/provider-adapters && npm run build && cd ../..
