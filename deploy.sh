@@ -31,18 +31,9 @@ npx prisma db push --schema=./packages/database/prisma/schema.prisma --accept-da
 npx prisma generate --schema=./packages/database/prisma/schema.prisma
 echo "✅ Database synced!"
 
-# 4. Build API (using tsc directly from root node_modules)
+# 4. Build API (nest build handles TS compilation + asset copying)
 echo "🔧 Building API..."
-cd apps/api
-rm -rf dist
-./../../node_modules/.bin/tsc -p tsconfig.build.json
-# Copy non-TS assets that tsc doesn't handle (templates, images for broadcast)
-mkdir -p dist/broadcast
-cp -r src/broadcast/templates dist/broadcast/ 2>/dev/null || true
-cp -r src/broadcast/images dist/broadcast/ 2>/dev/null || true
-echo "✅ API built! dist/main.js:"
-ls -la dist/main.js
-cd ../..
+npm run build --workspace=grupiah-api
 
 # 5. Build TMA Client
 echo "📱 Building TMA Client..."
@@ -65,7 +56,7 @@ echo "🔄 Restarting services..."
 fuser -k 53000/tcp 2>/dev/null || true
 sleep 2
 
-# API: restart in cluster mode (multi-core for performance)
+# API: cluster mode (multi-core for performance)
 pm2 delete grupiah-api 2>/dev/null || true
 pm2 start apps/api/dist/main.js --name grupiah-api -i max
 pm2 restart grupiah-client grupiah-admin grupiah-landing
