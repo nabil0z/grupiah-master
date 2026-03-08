@@ -51,19 +51,32 @@ VITE_API_URL=$API_URL npm run build --workspace=admin-tma
 echo "🖥️  Building Admin Dashboard..."
 NEXT_PUBLIC_API_URL=$API_URL npm run build --workspace=admin-dashboard
 
-# 8. Restart services
+# 8. Restart ALL services
 echo "🔄 Restarting services..."
 fuser -k 53000/tcp 2>/dev/null || true
 sleep 2
 
-# API: cluster mode (multi-core for performance)
-pm2 delete grupiah-api 2>/dev/null || true
-pm2 start apps/api/dist/src/main.js --name grupiah-api -i max
-pm2 restart grupiah-client grupiah-admin grupiah-landing
+# Stop all grupiah services
+pm2 delete all 2>/dev/null || true
 
-# Restart admin-tma with SPA mode
-pm2 delete grupiah-admin-tma 2>/dev/null || true
+# API: cluster mode (port 53000)
+pm2 start apps/api/dist/src/main.js --name grupiah-api -i max
+
+# Bot (port 53001)
+pm2 start apps/bot/dist/main.js --name grupiah-bot
+
+# TMA Client (port 53002)
+pm2 start "npx serve /opt/grupiah/apps/tma-client/dist -l 53002 -s" --name grupiah-client
+
+# TMA Landing (port 53003)
+pm2 start "npx serve /opt/grupiah/apps/tma-landing/dist -l 53003 -s" --name grupiah-landing
+
+# Admin Dashboard (port 53004)
+pm2 start "npx next start /opt/grupiah/apps/admin-dashboard -p 53004" --name grupiah-admin
+
+# Admin TMA (port 53007)
 pm2 start "npx serve /opt/grupiah/apps/admin-tma/dist -l 53007 -s" --name grupiah-admin-tma
+
 pm2 save
 
 echo "================================"
