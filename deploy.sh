@@ -58,7 +58,7 @@ sleep 2
 
 # API: cluster mode (multi-core for performance)
 pm2 delete grupiah-api 2>/dev/null || true
-pm2 start apps/api/dist/main.js --name grupiah-api -i max
+pm2 start apps/api/dist/src/main.js --name grupiah-api -i max
 pm2 restart grupiah-client grupiah-admin grupiah-landing
 
 # Restart admin-tma with SPA mode
