@@ -11,6 +11,10 @@ export class WithdrawalCronService {
     // Run every 30 seconds to check for auto-approve withdrawals
     @Cron('*/30 * * * * *')
     async processAutoApprovals() {
+        // Only run on PM2 cluster worker 0 (prevents duplicate execution)
+        const instanceId = process.env.NODE_APP_INSTANCE || process.env.pm_id;
+        if (instanceId && instanceId !== '0') return;
+
         try {
             const now = new Date();
             const pendingAutos = await this.prisma.withdrawal.findMany({

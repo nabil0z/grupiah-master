@@ -18,10 +18,17 @@ export class BroadcastCronService {
         private broadcastService: BroadcastService
     ) { }
 
+    // Only run crons on PM2 cluster worker 0 (prevents 4x duplicate execution)
+    private isPrimaryWorker(): boolean {
+        const instanceId = process.env.NODE_APP_INSTANCE || process.env.pm_id;
+        return !instanceId || instanceId === '0';
+    }
+
     // Cron schedules in SERVER time (CET/UTC+1) → converted from WIB (UTC+7)
     // WIB 09:00 = CET 03:00 → Morning Motivation (Top 10 Earners Album)
     @Cron('0 3 * * *')
     async handleMorningBroadcast() {
+        if (!this.isPrimaryWorker()) return;
         this.logger.log('⏰ Cron fired: 09:00 WIB (Morning Motivation)');
         await this.rotateAndBroadcast(9);
     }
@@ -29,6 +36,7 @@ export class BroadcastCronService {
     // WIB 15:00 = CET 09:00 → Afternoon Hustle (Hot Offer)
     @Cron('0 9 * * *')
     async handleAfternoonBroadcast() {
+        if (!this.isPrimaryWorker()) return;
         this.logger.log('⏰ Cron fired: 15:00 WIB (Afternoon Offer)');
         await this.rotateAndBroadcast(15);
     }
@@ -36,6 +44,7 @@ export class BroadcastCronService {
     // WIB 21:00 = CET 15:00 → Night Owl (Daily Recap)
     @Cron('0 15 * * *')
     async handleEveningBroadcast() {
+        if (!this.isPrimaryWorker()) return;
         this.logger.log('⏰ Cron fired: 21:00 WIB (Night Recap)');
         await this.rotateAndBroadcast(21);
     }
@@ -395,6 +404,7 @@ export class BroadcastCronService {
     // CET equivalents: 00:00, 06:00, 12:00, 18:00
     @Cron('0 */6 * * *')
     async handleShavingDetection() {
+        if (!this.isPrimaryWorker()) return;
         this.logger.log('🔍 Cron fired: Shaving Detection Check');
 
         try {
