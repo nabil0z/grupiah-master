@@ -120,14 +120,27 @@ export class AdminService {
             where: { isFake: false },
             orderBy: { createdAt: 'desc' },
             include: {
-                wallet: { select: { balance: true } },
-                _count: { select: { referrals: { where: { isFake: true } } } }
+                wallet: { select: { balance: true } }
             }
         });
+
+        // Count fake referrals per user (only for marketing users to save queries)
+        const marketingUserIds = users.filter(u => u.isMarketingAcc).map(u => u.id);
+        let fakeCounts: Record<string, number> = {};
+        if (marketingUserIds.length > 0) {
+            try {
+                const fakeUsers = await this.prisma.user.groupBy({
+                    by: ['referredById'],
+                    where: { isFake: true, referredById: { in: marketingUserIds } },
+                    _count: true
+                });
+                fakeCounts = Object.fromEntries(fakeUsers.map(f => [f.referredById!, f._count]));
+            } catch { /* ignore if schema not yet pushed */ }
+        }
+
         return users.map(u => ({
             ...u,
-            fakeReferralCount: (u as any)._count?.referrals || 0,
-            _count: undefined
+            fakeReferralCount: fakeCounts[u.id] || 0
         }));
     }
 
