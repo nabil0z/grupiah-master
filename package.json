@@ -15,14 +15,10 @@
   },
   "devDependencies": {
     "prettier": "latest",
-    "prisma": "^5.22.0",
     "turbo": "latest"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
-  ],
-  "dependencies": {
-    "@prisma/client": "^5.22.0"
-  }
+  ]
 }
