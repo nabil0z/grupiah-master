@@ -1,10 +1,11 @@
 import { Controller, Post, Body, UseGuards, Request, Injectable, UnauthorizedException } from '@nestjs/common';
 import { TelegramAuthGuard } from './telegram-auth/telegram-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminConfigService } from '../admin/config/admin-config.service';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private prisma: PrismaService) { }
+    constructor(private prisma: PrismaService, private configService: AdminConfigService) { }
 
     @Post('telegram/login')
     @UseGuards(TelegramAuthGuard)
@@ -17,12 +18,16 @@ export class AuthController {
             const safeUser = JSON.parse(JSON.stringify(req.dbUser, (key, value) =>
                 typeof value === 'bigint' ? value.toString() : value
             ));
+            const rewardsStr = await this.configService.getConfigValue('DAILY_LOGIN_REWARDS', '[5000, 10000, 15000, 25000, 35000, 50000, 100000]');
+            let dailyRewards: number[] = [5000, 10000, 15000, 25000, 35000, 50000, 100000];
+            try { dailyRewards = JSON.parse(rewardsStr); } catch { /* keep defaults */ }
             return {
                 message: 'Login successful',
                 user: safeUser,
                 wallet: safeUser.wallet || { balance: 0 },
                 canClaimDaily: true,
                 currentStreak: 0,
+                dailyRewards,
                 token: 'dev_mock_token'
             };
         }
@@ -91,12 +96,17 @@ export class AuthController {
             typeof value === 'bigint' ? value.toString() : value
         ));
 
+        const rewardsStr2 = await this.configService.getConfigValue('DAILY_LOGIN_REWARDS', '[5000, 10000, 15000, 25000, 35000, 50000, 100000]');
+        let dailyRewards2: number[] = [5000, 10000, 15000, 25000, 35000, 50000, 100000];
+        try { dailyRewards2 = JSON.parse(rewardsStr2); } catch { /* keep defaults */ }
+
         return {
             message: 'Login successful',
             user: safeUser,
             wallet: safeUser.wallet,
             canClaimDaily,
             currentStreak,
+            dailyRewards: dailyRewards2,
             token: 'generate_jwt_here_later_if_needed_for_web_admin'
         };
     }

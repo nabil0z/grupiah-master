@@ -8,21 +8,22 @@ interface DailyCheckInProps {
     onClose: () => void;
     isOpen: boolean;
     currentStreak: number;
+    dailyRewards?: number[];
 }
 
-export default function DailyCheckIn({ onClose, isOpen, currentStreak }: DailyCheckInProps) {
+export default function DailyCheckIn({ onClose, isOpen, currentStreak, dailyRewards = [] }: DailyCheckInProps) {
     const [claimedDay, setClaimedDay] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const REWARDS = [
-        { day: 1, amount: "Rp 5.000" },
-        { day: 2, amount: "Rp 10.000" },
-        { day: 3, amount: "Rp 15.000" },
-        { day: 4, amount: "Rp 25.000" },
-        { day: 5, amount: "Rp 35.000" },
-        { day: 6, amount: "Rp 50.000" },
-        { day: 7, amount: "🎁 Box", isBig: true },
-    ];
+    const defaultRewards = [5000, 10000, 15000, 25000, 35000, 50000, 100000];
+    const rewardValues = dailyRewards.length > 0 ? dailyRewards : defaultRewards;
+
+    const REWARDS = rewardValues.map((amount, i) => ({
+        day: i + 1,
+        amount: i === rewardValues.length - 1 ? '🎁 Box' : `Rp ${amount.toLocaleString('id-ID')}`,
+        isBig: i === rewardValues.length - 1,
+        rawAmount: amount
+    }));
 
     if (!isOpen) return null;
 
@@ -53,7 +54,7 @@ export default function DailyCheckIn({ onClose, isOpen, currentStreak }: DailyCh
 
                     <div className="p-6">
                         <p className="text-center text-slate-500 text-xs mb-6 px-4">
-                            Login 7 hari berturut-turut untuk membuka <strong>Mistery Box</strong> berisi RP 100.000!
+                            Login 7 hari berturut-turut untuk membuka <strong>Mistery Box</strong> berisi Rp {(REWARDS[REWARDS.length - 1]?.rawAmount || 100000).toLocaleString('id-ID')}!
                         </p>
 
                         <div className="grid grid-cols-4 gap-2 mb-4">

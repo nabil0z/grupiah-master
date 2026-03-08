@@ -42,10 +42,15 @@ export class UsersController {
             const refUplineStr = await this.configService.getConfigValue('APP_REF_UPLINE', '500');
             const refDownlineStr = await this.configService.getConfigValue('APP_REF_DOWNLINE', '250');
 
+            const rewardsStr = await this.configService.getConfigValue('DAILY_LOGIN_REWARDS', '[5000, 10000, 15000, 25000, 35000, 50000, 100000]');
+            let dailyRewards: number[] = [5000, 10000, 15000, 25000, 35000, 50000, 100000];
+            try { dailyRewards = JSON.parse(rewardsStr); } catch { /* keep defaults */ }
+
             return {
                 ...responseJson,
                 canClaimDaily,
                 currentStreak: user.dailyStreak,
+                dailyRewards,
                 appConfig: {
                     minWithdraw: parseInt(minWithdrawStr) || 500000,
                     refUpline: parseInt(refUplineStr) || 500,

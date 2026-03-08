@@ -23,6 +23,7 @@ function MainApp() {
   const [channelInfo, setChannelInfo] = useState<any>(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(1);
+  const [dailyRewards, setDailyRewards] = useState<number[]>([]);
 
   useEffect(() => {
     // 1. Check for Telegram Deep Links (start_param)
@@ -62,6 +63,7 @@ function MainApp() {
         // Show daily check-in if available (from login response)
         if (loginRes && loginRes.canClaimDaily) {
           setCurrentStreak(loginRes.currentStreak || 0);
+          if (loginRes.dailyRewards) setDailyRewards(loginRes.dailyRewards);
           setTimeout(() => setShowCheckIn(true), 1500);
         }
 
@@ -102,7 +104,7 @@ function MainApp() {
       <FakeWithdrawTicker />
       <BottomNav />
       {!isJoined && <ChannelLock onVerify={handleVerify} isVerifying={isVerifying} channelInfo={channelInfo} />}
-      <DailyCheckIn isOpen={showCheckIn} onClose={() => setShowCheckIn(false)} currentStreak={currentStreak} />
+      <DailyCheckIn isOpen={showCheckIn} onClose={() => setShowCheckIn(false)} currentStreak={currentStreak} dailyRewards={dailyRewards} />
     </div>
   );
 }
