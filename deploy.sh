@@ -21,7 +21,13 @@ git pull
 echo "📦 Building provider-adapters..."
 cd packages/provider-adapters && npm run build && cd ../..
 
-# 3. Build API
+# 3. Database migration + Prisma Client generate
+echo "🗄️  Syncing database schema..."
+npx prisma db push --schema=./packages/database/prisma/schema.prisma --accept-data-loss
+npx prisma generate --schema=./packages/database/prisma/schema.prisma
+echo "✅ Database synced!"
+
+# 4. Build API
 echo "🔧 Building API..."
 npm run build --workspace=grupiah-api
 
