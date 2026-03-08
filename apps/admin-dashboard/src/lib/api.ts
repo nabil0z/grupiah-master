@@ -79,7 +79,9 @@ export const usersApi = {
             }
         });
         if (!response.ok) throw new Error('Failed to fetch users');
-        return response.json();
+        const result = await response.json();
+        // API returns paginated { data, total, page, limit, totalPages }
+        return result.data || result;
     },
 
     async toggleBan(userId: string): Promise<any> {
