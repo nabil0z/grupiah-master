@@ -19,7 +19,7 @@ import { authApi, userApi } from './api/client';
 
 function MainApp() {
   const navigate = useNavigate();
-  const [isJoined, setIsJoined] = useState(true);
+  const [isJoined, setIsJoined] = useState(() => sessionStorage.getItem('channelVerified') === 'true');
   const [isVerifying, setIsVerifying] = useState(false);
   const [channelInfo, setChannelInfo] = useState<any>(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
@@ -54,11 +54,18 @@ function MainApp() {
           navigate(targetRoute);
         }
 
-        // Verify channel afterwards
-        const channelRes = await userApi.verifyChannel().catch(() => null);
-        if (channelRes) {
-          if (channelRes.channelInfo) setChannelInfo(channelRes.channelInfo);
-          if (channelRes.joined === false) setIsJoined(false);
+        // Verify channel afterwards (skip if already verified in this session)
+        if (sessionStorage.getItem('channelVerified') !== 'true') {
+          const channelRes = await userApi.verifyChannel().catch(() => null);
+          if (channelRes) {
+            if (channelRes.channelInfo) setChannelInfo(channelRes.channelInfo);
+            if (channelRes.joined === false) {
+              setIsJoined(false);
+            } else {
+              setIsJoined(true);
+              sessionStorage.setItem('channelVerified', 'true');
+            }
+          }
         }
 
         // Show daily check-in if available (from login response)
@@ -84,6 +91,7 @@ function MainApp() {
       .then(res => {
         if (res && res.joined) {
           setIsJoined(true);
+          sessionStorage.setItem('channelVerified', 'true');
         } else {
           alert('Verifikasi gagal. Pastikan kamu sudah bergabung ke channel @Grupiah_id, lalu coba lagi.');
         }
