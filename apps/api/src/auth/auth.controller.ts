@@ -64,7 +64,7 @@ export class AuthController {
                     lastName: telegramUser.last_name || null,
                     referralCode: `ref_${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
                     referredById: referredById,
-                    lastLogin: new Date(),
+                    lastLogin: null, // Let claimDaily set this on first claim
                     wallet: {
                         create: { balance: 0.0 }
                     }
