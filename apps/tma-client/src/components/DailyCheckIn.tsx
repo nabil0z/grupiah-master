@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Gift, Sparkles, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { userApi } from '../api/client';
+import { useWallet } from '../contexts/WalletContext';
 
 interface DailyCheckInProps {
     onClose: () => void;
@@ -14,6 +15,7 @@ interface DailyCheckInProps {
 export default function DailyCheckIn({ onClose, isOpen, currentStreak, dailyRewards = [] }: DailyCheckInProps) {
     const [claimedDay, setClaimedDay] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { refreshWallet } = useWallet();
 
     const defaultRewards = [5000, 10000, 15000, 25000, 35000, 50000, 100000];
     const rewardValues = dailyRewards.length > 0 ? dailyRewards : defaultRewards;
@@ -125,6 +127,7 @@ export default function DailyCheckIn({ onClose, isOpen, currentStreak, dailyRewa
                                     const res = await userApi.claimDaily();
                                     if (res.success) {
                                         setClaimedDay(currentStreak);
+                                        await refreshWallet();
                                         setTimeout(() => onClose(), 2000); // Auto close after 2s on success
                                     }
                                 } catch (e) {

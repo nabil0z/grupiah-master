@@ -3,11 +3,12 @@ import { motion } from 'framer-motion';
 import { Clock, ChevronRight, Flame, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, userApi, tasksApi } from '../api/client';
+import { useWallet } from '../contexts/WalletContext';
 import { Users, Loader2 } from 'lucide-react';
 
 const FlashSalePage = () => {
     const [timeLeft, setTimeLeft] = useState(14500); // approx 4 hours
-    const [balance, setBalance] = useState<number>(0);
+    const { balance } = useWallet();
     const [targetWithdrawal, setTargetWithdrawal] = useState<number>(500000);
     const [isLoading, setIsLoading] = useState(true);
     const [tasks, setTasks] = useState<any[]>([]);
@@ -36,7 +37,6 @@ const FlashSalePage = () => {
 
                 // Fetch profile immediately (don't wait for flash tasks)
                 userApi.getProfile().then(profile => {
-                    setBalance(Number(profile?.wallet?.balance || 0));
                     setTargetWithdrawal(Number(profile?.appConfig?.minWithdraw || 500000));
                     if (profile?.appConfig?.bannerImageUrl) {
                         setBannerConfig({

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Wallet as WalletIcon, ArrowRightLeft, ShieldAlert, History, HelpCircle, X, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { userApi } from '../api/client';
+import { useWallet } from '../contexts/WalletContext';
 
 interface WithdrawalItem {
     id: string;
@@ -18,7 +19,7 @@ export default function WalletPage() {
     const [withdrawAmount, setWithdrawAmount] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [balance, setBalance] = useState(0);
+    const { balance, refreshWallet } = useWallet();
     const [minWithdraw, setMinWithdraw] = useState(500000);
     const [isLoading, setIsLoading] = useState(true);
     const [withdrawals, setWithdrawals] = useState<WithdrawalItem[]>([]);
@@ -27,14 +28,12 @@ export default function WalletPage() {
         const fetchData = async () => {
             try {
                 const profile = await userApi.getProfile();
-                setBalance(Number(profile?.wallet?.balance) || 0);
                 setMinWithdraw(Number(profile?.appConfig?.minWithdraw) || 500000);
 
                 const wdHistory = await userApi.getWithdrawals().catch(() => []);
                 setWithdrawals(wdHistory);
             } catch (err) {
                 console.error("Failed to fetch wallet", err);
-                setBalance(0);
             } finally {
                 setIsLoading(false);
             }
@@ -65,7 +64,7 @@ export default function WalletPage() {
                 }
             });
             setIsSuccess(true);
-            setBalance(prev => prev - withdrawAmount); // Optimistic deduction
+            await refreshWallet(); // Update balance from server
 
             setTimeout(() => {
                 setIsWithdrawModalOpen(false);

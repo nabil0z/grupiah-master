@@ -13,6 +13,7 @@ import TaskHistoryPage from './pages/TaskHistoryPage';
 import ChannelLock from './components/ChannelLock';
 import DailyCheckIn from './components/DailyCheckIn';
 import FakeWithdrawTicker from './components/FakeWithdrawTicker';
+import { WalletProvider } from './contexts/WalletContext';
 import { useState, useEffect } from 'react';
 import { authApi, userApi } from './api/client';
 
@@ -112,7 +113,9 @@ function MainApp() {
 export default function App() {
   return (
     <Router>
-      <MainApp />
+      <WalletProvider>
+        <MainApp />
+      </WalletProvider>
     </Router>
   );
 }
