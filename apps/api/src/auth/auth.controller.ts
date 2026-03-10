@@ -73,6 +73,43 @@ export class AuthController {
             canClaimDaily = true;
             currentStreak = 0;
 
+            // Send welcome DM to new user (fire-and-forget)
+            try {
+                const botToken = process.env.BOT_TOKEN;
+                if (botToken) {
+                    let welcomeMsg = `👋 *Selamat datang di Grupiah!*\n\n` +
+                        `Hai ${telegramUser.first_name || 'Kawan'}! Akun kamu sudah berhasil dibuat. 🎉\n\n` +
+                        `Selesaikan tugas ringan dan kumpulkan Rupiah nyata setiap hari!\n\n`;
+
+                    if (referredById) {
+                        const refBonusStr = await this.configService.getConfigValue('APP_REF_DOWNLINE', '250');
+                        const refBonus = parseInt(refBonusStr) || 250;
+                        welcomeMsg += `🎁 Kamu diundang oleh teman! Selesaikan *1 tugas pertama* untuk mendapatkan bonus *Rp ${refBonus.toLocaleString('id-ID')}* untuk kamu dan pengundangmu.\n\n`;
+                    }
+
+                    welcomeMsg += `⬇️ Buka Mini App dan mulai hasilkan uang sekarang!`;
+
+                    const webAppUrl = process.env.WEB_APP_URL || 'https://app.grupiah.online';
+                    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: telegramUser.id.toString(),
+                            text: welcomeMsg,
+                            parse_mode: 'Markdown',
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{ text: '💰 Buka App Grupiah', web_app: { url: webAppUrl } }],
+                                    [{ text: '📢 Gabung Channel Resmi', url: 'https://t.me/Grupiah_id' }]
+                                ]
+                            }
+                        })
+                    }).catch(err => console.error('[Auth] Welcome DM failed:', err));
+                }
+            } catch (dmErr) {
+                console.error('[Auth] Welcome DM error:', dmErr);
+            }
+
         } else {
             // Existing user — check canClaimDaily BEFORE updating lastLogin
             const today = new Date();
