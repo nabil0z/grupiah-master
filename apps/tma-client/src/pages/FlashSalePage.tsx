@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, ChevronRight, Flame, Settings } from 'lucide-react';
+import { Clock, ChevronRight, Flame, Settings, Gift, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authApi, userApi, tasksApi } from '../api/client';
 import { useWallet } from '../contexts/WalletContext';
@@ -15,6 +15,7 @@ const FlashSalePage = () => {
     const [fetchError, setFetchError] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState(0);
     const [bannerConfig, setBannerConfig] = useState<{ imageUrl: string, linkUrl: string }>({ imageUrl: '', linkUrl: '' });
+    const [referralBonus, setReferralBonus] = useState<{ show: boolean, amount: number }>({ show: false, amount: 0 });
     const navigate = useNavigate();
 
     // Flash Sale Countdown & Auth Simulator
@@ -42,6 +43,13 @@ const FlashSalePage = () => {
                         setBannerConfig({
                             imageUrl: profile.appConfig.bannerImageUrl,
                             linkUrl: profile.appConfig.bannerLinkUrl || ''
+                        });
+                    }
+                    // Show referral bonus bar for invited users who haven't completed first task
+                    if (profile?.referredById && !profile?.isReferralActive) {
+                        setReferralBonus({
+                            show: true,
+                            amount: Number(profile?.appConfig?.refDownline || 250)
                         });
                     }
                 }).catch(() => { });
@@ -145,6 +153,31 @@ const FlashSalePage = () => {
                     </p>
                 </div>
             </div>
+
+            {/* Referral Bonus Announcement Bar */}
+            {referralBonus.show && (
+                <div className="px-5 -mt-5 mb-4 relative z-20">
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-3.5 shadow-md flex items-center gap-3 relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-6 -mt-6 blur-lg"></div>
+                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shrink-0">
+                            <Gift size={22} className="text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-bold text-xs">🎁 Bonus Referral Aktif!</p>
+                            <p className="text-white/90 text-[10px] mt-0.5 leading-tight">
+                                Selesaikan 1 tugas pertama → kamu dapat <strong>+Rp {referralBonus.amount.toLocaleString('id-ID')}</strong> bonus!
+                            </p>
+                        </div>
+                        <button onClick={() => setReferralBonus(prev => ({ ...prev, show: false }))} className="text-white/60 hover:text-white p-1 shrink-0">
+                            <X size={16} />
+                        </button>
+                    </motion.div>
+                </div>
+            )}
 
             {/* Telegram Star Boost Banner */}
             <div className="px-5 -mt-6 mb-6 relative z-20">
