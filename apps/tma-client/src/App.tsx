@@ -17,10 +17,30 @@ import { WalletProvider } from './contexts/WalletContext';
 import { useState, useEffect } from 'react';
 import { authApi, userApi } from './api/client';
 
+const CHANNEL_VERIFY_KEY = 'channelVerified';
+const CHANNEL_VERIFY_TTL = 24 * 60 * 60 * 1000; // 24 jam
+
+function isChannelVerifiedCached(): boolean {
+  try {
+    const raw = localStorage.getItem(CHANNEL_VERIFY_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (data.verified && Date.now() - data.timestamp < CHANNEL_VERIFY_TTL) {
+      return true;
+    }
+  } catch { /* ignore parse error */ }
+  return false;
+}
+
+function saveChannelVerified() {
+  localStorage.setItem(CHANNEL_VERIFY_KEY, JSON.stringify({ verified: true, timestamp: Date.now() }));
+}
+
 function MainApp() {
   const navigate = useNavigate();
-  const [isJoined, setIsJoined] = useState(() => sessionStorage.getItem('channelVerified') === 'true');
+  const [isJoined, setIsJoined] = useState(() => isChannelVerifiedCached());
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(() => !isChannelVerifiedCached());
   const [channelInfo, setChannelInfo] = useState<any>(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(1);
@@ -54,8 +74,8 @@ function MainApp() {
           navigate(targetRoute);
         }
 
-        // Verify channel afterwards (skip if already verified in this session)
-        if (sessionStorage.getItem('channelVerified') !== 'true') {
+        // Verify channel (skip if cache masih valid dalam 24 jam)
+        if (!isChannelVerifiedCached()) {
           const channelRes = await userApi.verifyChannel().catch(() => null);
           if (channelRes) {
             if (channelRes.channelInfo) setChannelInfo(channelRes.channelInfo);
@@ -63,7 +83,7 @@ function MainApp() {
               setIsJoined(false);
             } else {
               setIsJoined(true);
-              sessionStorage.setItem('channelVerified', 'true');
+              saveChannelVerified();
             }
           }
         }
@@ -78,6 +98,8 @@ function MainApp() {
       } catch (err) {
         console.error("Global Boot Error:", err);
         setIsJoined(true); // default fallback
+      } finally {
+        setIsInitializing(false);
       }
     };
 
@@ -91,7 +113,7 @@ function MainApp() {
       .then(res => {
         if (res && res.joined) {
           setIsJoined(true);
-          sessionStorage.setItem('channelVerified', 'true');
+          saveChannelVerified();
         } else {
           alert('Verifikasi gagal. Pastikan kamu sudah bergabung ke channel @Grupiah_id, lalu coba lagi.');
         }
@@ -101,6 +123,17 @@ function MainApp() {
       })
       .finally(() => setIsVerifying(false));
   };
+
+  if (isInitializing) {
+    return (
+      <div className="App font-sans max-w-md mx-auto relative bg-gray-50 min-h-screen shadow-xl flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-medium">Memuat Aplikasi...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="App font-sans max-w-md mx-auto relative bg-gray-50 min-h-screen shadow-xl overflow-hidden pb-safe">
