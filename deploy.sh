@@ -72,15 +72,19 @@ pm2 start apps/bot/dist/main.js --name grupiah-bot
 
 # TMA Client (port 53002)
 pm2 start "npx serve@latest /opt/grupiah/apps/tma-client/dist -l 53002 -s" --name grupiah-client
+sleep 3
 
 # TMA Landing (port 53004 → grupiah.online)
 pm2 start "npx serve@latest /opt/grupiah/apps/tma-landing/dist -l 53004 -s" --name grupiah-landing
+sleep 3
 
 # Admin Dashboard (port 53006 → admin.grupiah.online)
 pm2 start "npx serve@latest /opt/grupiah/apps/admin-dashboard/out -l 53006 -s" --name grupiah-admin
+sleep 3
 
 # Admin TMA (port 53007)
 pm2 start "npx serve@latest /opt/grupiah/apps/admin-tma/dist -l 53007 -s" --name grupiah-admin-tma
+sleep 3
 
 pm2 save
 
