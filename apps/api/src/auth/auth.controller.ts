@@ -45,13 +45,16 @@ export class AuthController {
         if (!user) {
             // Decode startParam for referral check
             let referredById: string | null = null;
+            console.log(`[Auth] NEW USER - telegramId: ${telegramUser.id}, startParam: ${startParam}`);
             if (startParam) {
                 // startParam is the referralCode (e.g. 'ref_ABC123')
                 const inviter = await this.prisma.user.findUnique({
                     where: { referralCode: startParam }
                 });
+                console.log(`[Auth] Inviter lookup for '${startParam}':`, inviter ? `found (${inviter.id})` : 'NOT FOUND');
                 if (inviter) referredById = inviter.id;
             }
+            console.log(`[Auth] referredById = ${referredById}`);
 
             user = await this.prisma.user.create({
                 data: {
@@ -121,6 +124,7 @@ export class AuthController {
             currentStreak = user.dailyStreak || 0;
 
             // If user has no referrer yet and opened via referral link, link them now
+            console.log(`[Auth] EXISTING USER - telegramId: ${telegramUser.id}, startParam: ${startParam}, hasReferrer: ${!!user.referredById}`);
             if (!user.referredById && startParam) {
                 const inviter = await this.prisma.user.findUnique({
                     where: { referralCode: startParam }
@@ -130,6 +134,22 @@ export class AuthController {
                         where: { id: user.id },
                         data: { referredById: inviter.id }
                     });
+                    console.log(`[Auth] Late-linked referral: ${telegramUser.id} -> inviter ${inviter.id}`);
+
+                    // Send referral DM to late-linked user
+                    try {
+                        const botToken = process.env.BOT_TOKEN;
+                        if (botToken) {
+                            const refBonusStr = await this.configService.getConfigValue('APP_REF_DOWNLINE', '250');
+                            const refBonus = parseInt(refBonusStr) || 250;
+                            const msg = `🎁 *Kamu terhubung dengan pengundang!*\n\nSelesaikan *1 tugas pertama* untuk mendapatkan bonus *Rp ${refBonus.toLocaleString('id-ID')}* untuk kamu dan pengundangmu.`;
+                            fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ chat_id: telegramUser.id.toString(), text: msg, parse_mode: 'Markdown' })
+                            }).catch(err => console.error('[Auth] Late-link DM failed:', err));
+                        }
+                    } catch (e) { console.error('[Auth] Late-link DM error:', e); }
                 }
             }
 
