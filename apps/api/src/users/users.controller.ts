@@ -545,6 +545,10 @@ export class UsersController {
 
             if (!userWithRefs) return [];
 
+            // Read upline bonus config to show actual amount
+            const refUplineStr = await this.configService.getConfigValue('APP_REF_UPLINE', '500');
+            const refUplineBonus = parseInt(refUplineStr) || 500;
+
             const mapped = userWithRefs.referrals.map(ref => {
                 const fullName = [ref.firstName, ref.lastName].filter(Boolean).join(' ') || 'Anonymous User';
                 return {
@@ -552,7 +556,7 @@ export class UsersController {
                     name: fullName,
                     username: ref.username || null,
                     isCompleted: ref.isReferralActive,
-                    reward: ref.isReferralActive ? '✅ Aktif' : 'Menunggu',
+                    reward: ref.isReferralActive ? `+Rp ${refUplineBonus.toLocaleString('id-ID')}` : 'Menunggu',
                     time: ref.createdAt.toISOString()
                 };
             });

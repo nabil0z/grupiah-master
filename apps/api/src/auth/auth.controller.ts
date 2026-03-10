@@ -83,6 +83,19 @@ export class AuthController {
             canClaimDaily = lastLoginStr !== todayStr;
             currentStreak = user.dailyStreak || 0;
 
+            // If user has no referrer yet and opened via referral link, link them now
+            if (!user.referredById && startParam) {
+                const inviter = await this.prisma.user.findUnique({
+                    where: { referralCode: startParam }
+                });
+                if (inviter && inviter.id !== user.id) {
+                    await this.prisma.user.update({
+                        where: { id: user.id },
+                        data: { referredById: inviter.id }
+                    });
+                }
+            }
+
             // Now update lastLogin
             user = await this.prisma.user.update({
                 where: { id: user.id },

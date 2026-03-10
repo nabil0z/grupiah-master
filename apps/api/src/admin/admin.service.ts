@@ -251,6 +251,58 @@ export class AdminService {
                         completions: 1
                     }
                 });
+
+                // --- Referral Matrix Payout (First Task Completion) ---
+                const user = userTask.user;
+                if (user.referredById && !user.isReferralActive) {
+                    // Read bonus config from PlatformConfig table
+                    const uplineConfig = await tx.platformConfig.findUnique({ where: { key: 'APP_REF_UPLINE' } });
+                    const downlineConfig = await tx.platformConfig.findUnique({ where: { key: 'APP_REF_DOWNLINE' } });
+                    const inviterBonus = parseInt(uplineConfig?.value || '500') || 500;
+                    const inviteeBonus = parseInt(downlineConfig?.value || '250') || 250;
+
+                    // 1. Mark referral as active for this user
+                    await tx.user.update({
+                        where: { id: user.id },
+                        data: { isReferralActive: true }
+                    });
+
+                    // 2. Give Invitee (downline) their welcome bonus
+                    if (inviteeBonus > 0 && walletId) {
+                        await tx.wallet.update({
+                            where: { id: walletId },
+                            data: { balance: { increment: inviteeBonus } }
+                        });
+                        await tx.walletMutation.create({
+                            data: {
+                                walletId: walletId,
+                                amount: inviteeBonus,
+                                type: 'REFERRAL_BONUS',
+                                description: 'Welcome Bonus (Task Completed)'
+                            }
+                        });
+                    }
+
+                    // 3. Give Inviter (upline) their reward
+                    if (inviterBonus > 0) {
+                        let inviterWallet = await tx.wallet.findUnique({ where: { userId: user.referredById } });
+                        if (!inviterWallet) {
+                            inviterWallet = await tx.wallet.create({ data: { userId: user.referredById, balance: 0 } });
+                        }
+                        await tx.wallet.update({
+                            where: { id: inviterWallet.id },
+                            data: { balance: { increment: inviterBonus } }
+                        });
+                        await tx.walletMutation.create({
+                            data: {
+                                walletId: inviterWallet.id,
+                                amount: inviterBonus,
+                                type: 'REFERRAL_BONUS',
+                                description: `Referral Bonus for inviting ${user.firstName || user.username || 'User'}`
+                            }
+                        });
+                    }
+                }
             }
 
             // 3. Audit Log
