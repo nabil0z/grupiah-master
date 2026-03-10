@@ -64,8 +64,20 @@ for port in 53000 53001 53002 53004 53006 53007; do
 done
 sleep 2
 
-# API: cluster mode (port 53000)
+# API: cluster mode (port 53000) — START FIRST
 pm2 start apps/api/dist/src/main.js --name grupiah-api -i max
+
+# Wait for API to be ready before starting other services
+echo "⏳ Waiting for API to be ready on port 53000..."
+for i in $(seq 1 30); do
+    if curl -s -o /dev/null -w "%{http_code}" http://localhost:53000/ 2>/dev/null | grep -q "200\|404\|401"; then
+        echo "   ✅ API ready! (${i}s)"
+        break
+    fi
+    sleep 1
+    echo -n "."
+done
+echo ""
 
 # Bot (port 53001)
 pm2 start apps/bot/dist/main.js --name grupiah-bot
