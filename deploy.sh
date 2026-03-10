@@ -53,11 +53,16 @@ NEXT_PUBLIC_API_URL=$API_URL npm run build --workspace=admin-dashboard
 
 # 8. Restart ALL services
 echo "🔄 Restarting services..."
-fuser -k 53000/tcp 2>/dev/null || true
-sleep 2
 
-# Stop all grupiah services
+# Stop all PM2 processes first
 pm2 delete all 2>/dev/null || true
+sleep 1
+
+# Kill ALL grupiah ports to prevent conflicts
+for port in 53000 53001 53002 53004 53006 53007; do
+    fuser -k $port/tcp 2>/dev/null || true
+done
+sleep 2
 
 # API: cluster mode (port 53000)
 pm2 start apps/api/dist/src/main.js --name grupiah-api -i max
@@ -66,19 +71,33 @@ pm2 start apps/api/dist/src/main.js --name grupiah-api -i max
 pm2 start apps/bot/dist/main.js --name grupiah-bot
 
 # TMA Client (port 53002)
-pm2 start "npx serve /opt/grupiah/apps/tma-client/dist -l 53002 -s" --name grupiah-client
+pm2 start "npx serve@latest /opt/grupiah/apps/tma-client/dist -l 53002 -s" --name grupiah-client
 
 # TMA Landing (port 53004 → grupiah.online)
-pm2 start "npx serve /opt/grupiah/apps/tma-landing/dist -l 53004 -s" --name grupiah-landing
+pm2 start "npx serve@latest /opt/grupiah/apps/tma-landing/dist -l 53004 -s" --name grupiah-landing
 
 # Admin Dashboard (port 53006 → admin.grupiah.online)
-pm2 start "npx serve /opt/grupiah/apps/admin-dashboard/out -l 53006 -s" --name grupiah-admin
+pm2 start "npx serve@latest /opt/grupiah/apps/admin-dashboard/out -l 53006 -s" --name grupiah-admin
 
 # Admin TMA (port 53007)
-pm2 start "npx serve /opt/grupiah/apps/admin-tma/dist -l 53007 -s" --name grupiah-admin-tma
+pm2 start "npx serve@latest /opt/grupiah/apps/admin-tma/dist -l 53007 -s" --name grupiah-admin-tma
 
 pm2 save
 
+# Health check
+sleep 3
+echo ""
+echo "🔍 Port Health Check:"
+for port in 53000 53002 53004 53006 53007; do
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$port/ 2>/dev/null || echo "FAIL")
+    if [ "$STATUS" = "200" ]; then
+        echo "   ✅ Port $port: OK"
+    else
+        echo "   ❌ Port $port: $STATUS"
+    fi
+done
+
+echo ""
 echo "================================"
 echo "✅ Deploy complete!"
 pm2 status
