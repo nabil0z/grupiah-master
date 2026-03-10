@@ -13,8 +13,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     const refreshWallet = useCallback(async () => {
         try {
-            const data = await userApi.getWallet();
-            setBalance(Number(data?.balance || 0));
+            const data = await userApi.getProfile();
+            setBalance(Number(data?.wallet?.balance || 0));
         } catch (e) {
             console.error('[Wallet] Refresh failed:', e);
         }

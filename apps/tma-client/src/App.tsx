@@ -82,7 +82,14 @@ function MainApp() {
     setIsVerifying(true);
     userApi.verifyChannel(true)
       .then(res => {
-        if (res && res.joined) setIsJoined(true);
+        if (res && res.joined) {
+          setIsJoined(true);
+        } else {
+          alert('Verifikasi gagal. Pastikan kamu sudah bergabung ke channel @Grupiah_id, lalu coba lagi.');
+        }
+      })
+      .catch(() => {
+        alert('Terjadi kesalahan saat memverifikasi. Coba lagi dalam beberapa detik.');
       })
       .finally(() => setIsVerifying(false));
   };
