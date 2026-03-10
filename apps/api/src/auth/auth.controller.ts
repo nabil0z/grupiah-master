@@ -133,12 +133,12 @@ export class AuthController {
                 }
             }
 
-            // Now update lastLogin
-            user = await this.prisma.user.update({
+            // Do NOT update lastLogin here — let claimDaily handle it
+            // This prevents claimDaily from thinking user already claimed today
+            user = await this.prisma.user.findUnique({
                 where: { id: user.id },
-                data: { lastLogin: today },
                 include: { wallet: true }
-            });
+            }) as typeof user;
         }
 
         // Convert BigInt to string before sending JSON response
