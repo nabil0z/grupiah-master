@@ -92,15 +92,22 @@ export class AdBlueMediaAdapter implements IOfferwallAdapter {
     }
 
     async processReward(data: any): Promise<RewardDetail> {
-        // Typical AdBlueMedia payload mapping
-        // Setup AdBlueMedia postback URL exactly like: 
-        // https://yourdomain.com/webhook/postback/adbluemedia?aff_sub={s1}&payout={payout}&transaction_id={lead_id}&campaign_name={campaign_name}
+        console.log(`[AdBlueMedia processReward] Raw data:`, JSON.stringify(data));
+
+        const userId = data.aff_sub || data.s1 || '';
+        const payout = parseFloat(data.payout || data.rate || '0') || 0;
+        const taskId = data.campaign_name || data.offer_id || 'adblue_unknown_task';
+        // Use lead_id as unique transaction ID, fallback to composite if missing
+        const providerTransactionId = data.transaction_id || data.lead_id
+            || `adblue_${taskId}_${userId}_${Date.now()}`;
+
+        console.log(`[AdBlueMedia processReward] userId=${userId}, taskId=${taskId}, payout=${payout}, txId=${providerTransactionId}`);
 
         return {
-            taskId: data.campaign_name || 'adblue_unknown_task', // AdBlueMedia often sends campaign name
-            userId: data.aff_sub || data.s1,  // The tracking parameter (ID User)
-            reward: parseFloat(data.payout || data.rate),
-            providerTransactionId: data.transaction_id || data.lead_id
+            taskId,
+            userId,
+            reward: payout,
+            providerTransactionId
         };
     }
 }

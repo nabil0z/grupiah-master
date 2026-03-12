@@ -117,12 +117,26 @@ export class OGAdsAdapter implements IOfferwallAdapter {
     }
 
     async processReward(data: any): Promise<RewardDetail> {
-        // Parse incoming Webhook body from OGAds
+        console.log(`[OGAds processReward] Raw data:`, JSON.stringify(data));
+
+        const userId = data.aff_sub || '';
+        const offerId = data.offer_id || '';
+        const payout = parseFloat(data.payout) || 0;
+        // OGAds doesn't provide a unique transaction ID macro.
+        // transaction_id may contain {session_ip} which is NOT unique.
+        // Generate composite ID: offer_id + user_id + timestamp for uniqueness
+        const rawTxId = data.transaction_id || '';
+        const providerTransactionId = rawTxId && rawTxId !== ''
+            ? `ogads_${offerId}_${userId}_${rawTxId}`
+            : `ogads_${offerId}_${userId}_${Date.now()}`;
+
+        console.log(`[OGAds processReward] userId=${userId}, offerId=${offerId}, payout=${payout}, txId=${providerTransactionId}`);
+
         return {
-            taskId: data.offer_id, // Usually mapped to our internal Task ID 
-            userId: data.aff_sub,  // We passed this user ID in `fetchTasks` providerUrl
-            reward: parseFloat(data.payout),
-            providerTransactionId: data.transaction_id
+            taskId: offerId,
+            userId,
+            reward: payout,
+            providerTransactionId
         };
     }
 }

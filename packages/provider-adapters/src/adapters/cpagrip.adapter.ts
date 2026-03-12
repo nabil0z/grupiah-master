@@ -109,15 +109,20 @@ export class CPAGripAdapter implements IOfferwallAdapter {
     }
 
     async processReward(data: any): Promise<RewardDetail> {
-        // CPAGrip postback query params mapping:
-        // Setup postback URL in CPAGrip dashboard as:
-        // https://api.grupiah.online/webhook/postback/cpagrip?tracking_id={tracking_id}&payout={payout}&offer_id={offer_id}&lead_id={lead_id}
+        console.log(`[CPAGrip processReward] Raw data:`, JSON.stringify(data));
+
+        const userId = data.tracking_id || '';
+        const offerId = data.offer_id || 'unknown';
+        const payout = parseFloat(data.payout || '0') || 0;
+        const providerTransactionId = data.lead_id || `cpagrip_${offerId}_${userId}_${Date.now()}`;
+
+        console.log(`[CPAGrip processReward] userId=${userId}, offerId=${offerId}, payout=${payout}, txId=${providerTransactionId}`);
 
         return {
-            taskId: `cpagrip_${data.offer_id || 'unknown'}`,
-            userId: data.tracking_id,
-            reward: parseFloat(data.payout || '0'),
-            providerTransactionId: data.lead_id || `cpagrip_${Date.now()}`
+            taskId: `cpagrip_${offerId}`,
+            userId,
+            reward: payout,
+            providerTransactionId
         };
     }
 }

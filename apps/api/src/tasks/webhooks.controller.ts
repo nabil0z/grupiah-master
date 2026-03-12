@@ -24,6 +24,15 @@ export class WebhooksController {
     }
 
     private async processWebhook(providerName: string, req: Request, res: Response) {
+        const incomingIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+        console.log(`\n========== [POSTBACK RECEIVED] ==========`);
+        console.log(`[Postback] Provider: ${providerName.toUpperCase()}`);
+        console.log(`[Postback] IP: ${incomingIp}`);
+        console.log(`[Postback] Method: ${req.method}`);
+        console.log(`[Postback] Query: ${JSON.stringify(req.query)}`);
+        console.log(`[Postback] Body: ${JSON.stringify(req.body)}`);
+        console.log(`==========================================\n`);
+
         try {
             const normalizedProviderName = providerName.toUpperCase();
 
@@ -43,9 +52,13 @@ export class WebhooksController {
             }
 
             // 3. Extract standard Reward Payload (User ID, Reward Amount, Transaction ID)
-            const rewardDetail = await adapter.processReward(req.body && Object.keys(req.body).length > 0 ? req.body : req.query);
+            const rawData = req.body && Object.keys(req.body).length > 0 ? req.body : req.query;
+            const rewardDetail = await adapter.processReward(rawData);
+
+            console.log(`[Postback] Parsed → userId=${rewardDetail.userId}, reward=${rewardDetail.reward}, txId=${rewardDetail.providerTransactionId}, taskId=${rewardDetail.taskId}`);
 
             if (!rewardDetail.userId || !rewardDetail.reward) {
+                console.error(`[Postback] REJECTED: Missing userId or reward. userId="${rewardDetail.userId}", reward="${rewardDetail.reward}"`);
                 return res.status(HttpStatus.BAD_REQUEST).send('Missing required parameters (userId, reward)');
             }
 
