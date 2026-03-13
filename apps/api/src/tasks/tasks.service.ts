@@ -57,13 +57,15 @@ export class TasksService {
             const ogadsEnabled = (await this.configService.getConfigValue('PROVIDER_OGADS_ENABLED', 'true')) === 'true';
             const adblueEnabled = (await this.configService.getConfigValue('PROVIDER_ADBLUEMEDIA_ENABLED', 'true')) === 'true';
             const cpagripEnabled = (await this.configService.getConfigValue('PROVIDER_CPAGRIP_ENABLED', 'true')) === 'true';
+            const ggEnabled = (await this.configService.getConfigValue('PROVIDER_GOLDENGOOSE_ENABLED', 'true')) === 'true';
 
             if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
                 // Use cached external tasks (respect enabled flags)
                 providerResults = [
                     ogadsEnabled ? { status: 'fulfilled' as const, value: cached.data[0] || [] } : { status: 'rejected' as const, reason: 'disabled' },
                     adblueEnabled ? { status: 'fulfilled' as const, value: cached.data[1] || [] } : { status: 'rejected' as const, reason: 'disabled' },
-                    cpagripEnabled ? { status: 'fulfilled' as const, value: cached.data[2] || [] } : { status: 'rejected' as const, reason: 'disabled' }
+                    cpagripEnabled ? { status: 'fulfilled' as const, value: cached.data[2] || [] } : { status: 'rejected' as const, reason: 'disabled' },
+                    ggEnabled ? { status: 'fulfilled' as const, value: cached.data[3] || [] } : { status: 'rejected' as const, reason: 'disabled' }
                 ];
             } else {
                 // Fetch fresh from enabled providers only
@@ -77,13 +79,17 @@ export class TasksService {
                     cpagripEnabled
                         ? this.taskProviderFactory.getAdapter('CPAGRIP').fetchTasks(userId, userIp, userAgent)
                         : Promise.reject('disabled'),
+                    ggEnabled
+                        ? this.taskProviderFactory.getAdapter('GOLDENGOOSE').fetchTasks(userId, userIp, userAgent)
+                        : Promise.reject('disabled'),
                 ]);
 
                 // Cache successful results
                 const ogData = providerResults[0].status === 'fulfilled' ? providerResults[0].value : [];
                 const abData = providerResults[1].status === 'fulfilled' ? providerResults[1].value : [];
                 const cgData = providerResults[2].status === 'fulfilled' ? providerResults[2].value : [];
-                externalTaskCache.set(cacheKey, { data: [ogData, abData, cgData], timestamp: Date.now() });
+                const ggData = providerResults[3].status === 'fulfilled' ? providerResults[3].value : [];
+                externalTaskCache.set(cacheKey, { data: [ogData, abData, cgData, ggData], timestamp: Date.now() });
             }
 
             const results = providerResults;
@@ -152,6 +158,26 @@ export class TasksService {
                 );
             } else if (results[2] && results[2].status === 'rejected' && results[2].reason !== 'disabled') {
                 console.error('[TasksService] CPAGrip Fetch Failed', results[2].reason);
+            }
+
+            // Golden Goose
+            if (results[3] && results[3].status === 'fulfilled' && results[3].value.length > 0) {
+                allExternalOffers = allExternalOffers.concat(
+                    results[3].value.map(offer => ({
+                        id: offer.externalId || `gg_${Math.random()}`,
+                        provider: 'GOLDENGOOSE',
+                        externalId: offer.externalId || `gg_${Math.random()}`,
+                        title: offer.title,
+                        description: offer.description,
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        type: 'AUTO',
+                        isActive: true,
+                        providerUrl: offer.providerUrl,
+                        logoUrl: offer.logoUrl
+                    }))
+                );
+            } else if (results[3] && results[3].status === 'rejected' && results[3].reason !== 'disabled') {
+                console.error('[TasksService] Golden Goose Fetch Failed', results[3].reason);
             }
 
             const scoresRaw = await this.prisma.offerScore.findMany();

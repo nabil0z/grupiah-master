@@ -5,12 +5,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { TaskProviderFactory } from './task-provider.factory';
 import { WebhooksController } from './webhooks.controller';
 import { AdminConfigModule } from '../admin/config/admin-config.module';
-import { OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter } from '@grupiah/provider-adapters';
+import { OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter, GoldenGooseAdapter } from '@grupiah/provider-adapters';
 
 @Module({
   imports: [PrismaModule, AdminConfigModule],
   controllers: [TasksController, WebhooksController],
-  providers: [TasksService, TaskProviderFactory, OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter],
+  providers: [TasksService, TaskProviderFactory, OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter, GoldenGooseAdapter],
   exports: [TasksService]
 })
 export class TasksModule { }

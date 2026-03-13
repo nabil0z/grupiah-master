@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IOfferwallAdapter, OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter } from '@grupiah/provider-adapters';
+import { IOfferwallAdapter, OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter, GoldenGooseAdapter } from '@grupiah/provider-adapters';
 
 @Injectable()
 export class TaskProviderFactory {
@@ -7,7 +7,8 @@ export class TaskProviderFactory {
     constructor(
         private readonly ogAdsAdapter: OGAdsAdapter,
         private readonly adBlueMediaAdapter: AdBlueMediaAdapter,
-        private readonly cpaGripAdapter: CPAGripAdapter
+        private readonly cpaGripAdapter: CPAGripAdapter,
+        private readonly goldenGooseAdapter: GoldenGooseAdapter
     ) { }
 
     getAdapter(providerName: string): IOfferwallAdapter {
@@ -18,6 +19,8 @@ export class TaskProviderFactory {
                 return this.adBlueMediaAdapter;
             case 'CPAGRIP':
                 return this.cpaGripAdapter;
+            case 'GOLDENGOOSE':
+                return this.goldenGooseAdapter;
             default:
                 throw new Error(`Unsupported Task Provider: ${providerName}`);
         }
