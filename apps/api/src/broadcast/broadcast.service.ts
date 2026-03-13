@@ -11,9 +11,11 @@ export class BroadcastService {
         // Initialize Gemini with the system API key
         const apiKey = process.env.GEMINI_API_KEY;
         try {
-            if (apiKey && apiKey !== 'mock_gemini_key') {
+            // Only initialize if we have a real key (not the mock placeholder from .env)
+            if (apiKey && apiKey !== 'mock_gemini_key' && apiKey.trim() !== '') {
                 this.ai = new GoogleGenAI({ apiKey });
             } else {
+                this.logger.warn('GEMINI_API_KEY is not set or is mock. AI generation will use fallback mode.');
                 this.ai = null as any;
             }
         } catch (e) {

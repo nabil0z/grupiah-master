@@ -60,18 +60,29 @@ export class CPAGripAdapter implements IOfferwallAdapter {
 
             this.logger.log(`[CPAGrip] After OS filter: ${filtered.length}/${offers.length} offers (${isAndroid ? 'Android' : isIOS ? 'iOS' : 'Desktop'})`);
 
-            return filtered.map((offer: any, index: number) => ({
-                id: `cpagrip_${offer.offerid || index}`,
-                provider: 'CPAGRIP',
-                externalId: `cpagrip_${offer.offerid || index}`,
-                title: offer.title || offer.offer_name || 'CPAGrip Offer',
-                description: offer.description || offer.adcopy || offer.conversion || 'Complete this task to earn reward.',
-                reward: parseFloat(offer.payout || offer.amount || '0'),
-                type: 'AUTO',
-                isActive: true,
-                providerUrl: offer.offerlink || offer.link || offer.url || '#',
-                logoUrl: offer.offerphoto || offer.image || offer.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(offer.title || 'CG')}&background=6366f1&color=fff&size=128`
-            }));
+            return filtered.map((offer: any, index: number) => {
+                const title = offer.title || offer.offer_name || 'CPAGrip Offer';
+                
+                // Combine description with adcopy if adcopy provides more context/instructions
+                const instructions = offer.adcopy || '';
+                const baseDescription = offer.description || offer.conversion || 'Selesaikan tugas ini.';
+                const finalDescription = instructions && instructions !== baseDescription
+                    ? `${baseDescription} \n\nInstruksi: ${instructions}`
+                    : baseDescription;
+
+                return {
+                    id: `cpagrip_${offer.offerid || index}`,
+                    provider: 'CPAGRIP',
+                    externalId: `cpagrip_${offer.offerid || index}`,
+                    title,
+                    description: finalDescription,
+                    reward: parseFloat(offer.payout || offer.amount || '0'),
+                    type: 'AUTO',
+                    isActive: true,
+                    providerUrl: offer.offerlink || offer.link || offer.url || '#',
+                    logoUrl: offer.offerphoto || offer.image || offer.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(title)}&background=6366f1&color=fff&size=128`
+                };
+            });
         } catch (error: any) {
             this.logger.error(`Failed to fetch CPAGrip offers: ${error.message}`);
             return [];

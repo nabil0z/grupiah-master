@@ -69,18 +69,30 @@ export class OGAdsAdapter implements IOfferwallAdapter {
 
             this.logger.log(`[OGAds] After OS filter: ${filtered.length}/${offers.length} offers (${isAndroid ? 'Android' : isIOS ? 'iOS' : 'Desktop'})`);
 
-            return filtered.map((offer: any, index: number) => ({
-                id: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
-                provider: 'OGADS',
-                externalId: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
-                title: offer.name || offer.name_short || 'OGAds Offer',
-                description: offer.description,
-                reward: parseFloat(offer.payout) || 0,
-                type: 'AUTO',
-                isActive: true,
-                providerUrl: offer.link || '#',
-                logoUrl: offer.picture || ''
-            }));
+            return filtered.map((offer: any, index: number) => {
+                // Combine name with optional short name for clarity
+                const title = offer.name || offer.name_short || 'OGAds Offer';
+                
+                // Merge description with specific instructions if available
+                const instructions = offer.instructions || offer.adcopy || '';
+                const baseDescription = offer.description || 'Selesaikan tugas ini untuk mendapatkan hadiah.';
+                const finalDescription = instructions 
+                    ? `${baseDescription} \n\nInstruksi: ${instructions}`
+                    : baseDescription;
+
+                return {
+                    id: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
+                    provider: 'OGADS',
+                    externalId: offer.offer_id ? offer.offer_id.toString() : `unknown-${index}`,
+                    title,
+                    description: finalDescription,
+                    reward: parseFloat(offer.payout) || 0,
+                    type: 'AUTO',
+                    isActive: true,
+                    providerUrl: offer.link || '#',
+                    logoUrl: offer.picture || ''
+                };
+            });
         } catch (error: any) {
             this.logger.error(`Failed to fetch OGAds offers: ${error.message}`);
             return [];

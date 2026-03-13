@@ -46,18 +46,30 @@ export class AdBlueMediaAdapter implements IOfferwallAdapter {
                 this.logger.log(`[AdBlueMedia] Sample offer: ${JSON.stringify(offers[0])}`);
             }
 
-            return offers.map((offer: any, index: number) => ({
-                id: `adblue_${index}_${offer.anchor || '1'}`,
-                provider: 'ADBLUEMEDIA',
-                externalId: `adblue_${index}`,
-                title: offer.anchor || offer.name || 'AdBlueMedia Offer', // Depending on their exact json keys
-                description: offer.conversion || 'Complete this task to earn reward.',
-                reward: parseFloat(offer.payout || offer.rate || '0'),
-                type: 'AUTO',
-                isActive: true,
-                providerUrl: offer.url,
-                logoUrl: offer.network_icon || offer.picture || offer.image // network_icon confirmed by user
-            }));
+            return offers.map((offer: any, index: number) => {
+                const title = offer.name || offer.anchor || 'AdBlueMedia Offer';
+                
+                // Anchor contains the actual "instruction" for AdBlueMedia (e.g., "Install and Open")
+                const instructions = offer.anchor || '';
+                const conversion = offer.conversion || 'Selesaikan tugas ini.';
+                
+                const finalDescription = instructions && instructions !== title
+                    ? `${conversion} \n\nInstruksi: ${instructions}`
+                    : conversion;
+
+                return {
+                    id: `adblue_${index}_${offer.anchor || '1'}`,
+                    provider: 'ADBLUEMEDIA',
+                    externalId: `adblue_${index}`,
+                    title,
+                    description: finalDescription,
+                    reward: parseFloat(offer.payout || offer.rate || '0'),
+                    type: 'AUTO',
+                    isActive: true,
+                    providerUrl: offer.url,
+                    logoUrl: offer.network_icon || offer.picture || offer.image
+                };
+            });
         } catch (error: any) {
             this.logger.error(`Failed to fetch AdBlueMedia offers: ${error.message}`);
             return [];

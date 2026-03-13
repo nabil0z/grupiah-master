@@ -6,7 +6,7 @@
  */
 
 const BASE = process.argv[2] === 'local' 
-    ? 'http://localhost:53000' 
+    ? 'http://127.0.0.1:53000' 
     : 'https://api.grupiah.online';
 
 async function testPostback(provider, params) {
