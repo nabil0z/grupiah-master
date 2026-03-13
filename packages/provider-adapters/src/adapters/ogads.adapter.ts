@@ -93,21 +93,16 @@ export class OGAdsAdapter implements IOfferwallAdapter {
     ];
 
     async verifyPostback(req: any): Promise<boolean> {
-        // OGADS Security: They usually pass the MAC / Hash signature in the query params.
-        // e.g. https://api.grupiah.com/webhook/postback/ogads?aff_sub={aff_sub}&payout={payout}&offer_id={offer_id}&ip={ip}&hash={mac}
-
-        const myOgadsPostbackKey = process.env.OGADS_POSTBACK_SECRET || 'SECRET'; // Get this from OGAds Dashboard
-        const incomeHash = req.query.hash || req.body.hash;
-
-        // If no secret configured locally, bypass (for dev)
+        // If no secret configured, bypass hash validation entirely
         if (!process.env.OGADS_POSTBACK_SECRET) {
-            console.warn('OGAds Hash validation bypassed (Dev Mode / No Secret Configured)');
+            console.warn('[OGAds] Hash validation bypassed (No OGADS_POSTBACK_SECRET configured)');
             return true;
         }
 
-        // Ideally, we replicate their MD5 / SHA calculation here: 
-        // hash = MD5(offer_id + payout + ip + myOgadsPostbackKey)
-        // For demonstration, we just check if it matches a static secret or known logic.
+        // OGAds sends via GET, so req.body may be undefined
+        const incomeHash = req.query?.hash || req.body?.hash;
+        const myOgadsPostbackKey = process.env.OGADS_POSTBACK_SECRET;
+
         if (incomeHash !== myOgadsPostbackKey) {
             console.error(`[Fraud Attempt] OGAds Webhook Signature Mismatch. Provided: ${incomeHash}`);
             return false;

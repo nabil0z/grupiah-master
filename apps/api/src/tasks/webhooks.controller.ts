@@ -58,7 +58,7 @@ export class WebhooksController {
             console.log(`[Postback] Parsed → userId=${rewardDetail.userId}, reward=${rewardDetail.reward}, txId=${rewardDetail.providerTransactionId}, taskId=${rewardDetail.taskId}`);
 
             if (!rewardDetail.userId || !rewardDetail.reward) {
-                console.error(`[Postback] REJECTED: Missing userId or reward. userId="${rewardDetail.userId}", reward="${rewardDetail.reward}"`);
+                console.error(`[Postback] REJECTED [${normalizedProviderName}]: Missing userId or reward. userId="${rewardDetail.userId}", reward="${rewardDetail.reward}"`);
                 return res.status(HttpStatus.BAD_REQUEST).send('Missing required parameters (userId, reward)');
             }
 

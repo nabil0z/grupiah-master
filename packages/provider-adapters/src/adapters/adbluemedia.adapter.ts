@@ -66,23 +66,22 @@ export class AdBlueMediaAdapter implements IOfferwallAdapter {
 
     async verifyPostback(req: any): Promise<boolean> {
         // 1. IP Validation
-        const incomingIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const incomingIp = req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress;
 
         // Skip IP validation in development or if array is empty (pending setting from user)
         if (process.env.NODE_ENV !== 'production' || this.ALLOWED_IPS.length === 0) {
-            console.warn('AdBlueMedia IP validation bypassed (Dev Mode / No IPs specified)');
+            console.warn('[AdBlueMedia] IP validation bypassed (Dev Mode / No IPs specified)');
             return true;
         }
 
-        const isAllowed = this.ALLOWED_IPS.some(ip => incomingIp.includes(ip));
+        const isAllowed = this.ALLOWED_IPS.some(ip => incomingIp?.includes(ip));
         if (!isAllowed) {
             console.error(`[Fraud Attempt] AdBlueMedia Webhook from Unauthorized IP: ${incomingIp}`);
             return false;
         }
 
-        // 2. Secret Key / Hash Validation (AdBlueMedia often uses 'password' or MD5 hash in the query)
-        // e.g., https://api.grupiah.com/webhook/postback/adbluemedia?secret=YOUR_SECRET_KEY
-        const secret = req.query.secret || req.body.secret;
+        // 2. Secret Key / Hash Validation
+        const secret = req.query?.secret || req.body?.secret;
         if (process.env.ADBLUEMEDIA_POSTBACK_SECRET && secret !== process.env.ADBLUEMEDIA_POSTBACK_SECRET) {
             console.error('[Fraud Attempt] AdBlueMedia Webhook Invalid Secret Key');
             return false;
