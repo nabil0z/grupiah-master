@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TasksController } from './tasks.controller';
+import { TasksProofController } from './tasks-proof.controller';
 import { TasksService } from './tasks.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TaskProviderFactory } from './task-provider.factory';
@@ -9,7 +10,7 @@ import { OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter, GoldenGooseAdapter } 
 
 @Module({
   imports: [PrismaModule, AdminConfigModule],
-  controllers: [TasksController, WebhooksController],
+  controllers: [TasksController, TasksProofController, WebhooksController],
   providers: [TasksService, TaskProviderFactory, OGAdsAdapter, AdBlueMediaAdapter, CPAGripAdapter, GoldenGooseAdapter],
   exports: [TasksService]
 })
