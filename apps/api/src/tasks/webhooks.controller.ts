@@ -162,8 +162,19 @@ export class WebhooksController {
                 if (user.referredById && !user.isReferralActive) {
                     const inviterBonusStr = await this.configService.getConfigValue('APP_REF_UPLINE', '500');
                     const inviteeBonusStr = await this.configService.getConfigValue('APP_REF_DOWNLINE', '250');
-                    const inviterBonus = parseInt(inviterBonusStr) || 500;
+                    let inviterBonus = parseInt(inviterBonusStr) || 500;
                     const inviteeBonus = parseInt(inviteeBonusStr) || 250;
+
+                    // Check if inviter has an active boost that multiplies referral bonus
+                    const BOOST_REF_MULTIPLIERS: Record<number, number> = { 2: 1, 5: 2, 10: 3 };
+                    const inviterBoost = await tx.userBoost.findUnique({ where: { userId: user.referredById } });
+                    if (inviterBoost && new Date(inviterBoost.expiresAt) > new Date()) {
+                        const refMul = BOOST_REF_MULTIPLIERS[Number(inviterBoost.multiplierRate)] || 1;
+                        if (refMul > 1) {
+                            inviterBonus = Math.floor(inviterBonus * refMul);
+                            console.log(`[Referral] Boost X${refMul} applied → inviter bonus = ${inviterBonus}`);
+                        }
+                    }
 
                     // 1. Mark referral as active for this user
                     await tx.user.update({
@@ -187,7 +198,7 @@ export class WebhooksController {
                         });
                     }
 
-                    // 3. Give Inviter their reward
+                    // 3. Give Inviter their reward (with boost multiplier if active)
                     if (inviterBonus > 0) {
                         let inviterWallet = await tx.wallet.findUnique({ where: { userId: user.referredById } });
                         if (!inviterWallet) {

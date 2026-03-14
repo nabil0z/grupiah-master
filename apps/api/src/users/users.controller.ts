@@ -3,12 +3,33 @@ import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminConfigService } from '../admin/config/admin-config.service';
 
+// Boost benefit mapping — derived from multiplierRate, no DB migration needed
+const BOOST_BENEFITS: Record<number, {
+    minWithdraw: number;
+    dailyMultiplier: number;
+    refMultiplier: number;
+    streakProtection: boolean;
+    fastWd: boolean;
+}> = {
+    2:  { minWithdraw: 500000,  dailyMultiplier: 2,  refMultiplier: 1, streakProtection: false, fastWd: false },
+    5:  { minWithdraw: 250000,  dailyMultiplier: 5,  refMultiplier: 2, streakProtection: true,  fastWd: false },
+    10: { minWithdraw: 100000,  dailyMultiplier: 10, refMultiplier: 3, streakProtection: true,  fastWd: true },
+};
+
 @Controller('users')
 export class UsersController {
     private channelVerifyCache = new Map<string, { status: boolean, timestamp: number, channelInfo?: any }>();
     private channelInfoCache: any = null;
 
     constructor(private prisma: PrismaService, private configService: AdminConfigService) { }
+
+    // Helper: get active boost benefits for a user
+    private async getActiveBoostBenefits(userId: string) {
+        const boost = await this.prisma.userBoost.findUnique({ where: { userId } });
+        if (!boost || new Date(boost.expiresAt) < new Date()) return null;
+        const rate = Number(boost.multiplierRate);
+        return BOOST_BENEFITS[rate] || null;
+    }
 
     @Get('me')
     @UseGuards(TelegramAuthGuard)
@@ -46,17 +67,24 @@ export class UsersController {
             let dailyRewards: number[] = [5000, 10000, 15000, 25000, 35000, 50000, 100000];
             try { dailyRewards = JSON.parse(rewardsStr); } catch { /* keep defaults */ }
 
+            // Calculate effective min withdraw based on active boost
+            const globalMinWithdraw = parseInt(minWithdrawStr) || 500000;
+            const boostBenefits = await this.getActiveBoostBenefits(user.id);
+            const effectiveMinWithdraw = boostBenefits ? boostBenefits.minWithdraw : globalMinWithdraw;
+
             return {
                 ...responseJson,
                 canClaimDaily,
                 currentStreak: user.dailyStreak,
                 dailyRewards,
                 appConfig: {
-                    minWithdraw: parseInt(minWithdrawStr) || 500000,
+                    minWithdraw: effectiveMinWithdraw,
+                    globalMinWithdraw,
                     refUpline: parseInt(refUplineStr) || 500,
                     refDownline: parseInt(refDownlineStr) || 250,
                     bannerImageUrl: await this.configService.getConfigValue('BANNER_IMAGE_URL', ''),
                     bannerLinkUrl: await this.configService.getConfigValue('BANNER_LINK_URL', ''),
+                    boostActive: !!boostBenefits,
                 }
             };
         } catch (e: any) {
@@ -131,7 +159,14 @@ export class UsersController {
             if (lastLoginStr === yesterdayStr) {
                 newStreak += 1;
             } else {
-                newStreak = 1; // broken streak
+                // Streak protection: Silver/Gold boost users keep their streak if they skip 1 day
+                const boostBenefits = await this.getActiveBoostBenefits(user.id);
+                if (boostBenefits?.streakProtection) {
+                    newStreak += 1; // Protected! Continue streak
+                    console.log(`[DailyCheckin] Streak protected for user ${user.id} (boost active)`);
+                } else {
+                    newStreak = 1; // broken streak
+                }
             }
         } else {
             newStreak = 1;
@@ -141,7 +176,14 @@ export class UsersController {
 
         const rewardsStr = await this.configService.getConfigValue('DAILY_LOGIN_REWARDS', '[5000, 10000, 15000, 25000, 35000, 50000, 100000]');
         const rewards = JSON.parse(rewardsStr);
-        const rewardFound = rewards[newStreak - 1];
+        let rewardFound = rewards[newStreak - 1];
+
+        // Boost daily reward multiplier
+        const dailyBoostBenefits = await this.getActiveBoostBenefits(user.id);
+        if (dailyBoostBenefits) {
+            rewardFound = Math.floor(rewardFound * dailyBoostBenefits.dailyMultiplier);
+            console.log(`[DailyCheckin] Boost X${dailyBoostBenefits.dailyMultiplier} applied → reward = ${rewardFound}`);
+        }
 
         await this.prisma.$transaction(async (tx) => {
             await tx.user.update({
@@ -379,13 +421,14 @@ export class UsersController {
 
             // Validate predefined packages only
             const PACKAGES: Record<string, { stars: number, durationHours: number, title: string, description: string }> = {
-                '2': { stars: 50, durationHours: 24, title: '⚡ Double Cuan X2', description: 'Gandakan semua pendapatan Offerwall selama 24 jam!' },
-                '5': { stars: 200, durationHours: 72, title: '🔥 Mega Cuan X5', description: 'Lipatgandakan pendapatan Offerwall 5x selama 3 hari non-stop!' },
+                '2': { stars: 50, durationHours: 24, title: '🥉 Bronze — Double Cuan X2', description: 'Gandakan pendapatan + turunkan min WD 50% selama 24 jam!' },
+                '5': { stars: 200, durationHours: 72, title: '🥈 Silver — Mega Cuan X5', description: '5X pendapatan + streak protection + referral X2 selama 3 hari!' },
+                '10': { stars: 500, durationHours: 168, title: '🥇 Gold — Sultan Mode X10', description: '10X pendapatan + min WD Rp 100rb + fast WD + semua benefit selama 7 hari!' },
             };
 
             const pkg = PACKAGES[String(multiplierRate)];
             if (!pkg || pkg.stars !== purchasedStar) {
-                throw new HttpException('Paket boost tidak valid. Pilih x2 (50 Stars) atau x5 (200 Stars).', HttpStatus.BAD_REQUEST);
+                throw new HttpException('Paket boost tidak valid.', HttpStatus.BAD_REQUEST);
             }
 
             // Create invoice link via Telegram Bot API
@@ -439,10 +482,20 @@ export class UsersController {
             const telegramId = BigInt(reqId);
             const { amount, method, accountInfo } = req.body;
 
-            // Target withdrawal minimum
+            // Target withdrawal minimum — check for boost override
             const targetWithdrawStr = await this.configService.getConfigValue('APP_MIN_WITHDRAW', '500000');
-            const TARGET_WITHDRAWAL = parseInt(targetWithdrawStr) || 500000;
+            let TARGET_WITHDRAWAL = parseInt(targetWithdrawStr) || 500000;
             const requestedAmount = Number(amount);
+
+            // Check if user has an active boost that lowers min WD
+            const user_pre = await this.prisma.user.findUnique({ where: { telegramId } });
+            if (user_pre) {
+                const boostBenefits = await this.getActiveBoostBenefits(user_pre.id);
+                if (boostBenefits) {
+                    TARGET_WITHDRAWAL = boostBenefits.minWithdraw;
+                    console.log(`[Withdraw] Boost override: min WD = Rp ${TARGET_WITHDRAWAL} for user ${user_pre.id}`);
+                }
+            }
 
             if (!requestedAmount || requestedAmount < TARGET_WITHDRAWAL) {
                 return new HttpException(`Minimum withdrawal is Rp ${TARGET_WITHDRAWAL.toLocaleString('id-ID')}`, HttpStatus.BAD_REQUEST);
