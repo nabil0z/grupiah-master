@@ -105,8 +105,8 @@ export class TasksController {
         }
     }
 
-    // Proxy endpoint: resolves a Telegram file_id to a fresh image URL and redirects.
-    // This makes proof images permanent (no more expired URLs).
+    // Proxy endpoint: resolves a Telegram file_id to a fresh image and pipes it back.
+    // This makes proof images permanent and avoids CORS/redirect issues.
     @Get('proof/:fileId')
     async getProofImage(@Param('fileId') fileId: string, @Res() res: any) {
         try {
@@ -115,17 +115,37 @@ export class TasksController {
                 return res.status(500).send('Bot token not configured');
             }
 
+            // 1. Get file path from Telegram
             const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
             const fileData = await fileRes.json();
 
             if (!fileData.ok) {
+                console.error('[ProofProxy] getFile failed:', fileData);
                 return res.status(404).send('File not found on Telegram');
             }
 
+            // 2. Fetch the actual image binary
             const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
-            return res.redirect(fileUrl);
+            const imageRes = await fetch(fileUrl);
+
+            if (!imageRes.ok) {
+                console.error('[ProofProxy] Image fetch failed:', imageRes.status);
+                return res.status(502).send('Failed to fetch image from Telegram');
+            }
+
+            // 3. Pipe the image data back with proper headers
+            const contentType = imageRes.headers.get('content-type') || 'image/jpeg';
+            const buffer = Buffer.from(await imageRes.arrayBuffer());
+
+            res.set({
+                'Content-Type': contentType,
+                'Content-Length': buffer.length,
+                'Cache-Control': 'public, max-age=86400', // Cache 24h
+                'Access-Control-Allow-Origin': '*',
+            });
+            return res.send(buffer);
         } catch (error: any) {
-            console.error('[TasksController] getProofImage failed:', error);
+            console.error('[ProofProxy] getProofImage failed:', error);
             return res.status(500).send('Failed to retrieve proof image');
         }
     }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Zap, Shield, Users, Rocket, Clock, Star, Check, Crown, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Zap, Rocket, Clock, Star, Check, Crown, ChevronRight, Loader2 } from 'lucide-react';
 import { userApi } from '../api/client';
 
 interface BoostInfo {
