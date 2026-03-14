@@ -40,6 +40,7 @@ export default function Dashboard() {
     const [tasksOpen, setTasksOpen] = useState(false);
     const [actionId, setActionId] = useState<string | null>(null);
     const [proofImage, setProofImage] = useState<string | null>(null);
+    const [approvingAll, setApprovingAll] = useState(false);
 
     const fetchStats = useCallback(async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true);
@@ -92,6 +93,26 @@ export default function Dashboard() {
         } finally {
             setActionId(null);
         }
+    };
+
+    const handleApproveAll = async () => {
+        const tasks = stats?.pendingTasks || [];
+        if (tasks.length === 0) return;
+        if (!confirm(`Approve semua ${tasks.length} task?`)) return;
+        setApprovingAll(true);
+        let approved = 0;
+        for (const t of tasks) {
+            try {
+                await adminApi.reviewTask(t.id, 'APPROVE');
+                approved++;
+                setStats((prev: any) => ({
+                    ...prev,
+                    pendingTasks: prev.pendingTasks.filter((pt: any) => pt.id !== t.id),
+                }));
+            } catch { /* skip failed */ }
+        }
+        setApprovingAll(false);
+        alert(`✅ ${approved}/${tasks.length} task berhasil di-approve`);
     };
 
     if (loading) {
@@ -273,6 +294,19 @@ export default function Dashboard() {
                     </div>
                     {tasksOpen ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
                 </button>
+                {/* Approve All Button */}
+                {tasksOpen && stats.pendingTasks?.length > 0 && (
+                    <div className="px-3 pt-2 border-t border-gray-100">
+                        <button
+                            onClick={handleApproveAll}
+                            disabled={approvingAll}
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                            {approvingAll ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                            {approvingAll ? 'Approving...' : `✅ Approve All (${stats.pendingTasks.length})`}
+                        </button>
+                    </div>
+                )}
                 <AnimatePresence>
                     {tasksOpen && (
                         <motion.div
