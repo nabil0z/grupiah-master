@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, UseInterceptors, UploadedFile, Param, Res } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { SubmitTaskDto } from './dto/submit-task.dto';
@@ -85,31 +85,17 @@ export class TasksController {
                 throw new Error(data.description || 'Failed to upload to Telegram');
             }
 
-            // Get the highest resolution photo (the last one in the array)
+            // Get the highest resolution photo file_id
             const photoId = data.result.photo[data.result.photo.length - 1].file_id;
 
-            // Note: In a real app, you might want to fetch the actual URL using getFile, 
-            // but Telegram URLs expire. For task proofs, saving the file_id and rendering 
-            // it on demand via a proxy endpoint is better, but since the frontend expects a URL,
-            // we will construct a proxy URL that points to our own backend.
-
-            // Since we need a public URL, we will return a generic structure that the frontend can use.
-            // By storing the file_id disguised as a URL, we can resolve it later in the admin panel if needed.
-            // However, a much simpler approach for this app is to just get the file path.
-
-            const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${photoId}`);
-            const fileData = await fileRes.json();
-
-            if (!fileData.ok) {
-                throw new Error('Failed to retrieve file path from Telegram');
-            }
-
-            const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+            // Store as "tgfile:FILE_ID" — our proxy endpoint will resolve this on demand.
+            // This ensures the proof image NEVER expires, unlike direct Telegram URLs.
+            const proofLink = `tgfile:${photoId}`;
 
             return {
                 success: true,
                 data: {
-                    link: fileUrl
+                    link: proofLink
                 }
             };
 
@@ -118,6 +104,32 @@ export class TasksController {
             throw error;
         }
     }
+
+    // Proxy endpoint: resolves a Telegram file_id to a fresh image URL and redirects.
+    // This makes proof images permanent (no more expired URLs).
+    @Get('proof/:fileId')
+    async getProofImage(@Param('fileId') fileId: string, @Res() res: any) {
+        try {
+            const botToken = process.env.BOT_TOKEN;
+            if (!botToken) {
+                return res.status(500).send('Bot token not configured');
+            }
+
+            const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+            const fileData = await fileRes.json();
+
+            if (!fileData.ok) {
+                return res.status(404).send('File not found on Telegram');
+            }
+
+            const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`;
+            return res.redirect(fileUrl);
+        } catch (error: any) {
+            console.error('[TasksController] getProofImage failed:', error);
+            return res.status(500).send('Failed to retrieve proof image');
+        }
+    }
+
 
     @Get('flash')
     async getFlashTasks(@Request() req: any) {

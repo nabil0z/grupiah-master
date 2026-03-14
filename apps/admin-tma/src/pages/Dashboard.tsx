@@ -7,6 +7,19 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../api/adminClient';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:53000';
+
+// Resolves proof URLs: converts "tgfile:FILE_ID" to proxy endpoint,
+// or returns the original URL for backward-compatible full URLs.
+function resolveProofUrl(proofUrl: string | null): string | null {
+    if (!proofUrl) return null;
+    if (proofUrl.startsWith('tgfile:')) {
+        const fileId = proofUrl.replace('tgfile:', '');
+        return `${API_BASE}/tasks/proof/${fileId}`;
+    }
+    return proofUrl; // old full URL or placeholder
+}
+
 function pctChange(today: number, yesterday: number): { value: string, positive: boolean } {
     if (yesterday === 0) return { value: today > 0 ? '+∞%' : '0%', positive: today >= 0 };
     const pct = ((today - yesterday) / yesterday) * 100;
@@ -298,23 +311,26 @@ export default function Dashboard() {
                                             </div>
                                         </div>
                                         {/* Proof Image — Large Preview */}
-                                        {t.proofUrl ? (
-                                            <button
-                                                onClick={() => setProofImage(t.proofUrl)}
-                                                className="w-full rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors block"
-                                            >
-                                                <img
-                                                    src={t.proofUrl}
-                                                    alt="Bukti tugas"
-                                                    className="w-full max-h-[200px] object-contain bg-white"
-                                                    onError={(e) => {
-                                                        const target = e.target as HTMLImageElement;
-                                                        target.style.display = 'none';
-                                                        target.parentElement!.innerHTML = '<div class="p-3 text-center text-xs text-gray-400">⚠️ Gambar tidak dapat dimuat (URL mungkin expired)</div>';
-                                                    }}
-                                                />
-                                            </button>
-                                        ) : (
+                                        {t.proofUrl ? (() => {
+                                            const imgUrl = resolveProofUrl(t.proofUrl);
+                                            return (
+                                                <button
+                                                    onClick={() => setProofImage(imgUrl)}
+                                                    className="w-full rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors block"
+                                                >
+                                                    <img
+                                                        src={imgUrl!}
+                                                        alt="Bukti tugas"
+                                                        className="w-full max-h-[200px] object-contain bg-white"
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.style.display = 'none';
+                                                            target.parentElement!.innerHTML = '<div class="p-3 text-center text-xs text-gray-400">⚠️ Gambar tidak dapat dimuat</div>';
+                                                        }}
+                                                    />
+                                                </button>
+                                            );
+                                        })() : (
                                             <div className="w-full rounded-lg bg-gray-200 p-3 flex items-center justify-center gap-2 text-gray-400 text-xs">
                                                 <Image size={14} /> Tidak ada bukti foto
                                             </div>
