@@ -270,21 +270,9 @@ export default function Dashboard() {
                                 {(!stats.pendingTasks || stats.pendingTasks.length === 0) ? (
                                     <p className="text-center py-4 text-gray-300 text-sm">No tasks to review ✓</p>
                                 ) : stats.pendingTasks.map((t: any) => (
-                                    <div key={t.id} className="bg-gray-50 rounded-xl p-3">
+                                    <div key={t.id} className="bg-gray-50 rounded-xl p-3 space-y-2">
+                                        {/* Task Info + Actions Row */}
                                         <div className="flex items-center gap-2">
-                                            {/* Proof Thumbnail */}
-                                            {t.proofUrl ? (
-                                                <button
-                                                    onClick={() => setProofImage(t.proofUrl)}
-                                                    className="w-11 h-11 rounded-lg overflow-hidden border-2 border-blue-200 shrink-0 hover:border-blue-400 transition-colors"
-                                                >
-                                                    <img src={t.proofUrl} alt="Bukti" className="w-full h-full object-cover" />
-                                                </button>
-                                            ) : (
-                                                <div className="w-11 h-11 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
-                                                    <Image size={16} className="text-gray-400" />
-                                                </div>
-                                            )}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-gray-800 truncate">{t.task?.title || 'Task'}</p>
                                                 <p className="text-xs text-gray-500">@{t.user?.username || t.user?.telegramId}</p>
@@ -309,6 +297,28 @@ export default function Dashboard() {
                                                 </button>
                                             </div>
                                         </div>
+                                        {/* Proof Image — Large Preview */}
+                                        {t.proofUrl ? (
+                                            <button
+                                                onClick={() => setProofImage(t.proofUrl)}
+                                                className="w-full rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors block"
+                                            >
+                                                <img
+                                                    src={t.proofUrl}
+                                                    alt="Bukti tugas"
+                                                    className="w-full max-h-[200px] object-contain bg-white"
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.style.display = 'none';
+                                                        target.parentElement!.innerHTML = '<div class="p-3 text-center text-xs text-gray-400">⚠️ Gambar tidak dapat dimuat (URL mungkin expired)</div>';
+                                                    }}
+                                                />
+                                            </button>
+                                        ) : (
+                                            <div className="w-full rounded-lg bg-gray-200 p-3 flex items-center justify-center gap-2 text-gray-400 text-xs">
+                                                <Image size={14} /> Tidak ada bukti foto
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
