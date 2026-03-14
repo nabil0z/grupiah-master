@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Ban, ShieldCheck, Coins, Loader2, Megaphone, Syringe, X, Plus, Minus, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, Ban, ShieldCheck, Coins, Loader2, Megaphone, Syringe, X, Plus, Minus, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Filter, Users } from "lucide-react";
 import { usersApi } from "@/lib/api";
 
 type UserData = {
@@ -13,14 +13,35 @@ type UserData = {
     isBanned: boolean;
     isMarketingAcc?: boolean;
     fakeReferralCount?: number;
+    createdAt?: string;
     wallet?: { balance: number | string };
 };
 
+type SortField = 'username' | 'balance' | 'role' | 'createdAt';
+type SortDir = 'asc' | 'desc';
+type StatusFilter = 'all' | 'active' | 'banned';
+type ModeFilter = 'all' | 'normal' | 'marketing';
+
 export default function UserManagement() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [users, setUsers] = useState<UserData[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionId, setActionId] = useState<string | null>(null);
+
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [limit] = useState(50);
+
+    // Sorting (client-side on current page)
+    const [sortField, setSortField] = useState<SortField>('createdAt');
+    const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+    // Filters
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
 
     // Modal states
     const [balanceModal, setBalanceModal] = useState<{ userId: string; username: string } | null>(null);
@@ -36,19 +57,33 @@ export default function UserManagement() {
 
     const [toast, setToast] = useState<{ type: string; text: string } | null>(null);
 
+    // Debounce search
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const data = await usersApi.getUsers();
-                setUsers(data);
-            } catch (error) {
-                console.error("Failed to load users:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+            setPage(1); // Reset page on search
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // Fetch users when page or search changes
+    const fetchUsers = useCallback(async () => {
+        setLoading(true);
+        try {
+            const result = await usersApi.getUsers(page, limit, debouncedSearch || undefined);
+            setUsers(result.data);
+            setTotal(result.total);
+            setTotalPages(result.totalPages);
+        } catch (error) {
+            console.error("Failed to load users:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, limit, debouncedSearch]);
+
+    useEffect(() => {
         fetchUsers();
-    }, []);
+    }, [fetchUsers]);
 
     const showToast = (type: string, text: string) => {
         setToast({ type, text });
@@ -61,7 +96,7 @@ export default function UserManagement() {
             const updated = await usersApi.toggleBan(id);
             setUsers(users.map(u => u.id === id ? { ...u, isBanned: updated.isBanned } : u));
             showToast('success', `User ${updated.isBanned ? 'banned' : 'unbanned'} successfully`);
-        } catch (error) {
+        } catch {
             showToast('error', 'Failed to update ban status');
         } finally {
             setActionId(null);
@@ -74,7 +109,7 @@ export default function UserManagement() {
             const result = await usersApi.toggleMarketing(id);
             setUsers(users.map(u => u.id === id ? { ...u, isMarketingAcc: result.isMarketingAcc } : u));
             showToast('success', `Marketing mode ${result.isMarketingAcc ? 'enabled' : 'disabled'}`);
-        } catch (error) {
+        } catch {
             showToast('error', 'Failed to toggle marketing mode');
         } finally {
             setActionId(null);
@@ -93,7 +128,7 @@ export default function UserManagement() {
             setBalanceModal(null);
             setBalanceAmount("");
             setBalanceDesc("");
-        } catch (error) {
+        } catch {
             showToast('error', 'Failed to adjust balance');
         } finally {
             setBalanceLoading(false);
@@ -110,9 +145,9 @@ export default function UserManagement() {
                 parseInt(injectWDs) || 0,
                 parseInt(injectRefs) || 0
             );
-            showToast('success', `Injected: ${result.injected.tasks} tasks, ${result.injected.withdrawals} WDs, ${result.injected.referrals} referrals (marked as isFake)`);
+            showToast('success', `Injected: ${result.injected.tasks} tasks, ${result.injected.withdrawals} WDs, ${result.injected.referrals} referrals`);
             setInjectModal(null);
-        } catch (error) {
+        } catch {
             showToast('error', 'Failed to inject stats');
         } finally {
             setInjectLoading(false);
@@ -124,21 +159,64 @@ export default function UserManagement() {
         setActionId(userId);
         try {
             const result = await usersApi.cleanupFakeData(userId);
-            showToast('success', `Cleaned: ${result.cleaned.tasks} tasks, ${result.cleaned.withdrawals} WDs, ${result.cleaned.referrals} refs. Saldo dikembalikan Rp ${Number(result.cleaned.balanceRestored || 0).toLocaleString('id-ID')}. Marketing OFF.`);
-            // Refresh user in list
+            showToast('success', `Cleaned: ${result.cleaned.tasks} tasks, ${result.cleaned.withdrawals} WDs, ${result.cleaned.referrals} refs. Marketing OFF.`);
             setUsers(users.map(u => u.id === userId ? { ...u, isMarketingAcc: false, fakeReferralCount: 0 } : u));
-        } catch (error) {
+        } catch {
             showToast('error', 'Failed to cleanup fake data');
         } finally {
             setActionId(null);
         }
     };
 
-    const filteredUsers = users.filter(u =>
-        (u.username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (u.firstName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (String(u.telegramId).includes(searchTerm))
-    );
+    // Sort & filter (client-side on current page data)
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDir('desc');
+        }
+    };
+
+    const SortIcon = ({ field }: { field: SortField }) => {
+        if (sortField !== field) return <ChevronDown size={14} className="text-slate-300 ml-1 inline" />;
+        return sortDir === 'asc'
+            ? <ChevronUp size={14} className="text-emerald-500 ml-1 inline" />
+            : <ChevronDown size={14} className="text-emerald-500 ml-1 inline" />;
+    };
+
+    const processedUsers = [...users]
+        // Filter by status
+        .filter(u => {
+            if (statusFilter === 'active') return !u.isBanned;
+            if (statusFilter === 'banned') return u.isBanned;
+            return true;
+        })
+        // Filter by mode
+        .filter(u => {
+            if (modeFilter === 'marketing') return u.isMarketingAcc;
+            if (modeFilter === 'normal') return !u.isMarketingAcc;
+            return true;
+        })
+        // Sort
+        .sort((a, b) => {
+            let cmp = 0;
+            switch (sortField) {
+                case 'username':
+                    cmp = (a.firstName || a.username || '').localeCompare(b.firstName || b.username || '');
+                    break;
+                case 'balance':
+                    cmp = Number(a.wallet?.balance || 0) - Number(b.wallet?.balance || 0);
+                    break;
+                case 'role':
+                    cmp = (a.role || '').localeCompare(b.role || '');
+                    break;
+                case 'createdAt':
+                    cmp = (a.createdAt || '').localeCompare(b.createdAt || '');
+                    break;
+            }
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
 
     return (
         <div className="space-y-6">
@@ -153,7 +231,11 @@ export default function UserManagement() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Grinder Directory</h1>
-                    <p className="text-slate-500 mt-1">Manage users, marketing accounts, and balances.</p>
+                    <p className="text-slate-500 mt-1">
+                        <Users size={14} className="inline mr-1" />
+                        {total.toLocaleString('id-ID')} total users
+                        {statusFilter !== 'all' && <span className="text-emerald-600 font-medium"> · filtered</span>}
+                    </p>
                 </div>
 
                 <div className="relative w-full sm:w-72">
@@ -163,11 +245,44 @@ export default function UserManagement() {
                     <input
                         type="text"
                         className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
-                        placeholder="Search by @username or ID..."
+                        placeholder="Search by @username or name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+            </div>
+
+            {/* Filter Chips */}
+            <div className="flex flex-wrap items-center gap-2">
+                <Filter size={14} className="text-slate-400" />
+                <span className="text-xs text-slate-400 font-medium mr-1">Status:</span>
+                {(['all', 'active', 'banned'] as StatusFilter[]).map(f => (
+                    <button
+                        key={f}
+                        onClick={() => setStatusFilter(f)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${statusFilter === f
+                            ? 'bg-emerald-500 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            }`}
+                    >
+                        {f === 'all' ? 'Semua' : f === 'active' ? '✅ Active' : '🚫 Banned'}
+                    </button>
+                ))}
+
+                <span className="text-slate-300">|</span>
+                <span className="text-xs text-slate-400 font-medium mr-1">Mode:</span>
+                {(['all', 'normal', 'marketing'] as ModeFilter[]).map(f => (
+                    <button
+                        key={f}
+                        onClick={() => setModeFilter(f)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${modeFilter === f
+                            ? 'bg-orange-500 text-white shadow-sm'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            }`}
+                    >
+                        {f === 'all' ? 'Semua' : f === 'normal' ? 'Normal' : '🎯 Marketing'}
+                    </button>
+                ))}
             </div>
 
             {/* Table */}
@@ -176,24 +291,40 @@ export default function UserManagement() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-4 font-medium">User / TG</th>
-                                <th className="px-6 py-4 font-medium">Role</th>
-                                <th className="px-6 py-4 font-medium text-right">Live Balance</th>
+                                <th className="px-6 py-4 font-medium cursor-pointer select-none hover:text-emerald-600 transition-colors" onClick={() => handleSort('username')}>
+                                    User / TG <SortIcon field="username" />
+                                </th>
+                                <th className="px-6 py-4 font-medium cursor-pointer select-none hover:text-emerald-600 transition-colors" onClick={() => handleSort('role')}>
+                                    Role <SortIcon field="role" />
+                                </th>
+                                <th className="px-6 py-4 font-medium text-right cursor-pointer select-none hover:text-emerald-600 transition-colors" onClick={() => handleSort('balance')}>
+                                    Live Balance <SortIcon field="balance" />
+                                </th>
                                 <th className="px-6 py-4 font-medium">Mode</th>
                                 <th className="px-6 py-4 font-medium">Status</th>
+                                <th className="px-6 py-4 font-medium cursor-pointer select-none hover:text-emerald-600 transition-colors" onClick={() => handleSort('createdAt')}>
+                                    Joined <SortIcon field="createdAt" />
+                                </th>
                                 <th className="px-6 py-4 font-medium text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading && (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                                         <Loader2 className="animate-spin mx-auto mb-2" size={24} />
                                         Loading network directory...
                                     </td>
                                 </tr>
                             )}
-                            {!loading && filteredUsers.map((user) => (
+                            {!loading && processedUsers.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
+                                        Tidak ada user yang cocok dengan filter
+                                    </td>
+                                </tr>
+                            )}
+                            {!loading && processedUsers.map((user) => (
                                 <tr key={user.id} className={`hover:bg-slate-50 transition-colors ${user.isMarketingAcc ? 'bg-orange-50/50' : ''}`}>
                                     <td className="px-6 py-4">
                                         <div className="font-medium text-slate-900">
@@ -233,9 +364,11 @@ export default function UserManagement() {
                                             <span className="text-slate-600">{!user.isBanned ? 'Active' : 'Banned'}</span>
                                         </div>
                                     </td>
+                                    <td className="px-6 py-4 text-xs text-slate-400">
+                                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            {/* Toggle Marketing */}
                                             <button
                                                 disabled={actionId === user.id}
                                                 onClick={() => handleToggleMarketing(user.id)}
@@ -244,8 +377,6 @@ export default function UserManagement() {
                                             >
                                                 <Megaphone size={16} />
                                             </button>
-
-                                            {/* Adjust Balance */}
                                             <button
                                                 onClick={() => setBalanceModal({ userId: user.id, username: user.firstName || user.username || String(user.telegramId) })}
                                                 className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
@@ -253,8 +384,6 @@ export default function UserManagement() {
                                             >
                                                 <Coins size={16} />
                                             </button>
-
-                                            {/* Inject Stats */}
                                             <button
                                                 onClick={() => setInjectModal({ userId: user.id, username: user.firstName || user.username || String(user.telegramId) })}
                                                 className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded transition-colors"
@@ -262,8 +391,6 @@ export default function UserManagement() {
                                             >
                                                 <Syringe size={16} />
                                             </button>
-
-                                            {/* Ban/Unban */}
                                             <button
                                                 disabled={actionId === user.id}
                                                 onClick={() => handleToggleBan(user.id)}
@@ -272,8 +399,6 @@ export default function UserManagement() {
                                             >
                                                 {actionId === user.id ? <Loader2 size={16} className="animate-spin" /> : (!user.isBanned ? <Ban size={16} /> : <ShieldCheck size={16} />)}
                                             </button>
-
-                                            {/* Cleanup Fake Data (only for marketing accounts) */}
                                             {user.isMarketingAcc && (
                                                 <button
                                                     disabled={actionId === user.id}
@@ -290,6 +415,72 @@ export default function UserManagement() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-200">
+                    <p className="text-xs text-slate-500">
+                        Showing <strong>{processedUsers.length}</strong> of <strong>{total.toLocaleString('id-ID')}</strong> users
+                        {` · Page ${page} of ${totalPages}`}
+                    </p>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setPage(1)}
+                            disabled={page === 1 || loading}
+                            className="px-2 py-1 text-xs text-slate-500 hover:bg-slate-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            First
+                        </button>
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1 || loading}
+                            className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+
+                        {/* Page numbers */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum: number;
+                            if (totalPages <= 5) {
+                                pageNum = i + 1;
+                            } else if (page <= 3) {
+                                pageNum = i + 1;
+                            } else if (page >= totalPages - 2) {
+                                pageNum = totalPages - 4 + i;
+                            } else {
+                                pageNum = page - 2 + i;
+                            }
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => setPage(pageNum)}
+                                    disabled={loading}
+                                    className={`w-8 h-8 text-xs font-bold rounded-lg transition-all ${page === pageNum
+                                        ? 'bg-emerald-500 text-white shadow-sm'
+                                        : 'text-slate-500 hover:bg-slate-200'
+                                        }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        })}
+
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages || loading}
+                            className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                        <button
+                            onClick={() => setPage(totalPages)}
+                            disabled={page === totalPages || loading}
+                            className="px-2 py-1 text-xs text-slate-500 hover:bg-slate-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            Last
+                        </button>
+                    </div>
                 </div>
             </div>
 

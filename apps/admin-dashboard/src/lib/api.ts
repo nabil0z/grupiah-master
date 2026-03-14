@@ -72,16 +72,23 @@ export const broadcastApi = {
 };
 
 export const usersApi = {
-    async getUsers(): Promise<any[]> {
-        const response = await fetch(`${API_BASE}/admin/users`, {
+    async getUsers(page = 1, limit = 50, search?: string): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (search) params.set('search', search);
+        const response = await fetch(`${API_BASE}/admin/users?${params.toString()}`, {
             headers: {
                 'Authorization': `${authHeader}`
             }
         });
         if (!response.ok) throw new Error('Failed to fetch users');
         const result = await response.json();
-        // API returns paginated { data, total, page, limit, totalPages }
-        return result.data || result;
+        return {
+            data: result.data || result,
+            total: result.total || 0,
+            page: result.page || 1,
+            limit: result.limit || limit,
+            totalPages: result.totalPages || 1,
+        };
     },
 
     async toggleBan(userId: string): Promise<any> {
