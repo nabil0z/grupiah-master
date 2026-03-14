@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Activity, TrendingUp, TrendingDown, Users, CheckSquare,
     CreditCard, ChevronDown, ChevronUp, Check, X, Loader2,
-    RefreshCw, DollarSign, Star, Zap
+    RefreshCw, DollarSign, Star, Zap, Image
 } from 'lucide-react';
 import { adminApi } from '../api/adminClient';
 
@@ -26,6 +26,7 @@ export default function Dashboard() {
     const [wdOpen, setWdOpen] = useState(false);
     const [tasksOpen, setTasksOpen] = useState(false);
     const [actionId, setActionId] = useState<string | null>(null);
+    const [proofImage, setProofImage] = useState<string | null>(null);
 
     const fetchStats = useCallback(async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true);
@@ -269,26 +270,44 @@ export default function Dashboard() {
                                 {(!stats.pendingTasks || stats.pendingTasks.length === 0) ? (
                                     <p className="text-center py-4 text-gray-300 text-sm">No tasks to review ✓</p>
                                 ) : stats.pendingTasks.map((t: any) => (
-                                    <div key={t.id} className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-gray-800 truncate">{t.task?.title || 'Task'}</p>
-                                            <p className="text-xs text-gray-500">@{t.user?.username || t.user?.telegramId}</p>
-                                        </div>
-                                        <div className="flex gap-1.5 shrink-0">
-                                            <button
-                                                disabled={actionId === t.id}
-                                                onClick={() => handleTaskAction(t.id, 'APPROVE')}
-                                                className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg disabled:opacity-50"
-                                            >
-                                                {actionId === t.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={3} />}
-                                            </button>
-                                            <button
-                                                disabled={actionId === t.id}
-                                                onClick={() => handleTaskAction(t.id, 'REJECT')}
-                                                className="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg disabled:opacity-50"
-                                            >
-                                                {actionId === t.id ? <Loader2 size={14} className="animate-spin" /> : <X size={14} strokeWidth={3} />}
-                                            </button>
+                                    <div key={t.id} className="bg-gray-50 rounded-xl p-3">
+                                        <div className="flex items-center gap-2">
+                                            {/* Proof Thumbnail */}
+                                            {t.proofUrl ? (
+                                                <button
+                                                    onClick={() => setProofImage(t.proofUrl)}
+                                                    className="w-11 h-11 rounded-lg overflow-hidden border-2 border-blue-200 shrink-0 hover:border-blue-400 transition-colors"
+                                                >
+                                                    <img src={t.proofUrl} alt="Bukti" className="w-full h-full object-cover" />
+                                                </button>
+                                            ) : (
+                                                <div className="w-11 h-11 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
+                                                    <Image size={16} className="text-gray-400" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-gray-800 truncate">{t.task?.title || 'Task'}</p>
+                                                <p className="text-xs text-gray-500">@{t.user?.username || t.user?.telegramId}</p>
+                                                {t.proofText && (
+                                                    <p className="text-[10px] text-blue-600 mt-0.5 truncate">📎 {t.proofText}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-1.5 shrink-0">
+                                                <button
+                                                    disabled={actionId === t.id}
+                                                    onClick={() => handleTaskAction(t.id, 'APPROVE')}
+                                                    className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg disabled:opacity-50"
+                                                >
+                                                    {actionId === t.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={3} />}
+                                                </button>
+                                                <button
+                                                    disabled={actionId === t.id}
+                                                    onClick={() => handleTaskAction(t.id, 'REJECT')}
+                                                    className="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg disabled:opacity-50"
+                                                >
+                                                    {actionId === t.id ? <Loader2 size={14} className="animate-spin" /> : <X size={14} strokeWidth={3} />}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -297,6 +316,28 @@ export default function Dashboard() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Proof Image Fullscreen Viewer */}
+            <AnimatePresence>
+                {proofImage && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+                        onClick={() => setProofImage(null)}
+                    >
+                        <button className="absolute top-4 right-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 z-10">
+                            <X size={20} />
+                        </button>
+                        <motion.img
+                            initial={{ scale: 0.8 }} animate={{ scale: 1 }}
+                            src={proofImage}
+                            alt="Bukti Tugas"
+                            className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
