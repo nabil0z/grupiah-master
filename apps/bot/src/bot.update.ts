@@ -255,19 +255,31 @@ export class BotUpdate {
             expiresAt.setHours(expiresAt.getHours() + durationHours);
 
             // Upsert: create or replace existing boost
-            await this.prisma.userBoost.upsert({
-                where: { userId },
-                create: {
-                    userId,
-                    multiplierRate,
-                    expiresAt,
-                    purchasedStar,
-                },
-                update: {
-                    multiplierRate,
-                    expiresAt,
-                    purchasedStar,
-                },
+            await this.prisma.$transaction(async (tx) => {
+                await tx.userBoost.upsert({
+                    where: { userId },
+                    create: {
+                        userId,
+                        multiplierRate,
+                        expiresAt,
+                        purchasedStar,
+                    },
+                    update: {
+                        multiplierRate,
+                        expiresAt,
+                        purchasedStar,
+                    },
+                });
+
+                // Record the Stars revenue for Admin Analytics
+                await tx.offerCompletion.create({
+                    data: {
+                        provider: 'STARS',
+                        externalId: `stars_${payment.telegram_payment_charge_id || Date.now()}`,
+                        userId,
+                        revenue: purchasedStar
+                    }
+                });
             });
 
             // Notify user
