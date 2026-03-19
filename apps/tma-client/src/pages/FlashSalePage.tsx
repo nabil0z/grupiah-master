@@ -183,20 +183,36 @@ const FlashSalePage = () => {
             <div className="px-5 -mt-6 mb-6 relative z-20">
                 <motion.div
                     onClick={() => navigate('/boost')}
-                    whileTap={{ scale: 0.98 }}
-                    className="bg-gradient-to-r from-indigo-900 to-violet-800 rounded-2xl p-4 shadow-lg border border-indigo-700/50 flex items-center justify-between cursor-pointer"
+                    whileTap={{ scale: 0.97 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gradient-to-br from-indigo-900 via-purple-900 to-violet-800 rounded-2xl p-4 shadow-lg border border-indigo-500/30 cursor-pointer relative overflow-hidden"
                 >
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/20">
-                            <span className="text-2xl">⭐</span>
+                    {/* Decorative glow */}
+                    <div className="absolute -top-6 -right-6 w-24 h-24 bg-yellow-400/15 rounded-full blur-2xl"></div>
+                    <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-indigo-400/20 rounded-full blur-xl"></div>
+
+                    <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400/20 to-amber-500/20 rounded-xl flex items-center justify-center backdrop-blur-sm border border-yellow-400/30">
+                                <span className="text-2xl">⭐</span>
+                            </div>
+                            <div>
+                                <h3 className="font-black text-white text-sm">Telegram Stars Boost</h3>
+                                <p className="text-indigo-200 text-[11px] mt-0.5">Pendapatan hingga <strong className="text-yellow-300">10x Lipat</strong> + Min WD turun!</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-bold text-white text-sm">Telegram Stars Boost</h3>
-                            <p className="text-indigo-200 text-xs mt-0.5">Pendapatan Task <strong>2x Lipat</strong>!</p>
+                        <div className="bg-white text-indigo-900 text-[11px] font-black px-3.5 py-2 rounded-full shadow-md shrink-0">
+                            Lihat ⭐
                         </div>
                     </div>
-                    <div className="bg-white text-indigo-900 text-xs font-black px-4 py-2 rounded-full shadow-md">
-                        Mulai
+
+                    {/* Mini tier badges */}
+                    <div className="flex gap-2 mt-3 relative z-10">
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-700/30 text-amber-300 border border-amber-600/30">🥉 X2 · 50⭐</span>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-400/20 text-slate-200 border border-slate-400/30">🥈 X5 · 200⭐</span>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">🥇 X10 · 500⭐</span>
                     </div>
                 </motion.div>
             </div>
