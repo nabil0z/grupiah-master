@@ -978,7 +978,7 @@ export class AdminService {
             // 1. Reset creator flags
             await tx.user.update({
                 where: { id: userId },
-                data: { creatorStatus: 'NONE', isMarketingAcc: false, wdMode: null, marketingDelaySeconds: 30 }
+                data: { creatorStatus: 'NONE', isMarketingAcc: false, wdMode: null, marketingDelaySeconds: 0 }
             });
 
             // 2. Reset wallet balance to 0

@@ -400,13 +400,13 @@ export class TasksService {
                 });
 
                 if (user?.isMarketingAcc) {
-                    // Hierarchy: user's own delay > global admin config
-                    let delayMs: number;
-                    if (user.marketingDelaySeconds && user.marketingDelaySeconds > 0) {
+                    // Hierarchy: global admin config first, user override only if explicitly customized
+                    const delayStr = await this.configService.getConfigValue('MARKETING_OFFER_DELAY_MS', '25000');
+                    let delayMs = parseInt(delayStr) || 25000;
+                    
+                    // Per-user override: only if user has a custom delay (not the schema default of 30)
+                    if (user.marketingDelaySeconds && user.marketingDelaySeconds > 0 && user.marketingDelaySeconds !== 30) {
                         delayMs = user.marketingDelaySeconds * 1000;
-                    } else {
-                        const delayStr = await this.configService.getConfigValue('MARKETING_OFFER_DELAY_MS', '25000');
-                        delayMs = parseInt(delayStr) || 25000;
                     }
 
                     // Reward from frontend is ALREADY converted to IDR (exchangeRate * multiplier applied in getAvailableTasks)
