@@ -53,6 +53,11 @@ const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay:
                             <span className="text-sm font-black text-[var(--color-flash-red)]">
                                 + Rp {Number(task.reward).toLocaleString('id-ID')}
                             </span>
+                            {task._boostMultiplier && (
+                                <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full font-black animate-pulse">
+                                    ⚡ X{task._boostMultiplier}
+                                </span>
+                            )}
                             <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">
                                 🔥 High Payout
                             </span>
@@ -93,6 +98,11 @@ const FeaturedCard = ({ task, rank, onPlay }: { task: any; rank: number; onPlay:
                     <span className="text-xs font-black text-[var(--color-flash-orange)]">
                         Rp {Number(task.reward).toLocaleString('id-ID')}
                     </span>
+                    {task._boostMultiplier && (
+                        <span className="text-[9px] text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-full font-black">
+                            ⚡X{task._boostMultiplier}
+                        </span>
+                    )}
                 </div>
                 <button onClick={() => onPlay()}
                     className="shrink-0 bg-white border border-gray-200 text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
@@ -167,6 +177,11 @@ const TaskCard = ({ task, onPlay }: { task: any; onPlay: (cb?: () => void) => vo
                     <span className="text-[10px] font-bold text-[var(--color-flash-red)] bg-red-50 px-2 py-0.5 rounded-full whitespace-nowrap">
                         + Rp {Number(task.reward).toLocaleString('id-ID')}
                     </span>
+                    {task._boostMultiplier && (
+                        <span className="text-[9px] font-black text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                            ⚡ X{task._boostMultiplier}
+                        </span>
+                    )}
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isAuto ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
                         {isAuto ? '🤖 Auto' : '📝 Manual'}
                     </span>
@@ -401,7 +416,12 @@ export default function EarnPage() {
                                 </div>
                                 <div>
                                     <h2 className="font-bold text-gray-900 text-lg leading-tight">{selectedTask.title}</h2>
-                                    <div className={`text-sm font-black ${selectedTask.provider === 'CUSTOM' ? 'text-amber-600' : 'text-orange-600'}`}>Rp {Number(selectedTask.reward).toLocaleString('id-ID')}</div>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-sm font-black ${selectedTask.provider === 'CUSTOM' ? 'text-amber-600' : 'text-orange-600'}`}>Rp {Number(selectedTask.reward).toLocaleString('id-ID')}</span>
+                                        {selectedTask._boostMultiplier && (
+                                            <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full animate-pulse">⚡ X{selectedTask._boostMultiplier}</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

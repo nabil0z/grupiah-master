@@ -98,6 +98,13 @@ export class TasksService {
             const globalMultiplier = parseFloat(globalMultiplierStr) || 1;
             const exchangeRate = 16000;
 
+            // Check if user has an active boost (X2/X5/X10) → multiply displayed rewards
+            let boostRate = 1;
+            const userBoost = await this.prisma.userBoost.findUnique({ where: { userId } });
+            if (userBoost && new Date(userBoost.expiresAt) > new Date()) {
+                boostRate = Number(userBoost.multiplierRate) || 1;
+            }
+
             let allExternalOffers: any[] = [];
 
             // OGAds
@@ -109,7 +116,7 @@ export class TasksService {
                         externalId: offer.externalId || `og_${Math.random()}`,
                         title: offer.title,
                         description: offer.description,
-                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier * boostRate),
                         type: 'AUTO',
                         isActive: true,
                         providerUrl: offer.providerUrl,
@@ -129,7 +136,7 @@ export class TasksService {
                         externalId: offer.externalId || `ab_${Math.random()}`,
                         title: offer.title,
                         description: offer.description,
-                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier * boostRate),
                         type: 'AUTO',
                         isActive: true,
                         providerUrl: offer.providerUrl,
@@ -149,7 +156,7 @@ export class TasksService {
                         externalId: offer.externalId || `cg_${Math.random()}`,
                         title: offer.title,
                         description: offer.description,
-                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier * boostRate),
                         type: 'AUTO',
                         isActive: true,
                         providerUrl: offer.providerUrl,
@@ -169,7 +176,7 @@ export class TasksService {
                         externalId: offer.externalId || `gg_${Math.random()}`,
                         title: offer.title,
                         description: offer.description,
-                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier),
+                        reward: Math.floor(offer.reward * exchangeRate * globalMultiplier * boostRate),
                         type: 'AUTO',
                         isActive: true,
                         providerUrl: offer.providerUrl,
@@ -215,8 +222,14 @@ export class TasksService {
                 }
             }
 
+            // Apply boost to internal tasks (their reward is already in IDR from DB)
+            const boostedInternalTasks = mappedInternalTasks.map(t => ({
+                ...t,
+                reward: boostRate > 1 ? Math.floor(Number(t.reward) * boostRate) : Number(t.reward),
+            }));
+
             // Filter out dead offers AND completed offers
-            const allOffers = [...mappedInternalTasks, ...allExternalOffers];
+            const allOffers = [...boostedInternalTasks, ...allExternalOffers];
             const activeOffers = allOffers.filter(offer => {
                 const key = `${offer.provider}_${offer.externalId || offer.id}`;
 
@@ -253,7 +266,7 @@ export class TasksService {
 
             // Sort by EPC Score: reward × conversionRate
             // New offers (< 10 clicks) get a boost to give them a fair chance
-            return offersWithCooldown.sort((a, b) => {
+            const sorted = offersWithCooldown.sort((a, b) => {
                 const rewardA = typeof a.reward === 'object' ? Number(a.reward) : a.reward;
                 const rewardB = typeof b.reward === 'object' ? Number(b.reward) : b.reward;
 
@@ -278,6 +291,12 @@ export class TasksService {
 
                 return epcB - epcA;
             });
+
+            // Inject boost metadata for frontend display
+            if (boostRate > 1) {
+                return sorted.map(offer => ({ ...offer, _boostMultiplier: boostRate }));
+            }
+            return sorted;
         } catch (error: any) {
 
             console.error('[TasksService] Caught Error in getAvailableTasks:', error);

@@ -297,6 +297,9 @@ const FlashSalePage = () => {
                                             <h3 className="text-sm font-bold text-gray-900 truncate">{task.title}</h3>
                                             <div className="flex items-center gap-1.5 mt-1">
                                                 <span className="text-sm font-extrabold flash-gradient-text">+ Rp {rewardNum.toLocaleString('id-ID')}</span>
+                                                {task._boostMultiplier && (
+                                                    <span className="text-[9px] font-black text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-full">⚡X{task._boostMultiplier}</span>
+                                                )}
                                                 <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">🔥 High Pay</span>
                                             </div>
                                             <div className="w-2/3 bg-gray-200 rounded-full h-1.5 mt-2">
