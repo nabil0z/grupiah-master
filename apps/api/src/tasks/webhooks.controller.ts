@@ -96,6 +96,16 @@ export class WebhooksController {
 
                 finalReward = Math.floor(finalReward * globalMultiplier);
 
+                // Apply Boost Multiplier if user has active boost (X2/X5/X10)
+                const userBoost = await tx.userBoost.findUnique({ where: { userId: user.id } });
+                if (userBoost && new Date(userBoost.expiresAt) > new Date()) {
+                    const boostRate = Number(userBoost.multiplierRate) || 1;
+                    if (boostRate > 1) {
+                        console.log(`[Postback] Boost X${boostRate} active → reward ${finalReward} → ${Math.floor(finalReward * boostRate)}`);
+                        finalReward = Math.floor(finalReward * boostRate);
+                    }
+                }
+
                 // Update Balance
                 await tx.wallet.update({
                     where: { id: wallet.id },
@@ -228,11 +238,22 @@ export class WebhooksController {
                     const EXCHANGE_RATE_IDR = 16000;
                     const globalMultiplierStr = await this.configService.getConfigValue('GLOBAL_OFFER_MULTIPLIER', '1');
                     const globalMultiplier = parseFloat(globalMultiplierStr) || 1;
-                    const dmReward = Math.floor(rewardDetail.reward * EXCHANGE_RATE_IDR * globalMultiplier);
+                    let dmReward = Math.floor(rewardDetail.reward * EXCHANGE_RATE_IDR * globalMultiplier);
+
+                    // Apply boost multiplier to DM amount too
+                    const dmBoost = await this.prisma.userBoost.findUnique({ where: { userId: dmUser.id } });
+                    let boostLabel = '';
+                    if (dmBoost && new Date(dmBoost.expiresAt) > new Date()) {
+                        const boostRate = Number(dmBoost.multiplierRate) || 1;
+                        if (boostRate > 1) {
+                            dmReward = Math.floor(dmReward * boostRate);
+                            boostLabel = ` (⚡ Boost X${boostRate})`;
+                        }
+                    }
 
                     const message = `🎉 *Tugas Berhasil Diverifikasi!*\n\n` +
                         `Hei ${dmUser.firstName || dmUser.username || 'Kawan'}! Tugas yang kamu kerjakan sudah diverifikasi oleh sistem kami.\n\n` +
-                        `💰 Reward: *+Rp ${dmReward.toLocaleString('id-ID')}*\n` +
+                        `💰 Reward: *+Rp ${dmReward.toLocaleString('id-ID')}*${boostLabel}\n` +
                         `💳 Saldo kamu sudah ditambahkan otomatis.\n\n` +
                         `Kerjakan lebih banyak tugas untuk memperbesar penghasilanmu! 🚀`;
 

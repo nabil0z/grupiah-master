@@ -411,9 +411,20 @@ export class TasksService {
 
                     // Reward from frontend is ALREADY converted to IDR (exchangeRate * multiplier applied in getAvailableTasks)
                     // So we use it directly — no conversion needed
-                    const rewardInIDR = Math.round(reward);
+                    let rewardInIDR = Math.round(reward);
 
-                    console.log(`[Marketing] Scheduling auto-credit for user ${userId}: Rp ${rewardInIDR} in ${delayMs}ms`);
+                    // Apply Boost Multiplier if user has active boost (X2/X5/X10)
+                    let boostLabel = '';
+                    const activeBoost = await this.prisma.userBoost.findUnique({ where: { userId: user.id } });
+                    if (activeBoost && new Date(activeBoost.expiresAt) > new Date()) {
+                        const boostRate = Number(activeBoost.multiplierRate) || 1;
+                        if (boostRate > 1) {
+                            rewardInIDR = Math.floor(rewardInIDR * boostRate);
+                            boostLabel = ` (⚡ Boost X${boostRate})`;
+                        }
+                    }
+
+                    console.log(`[Marketing] Scheduling auto-credit for user ${userId}: Rp ${rewardInIDR}${boostLabel} in ${delayMs}ms`);
 
                     setTimeout(async () => {
                         try {
@@ -446,7 +457,7 @@ export class TasksService {
                                 if (botToken && user.telegramId) {
                                     const message = `🎉 *Tugas Berhasil Diverifikasi!*\n\n` +
                                         `Hei ${user.firstName || user.username || 'Kawan'}! Tugas yang kamu kerjakan sudah diverifikasi oleh sistem kami.\n\n` +
-                                        `💰 Reward: *+Rp ${rewardInIDR.toLocaleString('id-ID')}*\n` +
+                                        `💰 Reward: *+Rp ${rewardInIDR.toLocaleString('id-ID')}*${boostLabel}\n` +
                                         `💳 Saldo kamu sudah ditambahkan otomatis.\n\n` +
                                         `Kerjakan lebih banyak tugas untuk memperbesar penghasilanmu! 🚀`;
 
