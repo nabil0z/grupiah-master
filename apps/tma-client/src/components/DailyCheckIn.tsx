@@ -124,11 +124,22 @@ export default function DailyCheckIn({ onClose, isOpen, currentStreak, dailyRewa
                             onClick={async () => {
                                 try {
                                     setIsSubmitting(true);
+
+                                    // Tanam Cookie Affiliate dengan membuka link Shopee Sponsor saat user klik
+                                    try {
+                                        const sponsorLink = 'https://s.shopee.co.id/5q44JlvHfE'; 
+                                        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.openLink) {
+                                            (window as any).Telegram.WebApp.openLink(sponsorLink);
+                                        }
+                                    } catch (err) {
+                                        console.error("Gagal membuka sponsor", err);
+                                    }
+
                                     const res = await userApi.claimDaily();
                                     if (res.success) {
                                         setClaimedDay(currentStreak);
                                         await refreshWallet();
-                                        setTimeout(() => onClose(), 2000); // Auto close after 2s on success
+                                        setTimeout(() => onClose(), 2500); // Auto close after success
                                     }
                                 } catch (e) {
                                     console.error("Claim failed", e);
@@ -138,13 +149,16 @@ export default function DailyCheckIn({ onClose, isOpen, currentStreak, dailyRewa
                             }}
                             disabled={claimedDay !== null || isSubmitting}
                             className={cn(
-                                "w-full py-4 rounded-xl font-bold transition-all shadow-md relative overflow-hidden",
+                                "w-full py-3.5 rounded-xl font-bold transition-all shadow-md relative overflow-hidden flex flex-col items-center justify-center",
                                 (claimedDay !== null || isSubmitting)
                                     ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                    : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white"
+                                    : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white leading-tight"
                             )}
                         >
-                            {isSubmitting ? "Memproses..." : claimedDay !== null ? "Berhasil Diklaim! 💸" : "Klaim Uang Tunai Sekarang"}
+                            <span className="text-[15px]">{isSubmitting ? "Memproses..." : claimedDay !== null ? "Berhasil Diklaim! 💸" : "Klaim Saldo & Kunjungi Sponsor"}</span>
+                            {claimedDay === null && !isSubmitting && (
+                                <span className="text-[10px] opacity-85 font-medium mt-0.5">*Membuka aplikasi Shopee</span>
+                            )}
                         </button>
                     </div>
                 </motion.div>
