@@ -432,14 +432,15 @@ export class TasksService {
                     // So we use it directly — no conversion needed
                     let rewardInIDR = Math.round(reward);
 
-                    // Apply Boost Multiplier if user has active boost (X2/X5/X10)
+                    // Boost Label for notification (value is already boosted from frontend)
                     let boostLabel = '';
                     const activeBoost = await this.prisma.userBoost.findUnique({ where: { userId: user.id } });
                     if (activeBoost && new Date(activeBoost.expiresAt) > new Date()) {
                         const boostRate = Number(activeBoost.multiplierRate) || 1;
                         if (boostRate > 1) {
-                            rewardInIDR = Math.floor(rewardInIDR * boostRate);
                             boostLabel = ` (⚡ Boost X${boostRate})`;
+                            // Note: rewardInIDR is NOT multiplied again because 
+                            // it was already multiplied in getAvailableTasks()
                         }
                     }
 

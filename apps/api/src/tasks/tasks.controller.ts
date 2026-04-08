@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, UseInterceptors, UploadedFile, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { TelegramAuthGuard } from '../auth/telegram-auth/telegram-auth.guard';
 import { SubmitTaskDto } from './dto/submit-task.dto';
@@ -34,7 +34,7 @@ export class TasksController {
     @Post('submit')
     async submitTask(@Body() body: SubmitTaskDto, @Request() req: any) {
         try {
-            if (!req.dbUser) throw new Error('Unauthorized');
+            if (!req.dbUser) throw new UnauthorizedException('Unauthorized');
             const result = await this.tasksService.submitManualTask(req.dbUser.id, body.taskId, body.proofUrl, body.proofText);
             return {
                 success: true,
@@ -51,8 +51,27 @@ export class TasksController {
     @UseInterceptors(require('@nestjs/platform-express').FileInterceptor('image'))
     async uploadProof(@Request() req: any, @UploadedFile() file: Express.Multer.File) {
         try {
-            if (!req.dbUser) throw new Error('Unauthorized');
-            if (!file) throw new Error('No file provided');
+            if (!req.dbUser) throw new UnauthorizedException('Unauthorized');
+            if (!file) throw new BadRequestException('No file provided');
+
+            // --- Validasi Dimensi Screenshot (Aspect Ratio) ---
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-require-imports
+                const sizeOf = require('image-size');
+                const dimensions = sizeOf(file.buffer);
+                if (dimensions && dimensions.width && dimensions.height) {
+                    const ratio = dimensions.height / dimensions.width;
+                    // Screenshot HP utuh rasionya meninggi (16:9 = 1.77, 20:9 = 2.22). 
+                    // Kita pakai treshold 1.4 untuk mentolerir crop tipis, tapi mereject rasio kotak(1:1) / melebar
+                    if (ratio < 1.4) {
+                        // Return error format that the frontend can display beautifully
+                        throw new BadRequestException('Gambar Ditolak: Harap upload hasil screenshot layar penuh UTUH (memanjang), bukan gambar yang sudah dipotong/kotak.');
+                    }
+                }
+            } catch (e: any) {
+                if (e.status === 400) throw e;
+                throw new BadRequestException('Format file gambar rusak atau tidak didukung.');
+            }
 
             const botToken = process.env.BOT_TOKEN;
             const channelId = process.env.DATABASE_CHANNEL_ID || process.env.CHANNEL_ID;
