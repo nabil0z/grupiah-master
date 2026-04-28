@@ -48,7 +48,8 @@ export default function WalletPage() {
 
     const canWithdraw = balance >= minWithdraw;
     const validAmount = withdrawAmount >= minWithdraw && withdrawAmount <= balance;
-    const isNameVerified = !!lookupResult;
+    const isEwallet = ['DANA', 'GOPAY', 'OVO'].includes(withdrawMethod);
+    const isNameVerified = isEwallet ? accountName.trim().length > 0 : !!lookupResult;
 
     const openWithdrawModal = () => {
         if (canWithdraw) {
@@ -69,7 +70,7 @@ export default function WalletPage() {
         setAccountNumber(value);
         setLookupResult(null);
         setLookupError(null);
-        setAccountName('');
+        if (!isEwallet) setAccountName('');
     };
 
     const handleLookupAccount = async () => {
@@ -323,7 +324,7 @@ export default function WalletPage() {
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
-                                            {['DANA', 'GOPAY', 'OVO'].includes(withdrawMethod) ? 'Nomor HP' : 'Nomor Rekening'}
+                                            {isEwallet ? 'Nomor HP' : 'Nomor Rekening'}
                                         </label>
                                         <div className="flex gap-2">
                                             <input
@@ -331,33 +332,54 @@ export default function WalletPage() {
                                                 required
                                                 value={accountNumber}
                                                 onChange={(e) => handleAccountNumberChange(e.target.value)}
-                                                placeholder={['DANA', 'GOPAY', 'OVO'].includes(withdrawMethod) ? 'Contoh: 08123456789' : 'Contoh: 1234567890'}
+                                                placeholder={isEwallet ? 'Contoh: 08123456789' : 'Contoh: 1234567890'}
                                                 className="flex-1 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5 font-mono"
                                             />
-                                            <button
-                                                type="button"
-                                                onClick={handleLookupAccount}
-                                                disabled={isLookingUp || !accountNumber.trim()}
-                                                className="px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shrink-0"
-                                            >
-                                                {isLookingUp ? (
-                                                    <Loader2 size={16} className="animate-spin" />
-                                                ) : (
-                                                    <Search size={16} />
-                                                )}
-                                                {isLookingUp ? 'Cek...' : 'Cek Nama'}
-                                            </button>
+                                            {!isEwallet && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleLookupAccount}
+                                                    disabled={isLookingUp || !accountNumber.trim()}
+                                                    className="px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shrink-0"
+                                                >
+                                                    {isLookingUp ? (
+                                                        <Loader2 size={16} className="animate-spin" />
+                                                    ) : (
+                                                        <Search size={16} />
+                                                    )}
+                                                    {isLookingUp ? 'Cek...' : 'Cek Nama'}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Lookup Result Display */}
+                                    {/* Name Section — different for e-wallet vs bank */}
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Nama Pemilik Akun</label>
-                                        {lookupResult ? (
-                                            <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl p-3.5 font-bold flex items-center gap-2">
-                                                <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
-                                                <span>{lookupResult}</span>
-                                            </div>
+                                        {isEwallet ? (
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={accountName}
+                                                    onChange={(e) => setAccountName(e.target.value)}
+                                                    placeholder="Masukkan nama sesuai akun e-wallet"
+                                                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5"
+                                                />
+                                                <p className="text-[10px] text-amber-600 mt-1.5 font-medium leading-tight">
+                                                    *E-wallet tidak mendukung verifikasi otomatis. Pastikan nama sesuai akun Anda.
+                                                </p>
+                                            </>
+                                        ) : lookupResult ? (
+                                            <>
+                                                <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl p-3.5 font-bold flex items-center gap-2">
+                                                    <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                                                    <span>{lookupResult}</span>
+                                                </div>
+                                                <p className="text-[10px] text-emerald-600 mt-1.5 font-medium leading-tight">
+                                                    *Nama terverifikasi otomatis dari sistem bank.
+                                                </p>
+                                            </>
                                         ) : lookupError ? (
                                             <div className="w-full bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3.5 flex items-center gap-2">
                                                 <XCircle size={18} className="text-red-400 shrink-0" />
@@ -365,13 +387,8 @@ export default function WalletPage() {
                                             </div>
                                         ) : (
                                             <div className="w-full bg-gray-50 border border-gray-200 text-gray-400 text-sm rounded-xl p-3.5 italic">
-                                                Masukkan nomor lalu klik "Cek Nama"
+                                                Masukkan nomor rekening lalu klik "Cek Nama"
                                             </div>
-                                        )}
-                                        {lookupResult && (
-                                            <p className="text-[10px] text-emerald-600 mt-1.5 font-medium leading-tight">
-                                                *Nama terverifikasi otomatis dari sistem bank/e-wallet.
-                                            </p>
                                         )}
                                     </div>
 

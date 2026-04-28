@@ -484,14 +484,17 @@ export class UsersController {
                 throw new HttpException('Method dan nomor rekening wajib diisi', HttpStatus.BAD_REQUEST);
             }
 
-            // Map frontend method to api.co.id bank_code
+            // E-wallet (DANA/OVO/GOPAY) tidak didukung oleh api.co.id — hanya bank
+            const E_WALLETS = ['DANA', 'GOPAY', 'OVO'];
+            if (E_WALLETS.includes(method)) {
+                return { success: false, isEwallet: true, message: 'Verifikasi otomatis tidak tersedia untuk e-wallet. Silakan masukkan nama manual.' };
+            }
+
+            // Map frontend method to api.co.id bank_code (full format sesuai API)
             const BANK_CODE_MAP: Record<string, string> = {
-                'DANA': 'dana',
-                'GOPAY': 'gopay',
-                'OVO': 'ovo',
-                'BANK_BCA': 'bca',
-                'BANK_MANDIRI': 'mandiri',
-                'BANK_BRI': 'bri',
+                'BANK_BCA': 'bank_bca',
+                'BANK_MANDIRI': 'bank_mandiri',
+                'BANK_BRI': 'bank_bri',
             };
 
             const bankCode = BANK_CODE_MAP[method];
