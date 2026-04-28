@@ -518,6 +518,13 @@ export class UsersController {
                 }),
             });
 
+            // Guard: ensure response is JSON (api.co.id may return HTML on error/auth failure)
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                console.error('[LookupAccount] Non-JSON response from api.co.id:', response.status, contentType);
+                return { success: false, message: 'Layanan verifikasi sedang gangguan. Coba lagi nanti.' };
+            }
+
             const result = await response.json() as any;
 
             if (!result.is_success || !result.data) {
