@@ -77,6 +77,10 @@ export const userApi = {
         const response = await apiClient.post('/users/me/withdraw', payload);
         return response.data;
     },
+    lookupAccount: async (payload: { method: string, accountNumber: string }) => {
+        const response = await apiClient.post('/users/me/lookup-account', payload);
+        return response.data;
+    },
     getWithdrawals: async () => {
         const response = await apiClient.get('/users/me/withdrawals');
         return response.data;

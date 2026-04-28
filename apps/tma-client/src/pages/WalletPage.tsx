@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wallet as WalletIcon, ArrowRightLeft, ShieldAlert, History, HelpCircle, X, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Wallet as WalletIcon, ArrowRightLeft, ShieldAlert, History, HelpCircle, X, CheckCircle2, Clock, XCircle, Search, Loader2 } from 'lucide-react';
 import { userApi } from '../api/client';
 import { useWallet } from '../contexts/WalletContext';
 
@@ -24,6 +24,11 @@ export default function WalletPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [withdrawals, setWithdrawals] = useState<WithdrawalItem[]>([]);
 
+    // Account lookup states
+    const [isLookingUp, setIsLookingUp] = useState(false);
+    const [lookupResult, setLookupResult] = useState<string | null>(null);
+    const [lookupError, setLookupError] = useState<string | null>(null);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -43,11 +48,55 @@ export default function WalletPage() {
 
     const canWithdraw = balance >= minWithdraw;
     const validAmount = withdrawAmount >= minWithdraw && withdrawAmount <= balance;
+    const isNameVerified = !!lookupResult;
 
     const openWithdrawModal = () => {
         if (canWithdraw) {
             setWithdrawAmount(balance); // Default to full balance
             setIsWithdrawModalOpen(true);
+        }
+    };
+
+    // Reset lookup when method or number changes
+    const handleMethodChange = (newMethod: string) => {
+        setWithdrawMethod(newMethod);
+        setLookupResult(null);
+        setLookupError(null);
+        setAccountName('');
+    };
+
+    const handleAccountNumberChange = (value: string) => {
+        setAccountNumber(value);
+        setLookupResult(null);
+        setLookupError(null);
+        setAccountName('');
+    };
+
+    const handleLookupAccount = async () => {
+        if (!accountNumber.trim()) return;
+
+        setIsLookingUp(true);
+        setLookupError(null);
+        setLookupResult(null);
+        setAccountName('');
+
+        try {
+            const result = await userApi.lookupAccount({
+                method: withdrawMethod,
+                accountNumber: accountNumber.trim(),
+            });
+
+            if (result.success && result.name) {
+                setLookupResult(result.name);
+                setAccountName(result.name);
+            } else {
+                setLookupError(result.message || 'Nomor rekening tidak ditemukan');
+            }
+        } catch (error: any) {
+            console.error('Lookup failed:', error);
+            setLookupError(error?.response?.data?.message || 'Gagal memverifikasi rekening. Coba lagi.');
+        } finally {
+            setIsLookingUp(false);
         }
     };
 
@@ -71,6 +120,8 @@ export default function WalletPage() {
                 setIsSuccess(false);
                 setAccountName('');
                 setAccountNumber('');
+                setLookupResult(null);
+                setLookupError(null);
             }, 3000);
         } catch (error: any) {
             console.error('Withdrawal failed:', error);
@@ -258,7 +309,7 @@ export default function WalletPage() {
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Metode Tujuan</label>
                                         <select
                                             value={withdrawMethod}
-                                            onChange={(e) => setWithdrawMethod(e.target.value)}
+                                            onChange={(e) => handleMethodChange(e.target.value)}
                                             className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5 font-bold"
                                         >
                                             <option value="DANA">DANA (E-Wallet)</option>
@@ -271,39 +322,66 @@ export default function WalletPage() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Nomor Rekening / HP</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={accountNumber}
-                                            onChange={(e) => setAccountNumber(e.target.value)}
-                                            placeholder="Contoh: 08123456789"
-                                            className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5 font-mono"
-                                        />
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+                                            {['DANA', 'GOPAY', 'OVO'].includes(withdrawMethod) ? 'Nomor HP' : 'Nomor Rekening'}
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                required
+                                                value={accountNumber}
+                                                onChange={(e) => handleAccountNumberChange(e.target.value)}
+                                                placeholder={['DANA', 'GOPAY', 'OVO'].includes(withdrawMethod) ? 'Contoh: 08123456789' : 'Contoh: 1234567890'}
+                                                className="flex-1 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5 font-mono"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleLookupAccount}
+                                                disabled={isLookingUp || !accountNumber.trim()}
+                                                className="px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shrink-0"
+                                            >
+                                                {isLookingUp ? (
+                                                    <Loader2 size={16} className="animate-spin" />
+                                                ) : (
+                                                    <Search size={16} />
+                                                )}
+                                                {isLookingUp ? 'Cek...' : 'Cek Nama'}
+                                            </button>
+                                        </div>
                                     </div>
 
+                                    {/* Lookup Result Display */}
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Nama Pemilik Akun Valid</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={accountName}
-                                            onChange={(e) => setAccountName(e.target.value)}
-                                            placeholder="Sesuai KTP / Akun Premium"
-                                            className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-3.5"
-                                        />
-                                        <p className="text-[10px] text-red-500 mt-1.5 font-medium leading-tight">
-                                            *Peringatan: Cek kembali nama dan nomor rekening. Pihak kami tidak bertanggung jawab jika salah transfer.
-                                        </p>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Nama Pemilik Akun</label>
+                                        {lookupResult ? (
+                                            <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl p-3.5 font-bold flex items-center gap-2">
+                                                <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
+                                                <span>{lookupResult}</span>
+                                            </div>
+                                        ) : lookupError ? (
+                                            <div className="w-full bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3.5 flex items-center gap-2">
+                                                <XCircle size={18} className="text-red-400 shrink-0" />
+                                                <span className="text-xs">{lookupError}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full bg-gray-50 border border-gray-200 text-gray-400 text-sm rounded-xl p-3.5 italic">
+                                                Masukkan nomor lalu klik "Cek Nama"
+                                            </div>
+                                        )}
+                                        {lookupResult && (
+                                            <p className="text-[10px] text-emerald-600 mt-1.5 font-medium leading-tight">
+                                                *Nama terverifikasi otomatis dari sistem bank/e-wallet.
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="pt-2">
                                         <button
                                             type="submit"
-                                            disabled={isSubmitting || !validAmount}
+                                            disabled={isSubmitting || !validAmount || !isNameVerified}
                                             className="w-full text-white bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 font-bold rounded-xl text-sm px-5 py-4 text-center transition-all shadow-md flex items-center justify-center gap-2"
                                         >
-                                            {isSubmitting ? 'Memproses...' : `Kirim Rp ${withdrawAmount.toLocaleString('id-ID')}`}
+                                            {isSubmitting ? 'Memproses...' : !isNameVerified ? 'Verifikasi nama terlebih dahulu' : `Kirim Rp ${withdrawAmount.toLocaleString('id-ID')}`}
                                         </button>
                                     </div>
                                 </form>

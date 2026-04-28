@@ -73,9 +73,17 @@
 }
 
 @keyframes shimmer {
-  0% { left: -100%; }
-  50% { left: 150%; }
-  100% { left: 150%; }
+  0% {
+    left: -100%;
+  }
+
+  50% {
+    left: 150%;
+  }
+
+  100% {
+    left: 150%;
+  }
 }
 
 .boost-glow {
@@ -83,6 +91,13 @@
 }
 
 @keyframes boost-glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(250, 204, 21, 0.15); }
-  50% { box-shadow: 0 0 30px rgba(250, 204, 21, 0.3); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.15);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(250, 204, 21, 0.3);
+  }
 }

@@ -474,6 +474,72 @@ export class UsersController {
         }
     }
 
+    @Post('me/lookup-account')
+    @UseGuards(TelegramAuthGuard)
+    async lookupAccount(@Request() req: any, @Body() body: { method: string, accountNumber: string }) {
+        try {
+            const { method, accountNumber } = body;
+
+            if (!method || !accountNumber) {
+                throw new HttpException('Method dan nomor rekening wajib diisi', HttpStatus.BAD_REQUEST);
+            }
+
+            // Map frontend method to api.co.id bank_code
+            const BANK_CODE_MAP: Record<string, string> = {
+                'DANA': 'dana',
+                'GOPAY': 'gopay',
+                'OVO': 'ovo',
+                'BANK_BCA': 'bca',
+                'BANK_MANDIRI': 'mandiri',
+                'BANK_BRI': 'bri',
+            };
+
+            const bankCode = BANK_CODE_MAP[method];
+            if (!bankCode) {
+                throw new HttpException('Metode pembayaran tidak didukung untuk lookup', HttpStatus.BAD_REQUEST);
+            }
+
+            const apiKey = process.env.API_CO_ID_KEY;
+            if (!apiKey) {
+                throw new HttpException('Layanan verifikasi rekening belum dikonfigurasi', HttpStatus.SERVICE_UNAVAILABLE);
+            }
+
+            // Call api.co.id validation endpoint with dummy name to get real masked name
+            const response = await fetch('https://api.co.id/v1/validation/bank', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-co-id': apiKey,
+                },
+                body: JSON.stringify({
+                    bank_code: bankCode,
+                    account_number: accountNumber,
+                    account_name: 'x', // dummy name — API still returns real masked name
+                }),
+            });
+
+            const result = await response.json() as any;
+
+            if (!result.is_success || !result.data) {
+                return { success: false, message: result.message || 'Gagal memverifikasi rekening' };
+            }
+
+            if (!result.data.name) {
+                return { success: false, message: 'Nomor rekening tidak ditemukan atau tidak valid' };
+            }
+
+            return {
+                success: true,
+                name: result.data.name,
+                bankCode,
+            };
+        } catch (e: any) {
+            console.error('[LookupAccount Error]', e);
+            if (e instanceof HttpException) throw e;
+            throw new HttpException(e.message || 'Gagal memverifikasi rekening', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @Post('me/withdraw')
     @UseGuards(TelegramAuthGuard)
     async requestWithdrawal(@Request() req: any) {
