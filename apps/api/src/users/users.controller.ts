@@ -504,18 +504,19 @@ export class UsersController {
                 throw new HttpException('Layanan verifikasi rekening belum dikonfigurasi', HttpStatus.SERVICE_UNAVAILABLE);
             }
 
-            // Call api.co.id validation endpoint with dummy name to get real masked name
-            const response = await fetch('https://api.co.id/v1/validation/bank', {
-                method: 'POST',
+            // Call api.co.id validation endpoint (GET with query params)
+            // Base URL: https://use.api.co.id | Endpoint: /validation/bank
+            const queryParams = new URLSearchParams({
+                bank_code: bankCode,
+                account_number: accountNumber,
+                account_name: 'x', // dummy name — API still returns real masked name
+            });
+
+            const response = await fetch(`https://use.api.co.id/validation/bank?${queryParams.toString()}`, {
+                method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
                     'x-api-co-id': apiKey,
                 },
-                body: JSON.stringify({
-                    bank_code: bankCode,
-                    account_number: accountNumber,
-                    account_name: 'x', // dummy name — API still returns real masked name
-                }),
             });
 
             // Guard: ensure response is JSON (api.co.id may return HTML on error/auth failure)
